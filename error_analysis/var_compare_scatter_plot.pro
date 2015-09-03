@@ -5,8 +5,8 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
     
   kperp_wavelength_max = [0,50,0]
   kperp_wavelength_min = [0,0,50]
-  xplotrange = [1e17, 1e28]
-  yplotrange = [1e17, 1e28]
+  xplotrange = [1e22, 2e35]
+  yplotrange = [1e22, 2e35]
   
   IF N_ELEMENTS(choose_term) EQ 0 THEN choose_term = 1
   IF N_ELEMENTS(kperp_wavelength_max) LT 1 THEN kperp_wavelength_max = 0
@@ -30,6 +30,14 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
     3: BEGIN
       cube_name = 'obs'
       note_part = 'crossed difference cubes, single obs'
+    END
+    4: BEGIN
+      cube_name = 'UVsim0p0002'
+      note_part = 'crossed simulated noise cubes with uniform 0.0002 UV coverage, single obs'
+    END
+    5: BEGIN
+      cube_name = 'UVsim0p0005'
+      note_part = 'crossed simulated noise cubes with uniform 0.0005 UV coverage, single obs'
     END
   ENDCASE
   
@@ -93,6 +101,8 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
     CROSS_DIFFERENCE, choose_term = choose_term, kperp_wavelength_max = kperp_wavelength_max[i], kperp_wavelength_min = kperp_wavelength_min[i], $
       use_cubes = use_cubes, kx_mpc = kx_mpc, ky_mpc = ky_mpc, kz_mpc = kz_mpc, kperp_lambda_conv = kperp_lambda_conv, $
       diff_cross = diff_cross, sigma2_correct = sigma2, polarization = polarization
+      
+      
       
     sigma2_kperp = MEAN(sigma2, DIMENSION = 3, /NAN)
     var_diff_cross = VARIANCE(REAL_PART(diff_cross), DIMENSION = 3)

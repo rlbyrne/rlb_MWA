@@ -5,6 +5,8 @@
 ; 1: Simulated noise cubes based on Long Run obsids 1061316176 and 1061316296 (Aug23 near zenith) (single obsid) -- also called with keyword noise_sim
 ; 2: Long Run, Aug23 and Aug27 full 3 hour integration -- also called with keyword three_hr
 ; 3: Long Run, obsids 1061316176 and 1061316296 (Aug23 near zenith) (single obsid)
+; 4: Simulated noise cubes with uniform 0.0002 UV coverage based on Long Run obsids 1061316176 and 1061316296 (Aug23 near zenith) (single obsid)
+; 5: Simulated noise cubes with uniform 0.0005 UV coverage based on Long Run obsids 1061316176 and 1061316296 (Aug23 near zenith) (single obsid)
 ; diff_sim: produces simulated difference cubes based on the variances determined by use_cubes
 
 PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polarization = polarization, kperp_wavelength_max = kperp_wavelength_max, $
@@ -46,6 +48,18 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
       obsid2 = '1061316296'
       filename1 = '/nfs/eor-03/r1/EoR2013/fhd_apb_EoR0_high_sem1_1/ps/' + obsid1 + '_cubeXX__even_odd_joint_res_' + polarization + '_bh_kcube.idlsave'
       filename2 = '/nfs/eor-03/r1/EoR2013/fhd_apb_EoR0_high_sem1_1/ps/' + obsid2 + '_cubeXX__even_odd_joint_res_' + polarization + '_bh_kcube.idlsave'
+    END
+    4: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.0002
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0002/'+ obsid1 + '_cubeXX__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0002/'+ obsid2 + '_cubeXX__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    5: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.0005
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0005/'+ obsid1 + '_cubeXX__even_odd_joint_res_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0005/'+ obsid2 + '_cubeXX__even_odd_joint_res_' + polarization + '_bh_kcube.idlsave'
     END
   ENDCASE
   
@@ -115,7 +129,11 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
   ;; calculate cross difference
   cube_cross = ACube * CONJ(BCube)
   sigma2_approx = (ACube_sigma2 + BCube_sigma2)^2/2
-  sigma2_correct = sigma2_approx / VAR_PROP_CORRECT(ACube_sigma2, BCube_sigma2)
+  correction_factor = VAR_PROP_CORRECT(ACube_sigma2, BCube_sigma2)
+  sigma2_correct = sigma2_approx / correction_factor
+  wh_sig0 = WHERE(correction_factor EQ 0 OR ~FINITE(correction_factor), count_sig0)
+  IF count_sig0 GT 0 THEN sigma2_correct[wh_sig0] = 0
+  
   
   ;; for historical reasons (variable name changes):
   Aug23_diff = ACube
