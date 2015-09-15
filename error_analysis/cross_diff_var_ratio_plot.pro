@@ -1,5 +1,5 @@
 PRO cross_diff_var_ratio_plot, choose_term = choose_term, kperp_wavelength_max = kperp_wavelength_max, savefile = savefile, $
-    polarization = polarization, use_cubes = use_cubes
+    polarization = polarization, use_cubes = use_cubes, use_var_correct = use_var_correct
     
   IF N_ELEMENTS(choose_term) EQ 0 THEN choose_term = 1
   IF N_ELEMENTS(kperp_wavelength_max) LT 1 THEN kperp_wavelength_max = 0
@@ -33,8 +33,12 @@ PRO cross_diff_var_ratio_plot, choose_term = choose_term, kperp_wavelength_max =
       cube_name = 'UVsim0p0005'
       note_part = 'crossed simulated noise cubes with uniform 0.0005 UV coverage, single obs'
     END
+    6: BEGIN
+      cube_name = 'UVsim0p0002_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.0002 UV coverage, single obs, UVF input'
+    END
   ENDCASE
-  
+    
   CROSS_DIFFERENCE, choose_term = choose_term, kperp_wavelength_max = kperp_wavelength_max, $
     use_cubes = use_cubes, kx_mpc = kx_mpc, ky_mpc = ky_mpc, kz_mpc = kz_mpc, kperp_lambda_conv = kperp_lambda_conv, $
     diff_cross = diff_cross, sigma2_correct = sigma2, polarization = polarization
@@ -46,7 +50,7 @@ PRO cross_diff_var_ratio_plot, choose_term = choose_term, kperp_wavelength_max =
   wh_sig0 = WHERE(sigma2_kperp EQ 0, count_sig0)
   IF count_sig0 GT 0 THEN ratio_var_diff_cross[wh_sig0] = 0
   
-  
+  stop
   
   IF KEYWORD_SET(savefile) THEN BEGIN
     filename = '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varratio_' + cube_name + '_' + polarization + '_term' + STRTRIM(STRING(choose_term),2)
@@ -62,6 +66,6 @@ PRO cross_diff_var_ratio_plot, choose_term = choose_term, kperp_wavelength_max =
   ENDELSE
   
   
-  
+  stop
   
 END

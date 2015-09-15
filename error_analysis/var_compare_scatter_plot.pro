@@ -3,10 +3,10 @@
 PRO var_compare_scatter_plot, choose_term = choose_term, $
     savefile = savefile, polarization = polarization, use_cubes = use_cubes
     
-  kperp_wavelength_max = [0,50,0]
-  kperp_wavelength_min = [0,0,50]
-  xplotrange = [1e22, 2e35]
-  yplotrange = [1e22, 2e35]
+  kperp_wavelength_max = [0]
+  kperp_wavelength_min = [0]
+  xplotrange = [1e20, 1e25]
+  yplotrange = [1e20, 1e25]
   
   IF N_ELEMENTS(choose_term) EQ 0 THEN choose_term = 1
   IF N_ELEMENTS(kperp_wavelength_max) LT 1 THEN kperp_wavelength_max = 0
@@ -39,10 +39,15 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
       cube_name = 'UVsim0p0005'
       note_part = 'crossed simulated noise cubes with uniform 0.0005 UV coverage, single obs'
     END
+    6: BEGIN
+      cube_name = 'UVsim0p0002_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.0002 UV coverage, single obs, UVF input'
+      IF N_ELEMENTS(use_var_correct) LT 1 THEN use_var_correct = 1 ;var_prop_correct program takes too long
+    END
   ENDCASE
-  
+     
   IF KEYWORD_SET(savefile) THEN CGPS_OPEN, '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varcompare_scatter_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2), $
-    /FONT, XSIZE = 30, YSIZE = 7
+    /FONT, XSIZE = 15, YSIZE = 7 ;XSIZE = 30, YSIZE = 7
     
   ;;SIMULATION:
     
@@ -60,7 +65,7 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
   var_diff_cross_sim = var_diff_cross_sim[keep_indices]
   sigma2_kperp_sim_log = ALOG10(sigma2_kperp_sim)
   var_diff_cross_sim_log = ALOG10(var_diff_cross_sim)
-  
+    
   IF N_ELEMENTS(xplotrange) GT 0 THEN BEGIN
     min_sigma2 = ALOG10(xplotrange[0])
     max_sigma2 = ALOG10(xplotrange[1])
@@ -92,7 +97,7 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
     note = note;, $
   ;SAVEFILE = savefile_name, PNG = savefile
   CGPLOT, xrange, xrange, LINESTYLE = 2, /OVERPLOT, /XLOG, /YLOG, XSTYLE = 1, YSTYLE = 1, XRANGE = xrange, YRANGE = yrange
-  
+    
   
   ;;DATA:
   
@@ -132,5 +137,7 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
   ENDFOR
   
   IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS
+  
+  stop
   
 END
