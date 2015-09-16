@@ -15,7 +15,7 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
     ACube = ACube, ACube_sigma2 = ACube_sigma2, BCube = BCube, BCube_sigma2 = BCube_sigma2, $
     kx_mpc = kx_mpc, ky_mpc = ky_mpc, kz_mpc = kz_mpc, kperp_lambda_conv = kperp_lambda_conv, delay_params = delay_params,$
     cube_cross = cube_cross, sigma2_approx = sigma2_approx, sigma2_correct = sigma2_correct, $
-    obsid1 = obsid1, obsid2 = obsid2, $
+    obsid1 = obsid1, obsid2 = obsid2, filename1 = filename1, filename2 = filename2, $
     ;;FOR HISTORICAL REASONS:
     Aug23_diff = Aug23_diff, Aug23_sigma2 = Aug23_sigma2, Aug27_diff = Aug27_diff, Aug27_sigma2 = Aug27_sigma2, diff_cross = diff_cross, $
     noise_sim = noise_sim, three_hr = three_hr
@@ -99,7 +99,7 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
   ky_mpc = getvar_savefile(filename1, 'KY_MPC')
   kz_mpc = getvar_savefile(filename1, 'KZ_MPC')
   
-  IF SIZE(kperp_wavelength_max, /N_ELEMENTS) GT 0 THEN BEGIN
+  IF n_elements(kperp_wavelength_max) GT 0 THEN BEGIN
     IF kperp_wavelength_max NE 0 THEN BEGIN
       kx_indices = WHERE(ABS(kx_mpc) LE kperp_wavelength_max/kperp_lambda_conv, /NULL)
       ky_indices = WHERE(ABS(ky_mpc) LE kperp_wavelength_max/kperp_lambda_conv, /NULL)
@@ -113,7 +113,7 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
     ENDIF
   ENDIF
   
-  IF SIZE(kperp_wavelength_min, /N_ELEMENTS) GT 0 THEN BEGIN
+  IF n_elements(kperp_wavelength_min) GT 0 THEN BEGIN
     kx_indices = WHERE(ABS(kx_mpc) GT kperp_wavelength_min/kperp_lambda_conv, /NULL)
     ky_indices = WHERE(ABS(ky_mpc) GT kperp_wavelength_min/kperp_lambda_conv, /NULL)
     kx_mpc = kx_mpc[kx_indices]
@@ -145,10 +145,7 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
       wh_sig0 = WHERE(correction_factor EQ 0 OR ~FINITE(correction_factor), count_sig0)
       IF count_sig0 GT 0 THEN sigma2_correct[wh_sig0] = 0
     ENDIF ELSE sigma2_correct = sigma2_approx
-  ENDIF ELSE BEGIN
-    sigma2_approx = 0
-    sigma2_correct = 0
-  ENDELSE
+  ENDIF
   
   ;; for historical reasons (variable name changes):
   Aug23_diff = ACube
