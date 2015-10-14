@@ -69,6 +69,30 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
       filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0002/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
       filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0002/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
     END
+    7: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.0005, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0005/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.0005/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    8: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.001, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.001/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.001/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    9: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.005, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.005/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.005/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    10: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.01, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.01/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.01/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
   ENDCASE
   
   IF N_ELEMENTS(obsid1) LT 1 THEN obsid1 = ''

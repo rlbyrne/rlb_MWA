@@ -3,7 +3,7 @@
 PRO var_compare_scatter_plot, choose_term = choose_term, $
     savefile = savefile, polarization = polarization, use_cubes = use_cubes, $
     kperp_wavelength_max = kperp_wavelength_max, kperp_wavelength_min = kperp_wavelength_min, xplotrange = xplotrange, yplotrange = yplotrange, $
-    diff_cross = diff_cross, sigma2_all = sigma2_all
+    diff_cross = diff_cross, sigma2_all = sigma2_all, where_0 = where_0
     
   if n_elements(kperp_wavelength_max) lt 1 then kperp_wavelength_max = [0]
   if n_elements(kperp_wavelength_min) lt 1 then kperp_wavelength_min = [0]
@@ -43,9 +43,26 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
       cube_name = 'UVsim0p0002_UVFinput'
       note_part = 'crossed simulated noise cubes with uniform 0.0002 UV coverage, single obs, UVF input'
     END
+    7: BEGIN
+      cube_name = 'UVsim0p0005_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.0005 UV coverage, single obs, UVF input'
+    END
+    8: BEGIN
+      cube_name = 'UVsim0p001_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.001 UV coverage, single obs, UVF input'
+    END
+    9: BEGIN
+      cube_name = 'UVsim0p005_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.005 UV coverage, single obs, UVF input'
+    END
+    10: BEGIN
+      cube_name = 'UVsim0p01_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.01 UV coverage, single obs, UVF input'
+    END
   ENDCASE
   
-  IF KEYWORD_SET(savefile) THEN CGPS_OPEN, '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varcompare_scatter_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2), $
+  if keyword_set(where_0) then savename = 'nonzero' else savename = 'scatter'
+  IF KEYWORD_SET(savefile) THEN CGPS_OPEN, '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varcompare_'+savename+'_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2), $
     /FONT, XSIZE = 8*(n_elements(kperp_wavelength_max)+1), YSIZE = 7
     
   ;;SIMULATION:
@@ -90,14 +107,22 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
   var_diff_locs = 10.^((FINDGEN((SIZE(hist_vals_sim))[2]) * bin_var_diff) + min_var_diff)
   histvals_max = MAX(hist_vals_sim)
   
+  if keyword_set(where_0) then begin
+    hist_vals_sim[where(hist_vals_sim ne 0, /null)] = 1
+    data_range = [0,1]
+    log = 0
+  endif else begin
+    data_range = [0, histvals_max]
+    log = 1
+  endelse
+  
   QUICK_IMAGE, hist_vals_sim, sigma2_locs, var_diff_locs, /XLOG, /YLOG, XRANGE = xrange, YRANGE = yrange,  $
-    DATA_ASPECT = 1, DATA_RANGE = [0,histvals_max], TITLE = 'Simulation, all kperp', $
+    DATA_ASPECT = 1, DATA_RANGE = data_range, TITLE = 'Simulation, all kperp', $
     XTITLE = 'calculated variance', YTITLE = 'measured variance', WINDOW = 1,$
-    START_MULTI_PARAMS = {nrow:1, ncol:N_ELEMENTS(kperp_wavelength_max) + 1}, MULTI_POS = multi_pos, /LOG, $
+    START_MULTI_PARAMS = {nrow:1, ncol:N_ELEMENTS(kperp_wavelength_max) + 1}, MULTI_POS = multi_pos, LOG = log, $
     note = note;, $
   ;SAVEFILE = savefile_name, PNG = savefile
   CGPLOT, xrange, xrange, LINESTYLE = 2, /OVERPLOT, /XLOG, /YLOG, XSTYLE = 1, YSTYLE = 1, XRANGE = xrange, YRANGE = yrange
-  stop
   
   ;;DATA:
   
@@ -136,16 +161,17 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
         title = 'Data, ' + STRTRIM(STRING(kperp_wavelength_min[i]), 2) + ' < kperp < ' + STRTRIM(STRING(kperp_wavelength_max[i]), 2)
     ENDELSE
     
+    if keyword_set(where_0) then hist_vals[where(hist_vals ne 0, /null)] = 1
+    
     QUICK_IMAGE, hist_vals, sigma2_locs, var_diff_locs, /XLOG, /YLOG, XRANGE = xrange, YRANGE = yrange, $
-      DATA_ASPECT = 1, DATA_RANGE = [0,histvals_max], TITLE = title, $
+      DATA_ASPECT = 1, DATA_RANGE = data_range, TITLE = title, $
       XTITLE = 'calculated variance', YTITLE = 'measured variance', $
-      MULTI_POS = multi_pos[*,i+1], /NOERASE, /LOG;, SAVEFILE = savefile_name, PNG = savefile
+      MULTI_POS = multi_pos[*,i+1], /NOERASE, LOG = log;, SAVEFILE = savefile_name, PNG = savefile
     CGPLOT, xrange, xrange, LINESTYLE = 2, /OVERPLOT, /XLOG, /YLOG, XSTYLE = 1, YSTYLE = 1, XRANGE = xrange, YRANGE = yrange
     
   ENDFOR
   
-  IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS
   
-  stop
+  IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS
   
 END
