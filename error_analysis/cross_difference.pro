@@ -93,6 +93,30 @@ PRO cross_difference, use_cubes = use_cubes, choose_term = choose_term, polariza
       filename1 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.01/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
       filename2 = '/nfs/eor-00/h1/rbyrne/MWA/sim_cubes/flatUV_0.01/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
     END
+    11: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.05, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_0.05/ps/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_0.05/ps/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END 
+    12: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.1, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_0.1/ps/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_0.1/ps/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    13: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 0.5, uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_0.5/ps/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_0.5/ps/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
+    14: BEGIN ;Simulated flat UV coverage noise cubes based on Long Run obsids 1061316176 and 1061316296, UV coverage 1., uvf_input keyword set
+      obsid1 = '1061316176'
+      obsid2 = '1061316296'
+      filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_1/ps/'+ obsid1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_1/ps/'+ obsid2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    END
   ENDCASE
   
   IF N_ELEMENTS(obsid1) LT 1 THEN obsid1 = ''

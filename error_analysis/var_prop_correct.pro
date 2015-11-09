@@ -14,7 +14,8 @@ FUNCTION var_prop_correct, var1, var2
   var2 = FLOAT(var2)
   
   var_proportion = var2 / (var1 + var2)
-  RESTORE, '~/MWA/IDL_code/rlb_MWA/error_analysis/var_prop_corrections.sav'
+  ;RESTORE, '~/MWA/IDL_code/rlb_MWA/error_analysis/var_prop_corrections.sav' 
+  RESTORE, '~/error_analysis_plots/var_prop_corrections.sav'
   correction_factors = MAKE_ARRAY(N_ELEMENTS(var_proportion), /FLOAT)
   FOR i = 0, N_ELEMENTS(var_proportion) - 1 DO BEGIN
   if var_proportion[i] lt 0.02 or var_proportion[i] gt 0.98 then correction_factors[i] = 0 else $

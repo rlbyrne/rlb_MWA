@@ -13,6 +13,7 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
   IF N_ELEMENTS(choose_term) EQ 0 THEN choose_term = 1
   IF N_ELEMENTS(polarization) LT 1 THEN polarization = 'xx'
   IF polarization NE 'xx' AND polarization NE 'yy' THEN polarization = 'xx'
+  enterprise = 0
   
   CASE use_cubes OF
     0: BEGIN
@@ -59,10 +60,32 @@ PRO var_compare_scatter_plot, choose_term = choose_term, $
       cube_name = 'UVsim0p01_UVFinput'
       note_part = 'crossed simulated noise cubes with uniform 0.01 UV coverage, single obs, UVF input'
     END
+    11: BEGIN
+      cube_name = 'UVsim0p05_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.05 UV coverage, single obs, UVF input'
+      enterprise = 1
+    END 
+    12: BEGIN
+      cube_name = 'UVsim0p1_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.1 UV coverage, single obs, UVF input'
+      enterprise = 1
+    END 
+    13: BEGIN
+      cube_name = 'UVsim0p5_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 0.5 UV coverage, single obs, UVF input'
+      enterprise = 1
+    END 
+    14: BEGIN
+      cube_name = 'UVsim1_UVFinput'
+      note_part = 'crossed simulated noise cubes with uniform 1. UV coverage, single obs, UVF input'
+      enterprise = 1
+    END 
   ENDCASE
   
   if keyword_set(where_0) then savename = 'nonzero' else savename = 'scatter'
-  IF KEYWORD_SET(savefile) THEN CGPS_OPEN, '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varcompare_'+savename+'_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2), $
+  if enterprise eq 0 then output_loc = '/nfs/eor-00/h1/rbyrne/MWA/error_analysis_plots/varcompare_'+savename+'_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2) $
+    else output_loc = '/home/rlbyrne/error_analysis_plots/varcompare_'+savename+'_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2)
+  IF KEYWORD_SET(savefile) THEN CGPS_OPEN, output_loc, $
     /FONT, XSIZE = 8*(n_elements(kperp_wavelength_max)+1), YSIZE = 7
     
   ;;SIMULATION:
