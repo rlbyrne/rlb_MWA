@@ -11,7 +11,7 @@ PRO cross_diff_weights_plot, savefile = savefile
   obsid1 = '1061316176'
   obsid2 = '1061316296'
   ;sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1]
-  density = 1
+  density = 5
   filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_' + number_formatter(density) +'/ps/' + obsid1 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
   filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_' + number_formatter(density) +'/ps/' + obsid2 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
   ;if ~file_test(filename1) or ~file_test(filename2) then begin
