@@ -17,7 +17,7 @@ PRO var_compare_scatter_plot, $
   
   ;; for simulated noise cubes with uniform UV coverage, UVF inputs
   ;sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
-  sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
+  sample_factors = [.1]
   choose_terms = [1]
   polarizations = ['xx']
   data_range = [0,1e3]
