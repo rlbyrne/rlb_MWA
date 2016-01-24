@@ -28,14 +28,14 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
   
   save_loc = '/data3/MWA/FHD_Aug23/fhd_rlb_cross_diff_noise_sim_flatUV/'
   if keyword_set(uvf_input) then begin
-    if keyword_set(uvf_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_UVFclip' + num_formatter_filename(uvf_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
+    if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
     else save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
   endif else begin
-    if keyword_set(uvf_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_UVFclip' + num_formatter_filename(uvf_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
+    if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
     else save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
   endelse
   if ~file_test(save_filename) then recalc = 1
-  
+    
   ;; get data and variances:
   if ~keyword_set(recalc) then begin
     kperp_lambda_conv = getvar_savefile(save_filename, 'KPERP_LAMBDA_CONV')
@@ -153,5 +153,5 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
     save, filename = save_filename, kperp_lambda_conv, delay_params, kx_mpc, ky_mpc, kz_mpc, ACube_sigma2, BCube_sigma2, $
       ACube, BCube, cube_cross, ACube_sim, BCube_sim, sim_cube_cross, sigma2
   endif
-  
+      
 END

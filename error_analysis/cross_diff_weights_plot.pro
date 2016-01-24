@@ -1,5 +1,5 @@
-PRO cross_diff_weights_plot, savefile = savefile
-    
+PRO cross_diff_weights_plot, savefile = savefile, uv_img_clip = uv_img_clip, uvf_input = uvf_input
+
   IF N_ELEMENTS(choose_term) EQ 0 THEN choose_term = 1
   IF N_ELEMENTS(kperp_wavelength_max) LT 1 THEN kperp_wavelength_max = 0
   IF N_ELEMENTS(kperp_wavelength_min) LT 1 THEN kperp_wavelength_min = 0
@@ -10,14 +10,22 @@ PRO cross_diff_weights_plot, savefile = savefile
   note_part = 'crossed simulated noise cubes with uniform 0.0005 UV coverage, single obs'
   obsid1 = '1061316176'
   obsid2 = '1061316296'
-  ;sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1]
-  density = 5
-  filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_' + number_formatter(density) +'/ps/' + obsid1 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
-  filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_' + number_formatter(density) +'/ps/' + obsid2 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
-  ;if ~file_test(filename1) or ~file_test(filename2) then begin
-  ;  filename1 = '/data4/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_' + number_formatter(density) +'/ps/' + obsid1 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
-  ;  filename2 = '/data4/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_' + number_formatter(density) +'/ps/' + obsid2 + '_gridded_uvf__even_odd_joint_model_'+ polarization + '_bh_kcube.idlsave'
-  ;endif
+  density = 1
+  
+  filename1 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_' + number_formatter(density) + '/ps/'+ obsid1
+  filename2 = '/data3/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_' + number_formatter(density) + '/ps/'+ obsid2
+  if keyword_set(uvf_input) then begin
+    if ~keyword_set(uv_img_clip) then begin
+      filename1 = filename1 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = filename2 + '_gridded_uvf__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    endif else begin
+      filename1 = filename1 + '_gridded_uvf__even_odd_joint_uvimgclip'+ num_formatter_filename(uv_img_clip) + '_model_' + polarization + '_bh_kcube.idlsave'
+      filename2 = filename2 + '_gridded_uvf__even_odd_joint_uvimgclip' + num_formatter_filename(uv_img_clip) + '_model_' + polarization + '_bh_kcube.idlsave'
+    endelse
+  endif else begin
+    filename1 = filename1 + '_cubeXX__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+    filename2 = filename2 + '_cubeXX__even_odd_joint_model_' + polarization + '_bh_kcube.idlsave'
+  endelse
   
   data_range = [0, 4e-1]
   ACube_weights = getvar_savefile(filename1, 'WT_MEAS_AVE')
@@ -56,20 +64,25 @@ PRO cross_diff_weights_plot, savefile = savefile
   ;      NOTE = note
   ;  ENDELSE
   
-  output_path = '/home/rlbyrne/error_analysis_plots/' 
+  output_path = '/home/rlbyrne/error_analysis_plots/'
   IF KEYWORD_SET(savefile) THEN CGPS_OPEN, output_path + 'varcompare_scatter_'+cube_name+'_'+polarization+'_term' + STRTRIM(STRING(choose_term), 2), $
     /FONT, XSIZE = 8*(n_elements(kperp_wavelength_max)+1), YSIZE = 7
     
   QUICK_IMAGE, ACube_weights, kx_mpc, ky_mpc,  $
     DATA_ASPECT = 0.5, TITLE = 'Weights, Obs ' + obsid1, $
     XTITLE = 'kx', YTITLE = 'ky', data_range = data_range, $
-    START_MULTI_PARAMS = {nrow:1, ncol:2}, MULTI_POS = multi_pos, $
+    START_MULTI_PARAMS = {nrow:3, ncol:1}, MULTI_POS = multi_pos, $
     note = 'Flat UV coverage ' + number_formatter(density)
     
   quick_image, BCube_weights, kx_mpc, ky_mpc,  $
     DATA_ASPECT = 0.5, TITLE = 'Weights, Obs ' + obsid2, $
     XTITLE = 'kx', YTITLE = 'ky', data_range = data_range, $
     multi_pos = multi_pos[*,1], /noerase
+    
+  quick_image, ACube_weights - BCube_weights, kx_mpc, ky_mpc, $
+    DATA_ASPECT = 0.5, TITLE = 'Difference', $
+    XTITLE = 'kx', YTITLE = 'ky', data_range = [-0.01,0.01], $
+    multi_pos = multi_pos[*,2], /noerase
     
   IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS
   
