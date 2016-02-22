@@ -1,16 +1,15 @@
 PRO cross_diff_var_plot, savefile = savefile, $
     kperp_wavelength_max = kperp_wavelength_max, kperp_wavelength_min = kperp_wavelength_min, $
-    where_0 = where_0, recalc = recalc, uvf_input = uvf_input, uv_img_clip = uv_img_clip, manual_uv_img_clip = manual_uv_img_clip
+    where_0 = where_0, recalc = recalc, uvf_input = uvf_input, uv_img_clip = uv_img_clip
     
   if n_elements(kperp_wavelength_max) lt 1 then kperp_wavelength_max = [0]
   if n_elements(kperp_wavelength_min) lt 1 then kperp_wavelength_min = [0]
-  plot_max = 20.
   
   ;; for simulated noise cubes with uniform UV coverage
   obsid1 = '1061316176'
   obsid2 = '1061316296'
   ;sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
-  sample_factors = [5]
+  sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
   choose_terms = [1]
   polarizations = ['xx']
   data_range = [0,1e3]
@@ -25,11 +24,10 @@ PRO cross_diff_var_plot, savefile = savefile, $
       cube_names = cube_names + '_UVimgclip' + number_formatter(uv_img_clip)
       note_part = note_part + ', UV img clip ' + number_formatter(uv_img_clip)
     endif
-    if keyword_set(manual_uv_img_clip) then begin
-      cube_names = cube_names + '_manualUVimgclip' + number_formatter(manual_uv_img_clip)
-      note_part = note_part + ', Manual UV img clip ' + number_formatter(manual_uv_img_clip)
-    endif
-  endif else cube_names = cube_names + '_Heal'
+  endif else begin
+    cube_names = cube_names + '_Heal'
+    note_part = note_part + ', Healpix input'
+  endelse
   
   for sample = 0, n_elements(sample_factors) -1 do begin
     for term = 0, n_elements(choose_terms) - 1 do begin
@@ -42,8 +40,8 @@ PRO cross_diff_var_plot, savefile = savefile, $
             filename1 = filename1 + '_gridded_uvf__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
             filename2 = filename2 + '_gridded_uvf__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
           endif else begin
-            filename1 = filename1 + '_gridded_uvf__even_odd_joint_uvimgclip'+ num_formatter_filename(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
-            filename2 = filename2 + '_gridded_uvf__even_odd_joint_uvimgclip' + num_formatter_filename(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
+            filename1 = filename1 + '_gridded_uvf__even_odd_joint_uvimgclip'+ number_formatter(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
+            filename2 = filename2 + '_gridded_uvf__even_odd_joint_uvimgclip' + number_formatter(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
           endelse
         endif else begin
           filename1 = filename1 + '_cubeXX__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
@@ -78,22 +76,28 @@ PRO cross_diff_var_plot, savefile = savefile, $
         wh_sig0 = WHERE(sigma2_kperp EQ 0, count_sig0)
         IF count_sig0 GT 0 THEN ratio_var_diff_cross[wh_sig0] = 0
         
-        stop
-        
-        QUICK_IMAGE, ratio_var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = [0,plot_max], $
-          TITLE = 'Measured / Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          NOTE = note, SAVEFILE = output_loc, PNG=savefile, /log, START_MULTI_PARAMS = {nrow:1, ncol:3}, $
-          multi_pos = multi_pos, no_ps_close=savefile, noerase=savefile
-        QUICK_IMAGE, var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = [0,plot_max], $
-          TITLE = 'Measured Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          NOTE = note, SAVEFILE = output_loc, PNG=savefile, /log, multi_pos = multi_pos[*,1], $
-          noerase=savefile, no_ps_close=savefile
-        QUICK_IMAGE, sigma2_kperp, kx_mpc, ky_mpc, DATA_RANGE = [0,plot_max], $
-          TITLE = 'Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          NOTE = note, SAVEFILE = output_loc, PNG=savefile, /log, multi_pos = multi_pos[*,2]
+        IF KEYWORD_SET(savefile) THEN CGPS_OPEN, output_loc, $
+          /FONT, XSIZE = 35, YSIZE = 7
           
+        QUICK_IMAGE, ratio_var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = [0,2], $
+          TITLE = 'Measured / Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
+          NOTE = note, START_MULTI_PARAMS = {nrow:1, ncol:3}, $
+          multi_pos = multi_pos, no_ps_close=savefile, /noerase
+        data_range = [1e19,1e26]
+        QUICK_IMAGE, var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = data_range, $
+          TITLE = 'Measured Variance', XTITLE = 'kx', YTITLE = 'ky', $
+          /log, multi_pos = multi_pos[*,1], $
+          /noerase, no_ps_close=savefile
+        QUICK_IMAGE, sigma2_kperp, kx_mpc, ky_mpc, DATA_RANGE = data_range, $
+          TITLE = 'Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
+          /log, multi_pos = multi_pos[*,2], /noerase
+          
+        undefine, multi_pos
+        IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS
+        
       endfor
     endfor
   endfor
+  
   
 END
