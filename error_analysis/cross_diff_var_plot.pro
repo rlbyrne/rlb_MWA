@@ -21,7 +21,7 @@ PRO cross_diff_var_plot, savefile = savefile, $
     cube_names = cube_names + '_UVFinput'
     note_part = note_part + ', UVF input'
     if keyword_set(uv_img_clip) then begin
-      cube_names = cube_names + '_UVimgclip' + number_formatter(uv_img_clip)
+      cube_names = cube_names + '_UVimgclip' + num_formatter_filename(uv_img_clip)
       note_part = note_part + ', UV img clip ' + number_formatter(uv_img_clip)
     endif
   endif else begin
@@ -72,25 +72,26 @@ PRO cross_diff_var_plot, savefile = savefile, $
         var_diff_cross = VARIANCE(REAL_PART(diff_cross), DIMENSION = 3)
         sigma2_kperp = MEAN(sigma2, DIMENSION = 3, /NAN)
         
-        ratio_var_diff_cross = var_diff_cross / sigma2_kperp
-        wh_sig0 = WHERE(sigma2_kperp EQ 0, count_sig0)
+        ratio_var_diff_cross = (var_diff_cross-sigma2_kperp) / (var_diff_cross+sigma2_kperp)
+        wh_sig0 = WHERE(var_diff_cross+sigma2_kperp EQ 0, count_sig0)
         IF count_sig0 GT 0 THEN ratio_var_diff_cross[wh_sig0] = 0
         
         IF KEYWORD_SET(savefile) THEN CGPS_OPEN, output_loc, $
           /FONT, XSIZE = 35, YSIZE = 7
           
-        QUICK_IMAGE, ratio_var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = [0,2], $
-          TITLE = 'Measured / Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          NOTE = note, START_MULTI_PARAMS = {nrow:1, ncol:3}, $
-          multi_pos = multi_pos, no_ps_close=savefile, /noerase
+          
         data_range = [1e19,1e26]
         QUICK_IMAGE, var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = data_range, $
           TITLE = 'Measured Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          /log, multi_pos = multi_pos[*,1], $
+          /log, start_multi_params = {nrow:1, ncol:3}, multi_pos = multi_pos, $
           /noerase, no_ps_close=savefile
         QUICK_IMAGE, sigma2_kperp, kx_mpc, ky_mpc, DATA_RANGE = data_range, $
           TITLE = 'Expected Variance', XTITLE = 'kx', YTITLE = 'ky', $
-          /log, multi_pos = multi_pos[*,2], /noerase
+          /log, multi_pos = multi_pos[*,1], /noerase
+        QUICK_IMAGE, ratio_var_diff_cross, kx_mpc, ky_mpc, DATA_RANGE = [0,1], $
+          TITLE = '(M-E)/(M+E)', XTITLE = 'kx', YTITLE = 'ky', $
+          NOTE = note, $
+          multi_pos = multi_pos[*,2], no_ps_close=savefile, /noerase
           
         undefine, multi_pos
         IF KEYWORD_SET(savefile) THEN CGPS_CLOSE, /PNG, /DELETE_PS

@@ -34,7 +34,9 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
     if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
     else save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
   endelse
+  
   if ~file_test(save_filename) then recalc = 1
+  
     
   ;; get data and variances:
   if ~keyword_set(recalc) then begin
@@ -146,6 +148,7 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
       ENDIF ELSE sigma2 = approx_sigma2
     endelse
   ENDIF
+  
   
   if keyword_set(recalc) then begin
     print, 'Saving crossed difference cubes here: ' + save_filename

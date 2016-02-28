@@ -18,6 +18,8 @@ PRO var_compare_scatter_plot, $
   ;; for simulated noise cubes with uniform UV coverage
   ;sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
   sample_factors = [.0002,.0005,.001,.005,.01,.05,.1,.5,1,5]
+  obsid1 = '1061316176'
+  obsid2 = '1061316296'
   choose_terms = [1]
   polarizations = ['xx']
   data_range = [0,1e3]
@@ -29,7 +31,7 @@ PRO var_compare_scatter_plot, $
     cube_names = cube_names + '_UVFinput'
     note_part = note_part + ', UVF input'
     if keyword_set(uv_img_clip) then begin
-      cube_names = cube_names + '_UVimgclip' + number_formatter(uv_img_clip)
+      cube_names = cube_names + '_UVimgclip' + num_formatter_filename(uv_img_clip)
       note_part = note_part + ', UV img clip ' + number_formatter(uv_img_clip)
     endif
   endif else cube_names = cube_names + '_Heal'
@@ -41,8 +43,6 @@ PRO var_compare_scatter_plot, $
       for pol = 0, n_elements(polarizations) - 1 do begin
         print, 'calculating cross difference for UVsim ' + number_formatter(sample_factors[sample]) + ', ' + polarizations[pol] + ', term ' + number_formatter(choose_terms[term])
         
-        obsid1 = '1061316176'
-        obsid2 = '1061316296'
         filename1 = '/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid1 + '_' + number_formatter(sample_factors[sample]) + '/ps/'+ obsid1
         filename2 = '/MWA/FHD_Aug23/fhd_rlb_noise_sim_flatUV_'+ obsid2 + '_' + number_formatter(sample_factors[sample]) + '/ps/'+ obsid2
         if keyword_set(uvf_input) then begin
@@ -50,9 +50,10 @@ PRO var_compare_scatter_plot, $
             filename1 = filename1 + '_gridded_uvf__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
             filename2 = filename2 + '_gridded_uvf__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
           endif else begin
-            filename1 = filename1 + '_gridded_uvf__even_odd_joint_uvimgclip'+ num_formatter_filename(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
-            filename2 = filename2 + '_gridded_uvf__even_odd_joint_uvimgclip' + num_formatter_filename(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
+            filename1 = filename1 + '_gridded_uvf__even_odd_joint_uvimgclip'+ number_formatter(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
+            filename2 = filename2 + '_gridded_uvf__even_odd_joint_uvimgclip' + number_formatter(uv_img_clip) + '_model_' + polarizations[pol] + '_bh_kcube.idlsave'
           endelse
+          
         endif else begin
           filename1 = filename1 + '_cubeXX__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
           filename2 = filename2 + '_cubeXX__even_odd_joint_model_' + polarizations[pol] + '_bh_kcube.idlsave'
