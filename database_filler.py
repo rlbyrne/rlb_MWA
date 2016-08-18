@@ -4,12 +4,18 @@ import subprocess
 import os
 from astropy.time import Time
 import sys
+import psycopg2
+import socket
+from astropy.io import fits
+import datetime
 
 def main():
 
+	attempt_metafits = False #Set to false if metafits files have already been made
+
 	version = 5
 	subversion = 1
-	obsfile_name = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsIDs_firstobs.txt"
+	obsfile_name = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsIDs.txt"
 	db_comment = "Diffuse survey EoR 2015"
 
 	#Get obsids
@@ -30,6 +36,9 @@ def main():
 		obsids = all_obsids[start_obs:start_obs+obs_per_chunk]
 		start_obs += obs_per_chunk
 		
+		print "Processing the following chunk: " 
+		print obsids
+		
 		t = Time([int(obsid) for obsid in obsids], format="gps", scale="utc")
 		jds = t.jd
 		jds = [int(jd) for jd in jds]
@@ -42,39 +51,42 @@ def main():
 		metafits_logic = []
 		obsids_not_found = []
 		for obsindex, obsid in enumerate(obsids):
+			obsid_found = False
 			for node in node_paths:
 				if os.path.isdir(node + save_directories[obsindex] + obsid):
 					if os.path.isfile(node + save_directories[obsindex] + obsid + "/" + obsid + ".uvfits"):
 						save_paths.append(node + save_directories[obsindex])
-					else:
-						print "uvfits file for obsid " + obsid + "not found."
-						obsids_not_found.append(obsid)
-					if os.path.isfile(node + save_directories[obsindex] + obsid + "/" + obsid + ".metafits"):
-						metafits_logic.append(False)
-					else:
-						metafits_logic.append(True)
+						obsid_found = True						
+						if os.path.isfile(node + save_directories[obsindex] + obsid + "/" + obsid + ".metafits"):
+							metafits_logic.append(False) #Metafits file exists, will not be created
+						else:
+							metafits_logic.append(True) #Metafits file does not exist, will be created
+						break
+							
+			if not obsid_found:
+				print "uvfits file for obsid " + obsid + "not found."
+				obsids_not_found.append(obsid)
 			
 		#Ignore obsids that did not have uvfits files
 		for obsid in obsids_not_found:
 			del obsids[obsids.index(obsid)]
 		
-
-	
-		#Make metafits
-		task_jobid = make_metafits(obsids, metafits_logic, save_paths)
+		if attempt_metafits:
+			#Make metafits
+			task_jobid = make_metafits(obsids, metafits_logic, save_paths)
 		
-		#Wait for metafits to finish being made
-		stderr_data = True
-		while stderr_data:
-			time.sleep(30)
-			#Talk to Grid Engine about the last submitted job for one of the tasks
-			qsub_command = 'qacct -j ' + str(task_jobid)
-			stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-			stdout_data, stderr_data = stdoutpointer.communicate()
-			#The job is finished when stderr_data = False
+			#Wait for metafits to finish being made
+			stderr_data = True
+			while stderr_data:
+				time.sleep(30)
+				#Talk to Grid Engine about the last submitted job for one of the tasks
+				qsub_command = 'qacct -j ' + str(task_jobid)
+				stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+				stdout_data, stderr_data = stdoutpointer.communicate()
+				#The job is finished when stderr_data = False
 
 		#Fill database
-		fill_database(obsids, save_paths)
+		fill_database(obsids, save_paths, version, subversion, db_comment)
 		
 		
 def make_metafits(obsids, metafits_logic, save_paths):
@@ -146,7 +158,7 @@ def make_metafits(obsids, metafits_logic, save_paths):
 	
 	
 	
-def fill_database(obsids, save_paths):
+def fill_database(obsids, save_paths, version, subversion, db_comment):
 
 	#Find the cotter version	
 	stdoutpointer = subprocess.Popen(["which","cotter"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -171,16 +183,17 @@ def fill_database(obsids, save_paths):
 	
 	cur = conn.cursor()
 
-	for interation, obsid in enumerate(obsids):
+	for iteration, obsid in enumerate(obsids):
+		print "Filling the mwa_qc database for obsid " + obsid
 		save_path = save_paths[iteration] + obsid + '/'
 
 		#Check to make sure the uvfits and metafits specified exist
 		if not os.path.isfile(save_path + obsid + '.uvfits'):
 			print "ERROR: " + save_path + obsid + ".uvfits does not exist! Database not updated"
-			return
+			continue
 		if not os.path.isfile(save_path + obsid + '.metafits'):
 			print "WARNING: " + save_path + obsid + ".metafits does not exist! Database not updated"
-			return
+			continue
 
 		#Open up the metafits file that was made with the uvfits file (assumes they are in the same location)
 		metafits_file = save_path + obsid + '.metafits'
@@ -203,7 +216,7 @@ def fill_database(obsids, save_paths):
 		cur.execute("SELECT uvfits.obsid FROM uvfits WHERE (obsid,version,subversion,cotter_version,bottom_freq_mhz,top_freq_mhz)=(%s,%s,%s,%s,%s,%s);", \
 			(obsid,version,subversion,cotter_version,bottom_freq_mhz,top_freq_mhz))
 		if cur.fetchall():
-			print "WARNING: A uvfits file for obsid " + obsid + ", version " + version + ", subversion " + subversion + \
+			print "WARNING: A uvfits file for obsid " + obsid + ", version " + str(version) + ", subversion " + str(subversion) + \
 				", cotter " + cotter_version + ", and frequency range " + bottom_freq_mhz + "-" + top_freq_mhz + " already exists."
 
 		#Create the database row, and fill it with the inputs. 
