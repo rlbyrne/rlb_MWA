@@ -86,16 +86,15 @@ def main():
 		plot_points = 1000			
 		RA_vals = [i/100.*160.-10. for i in range(plot_points)]
 		how_many_obs = [0 for i in range(plot_points)]
-		how_many_pointings = [0 for i in range(plot_points)]
+		#how_many_pointings = [0 for i in range(plot_points)]
 		for index, val in enumerate(RA_vals):
 			in_pointing = [False, False, False, False, False]
 			for RA in RAs_band:
-			 	if abs(RA-val) < 3.:
-			 		how_many_obs[index] = how_many_obs[index]+1
-			 		for pointing in range(5):
-			 			if RA in RAs_by_pointing[pointing]:
-			 				in_pointing[pointing] = True
-			how_many_pointings[index] = in_pointing.count(True)
+			 	how_many_obs[index] = how_many_obs[index] + math.e**(-(val-RA)**2/(2*1.5**2))
+			 		#for pointing in range(5):
+			 			#if RA in RAs_by_pointing[pointing]:
+			 			#	in_pointing[pointing] = True
+			#how_many_pointings[index] = in_pointing.count(True)
 		
 		colors = ["red", "darkorange", "yellow", "green", "skyblue", "violet"]			
 		plt.figure(figsize=(8,12))
@@ -129,7 +128,7 @@ def main():
 		
 		plt.subplot(4,1,4)
 		plt.plot(RA_vals, how_many_obs, "b-")
-		plt.plot(RA_vals, how_many_pointings, "r-")
+		#plt.plot(RA_vals, how_many_pointings, "r-")
 		plt.xlabel("RA")
 		plt.ylabel("Pointing")
 		plt.axis([-10,150,0,15])
