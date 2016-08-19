@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+#Incomplete script for calculating the Az/El from the RA/Dec and LST. I realized I didn't actually have to do this, but it's still a useful script to keep around.
+
 import ephem
 from astropy.time import Time
 import numpy as np
