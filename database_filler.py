@@ -8,10 +8,11 @@ import psycopg2
 import socket
 from astropy.io import fits
 import datetime
+import time
 
 def main():
 
-	attempt_metafits = False #Set to false if metafits files have already been made
+	attempt_metafits = True #Set to false if metafits files have already been made
 
 	version = 5
 	subversion = 1
@@ -30,7 +31,7 @@ def main():
 	
 	#Process the obsids in chunks	
 	start_obs = 0	
-	obs_per_chunk = 10
+	obs_per_chunk = 5
 	while start_obs < len(all_obsids):
 	
 		obsids = all_obsids[start_obs:start_obs+obs_per_chunk]
@@ -72,18 +73,21 @@ def main():
 			del obsids[obsids.index(obsid)]
 		
 		if attempt_metafits:
-			#Make metafits
-			task_jobid = make_metafits(obsids, metafits_logic, save_paths)
+			if metafits_logic.count(True) > 0:
+				#Make metafits
+				task_jobid = make_metafits(obsids, metafits_logic, save_paths)
 		
-			#Wait for metafits to finish being made
-			stderr_data = True
-			while stderr_data:
-				time.sleep(30)
-				#Talk to Grid Engine about the last submitted job for one of the tasks
-				qsub_command = 'qacct -j ' + str(task_jobid)
-				stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-				stdout_data, stderr_data = stdoutpointer.communicate()
-				#The job is finished when stderr_data = False
+				#Wait for metafits to finish being made
+				stderr_data = True
+				while stderr_data:
+					time.sleep(30)
+					#Talk to Grid Engine about the last submitted job for one of the tasks
+					qsub_command = 'qacct -j ' + str(task_jobid)
+					stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+					stdout_data, stderr_data = stdoutpointer.communicate()
+					#The job is finished when stderr_data = False
+			else:
+				print "Metafits files already exist, skipping make_metafits module."
 
 		#Fill database
 		fill_database(obsids, save_paths, version, subversion, db_comment)
@@ -140,8 +144,7 @@ def make_metafits(obsids, metafits_logic, save_paths):
 	#Make the file executable 
 	os.chmod(metafits_script_path, 0775)
 
-	qsub_command = "qsub -l h_vmem=1G,h_stack=512,h_rt=01:00:00 \
-		-V -pe chost 1 -e " + log_path + " -o " + log_path +" -N make_metafits -t 1:" + str(len(obs_elements))
+	qsub_command = "qsub -l h_vmem=1G,h_stack=512,h_rt=01:00:00 -V -pe chost 1 -e " + log_path + " -o " + log_path +" -N make_metafits -t 1:" + str(len(obs_elements))
 
 	#Run the metafits script to create a metafits for the obsid in the uvfits folder
 	stdoutpointer = subprocess.Popen((qsub_command + ' ' + metafits_script_path).split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -155,9 +158,7 @@ def make_metafits(obsids, metafits_logic, save_paths):
 		
 	return task_jobid
 	
-	
-	
-	
+		
 def fill_database(obsids, save_paths, version, subversion, db_comment):
 
 	#Find the cotter version	
