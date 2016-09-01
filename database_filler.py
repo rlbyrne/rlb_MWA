@@ -12,7 +12,7 @@ import time
 
 def main():
 
-	attempt_metafits = True #Set to false if metafits files have already been made
+	attempt_metafits = True #Set to false to fill database for obsids that already have metafits files (bypasses gridengine)
 
 	version = 5
 	subversion = 1
@@ -74,18 +74,28 @@ def main():
 		
 		if attempt_metafits:
 			if metafits_logic.count(True) > 0:
-				#Make metafits
-				task_jobid = make_metafits(obsids, metafits_logic, save_paths)
+				for metafits_attempts in range(2): #Making metafits files sometimes failes; give it a second try if it fails the first time
+					#Make metafits
+					task_jobid = make_metafits(obsids, metafits_logic, save_paths)
 		
-				#Wait for metafits to finish being made
-				stderr_data = True
-				while stderr_data:
-					time.sleep(30)
-					#Talk to Grid Engine about the last submitted job for one of the tasks
-					qsub_command = 'qacct -j ' + str(task_jobid)
-					stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-					stdout_data, stderr_data = stdoutpointer.communicate()
-					#The job is finished when stderr_data = False
+					#Wait for metafits to finish being made
+					stderr_data = True
+					while stderr_data:
+						time.sleep(30)
+						#Talk to Grid Engine about the last submitted job for one of the tasks
+						qsub_command = 'qacct -j ' + str(task_jobid)
+						stdoutpointer = subprocess.Popen(qsub_command.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+						stdout_data, stderr_data = stdoutpointer.communicate()
+						#The job is finished when stderr_data = False
+						
+					#Check to see if all metafits files were made
+					for i, obsid in enumerate(obsids):
+						if os.path.isfile(save_paths[i] + obsid + "/" + obsid + ".metafits"):
+							metafits_logic[i] = False
+						else:
+							print "WARNING: Failed to make a metafits file for obsid " + obsid
+					if metafits_logic.count(True) == 0:
+						break
 			else:
 				print "Metafits files already exist, skipping make_metafits module."
 
@@ -106,6 +116,8 @@ def make_metafits(obsids, metafits_logic, save_paths):
 
 	#Elements of obsids to make metafits for
 	obs_elements = [i for i, x in enumerate(metafits_logic) if x]
+	print "Making metafits files for the following obsids:" 
+	print [obsids[i] for i in obs_elements]
 
 	#Find the path of MWA_Tools by looking in the system path variable 
 	mwa_tools_path=""
