@@ -10,10 +10,20 @@ from astropy.io import fits
 import datetime
 import time
 
+#********************************
+#Script that processes uvfits files by creating metafits files and updating the mwa_qc database.
+#The script was created to process uvfits files that were pushed to MIT from Perth. In creating the 
+#metafits files it submits the jobs to gridengine in chunks. It checks to make sure the metafits
+#files were created successfully and tries a second time if they weren't. A chunk is cued up once 
+#the previous chunk finishes. 
+
+#Script written by Ruby Byrne, August 2016.
+
 def main():
 
 	attempt_metafits = True #Set to false to fill database for obsids that already have metafits files (bypasses gridengine)
 
+	#Cotter version
 	version = 5
 	subversion = 1
 	obsfile_name = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsIDs.txt"
