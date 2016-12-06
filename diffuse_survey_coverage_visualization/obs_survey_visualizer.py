@@ -81,8 +81,11 @@ def main():
 		plt.savefig(save_filepath)
 			
 			
-	if False:
+	if True:
 		for i, obs in enumerate(obsids):
+		#if True:
+			#obs = obsids[-1]
+			#i = len(obsids)-1
 			if i+1 < 10:
 				filepath_num = "00" + str(i+1)
 			else:
@@ -91,15 +94,20 @@ def main():
 				else:
 					filepath_num = str(i+1)
 			save_filepath = "/nfs/eor-00/h1/rbyrne/radec_plots/radec_plot" + filepath_num + ".png"
-			plt.figure(figsize=(10,5))
-			plt.plot(RAs[0:i+1],Decs[0:i+1], "o", markersize=60, mfc="black", alpha = 0.03)
-			plt.plot(RAs[i],Decs[i], "o", markersize=60, mfc="none", mec="red")
+			#save_filepath = "/nfs/eor-00/h1/rbyrne/radec_plots/radec_last_plot.png"
+			plt.figure(figsize=(17,5))
+			plt.plot(RAs[0:i+1],Decs[0:i+1], "o", markersize=90, mfc="blue", alpha = 0.03)
+			plt.plot(RAs[i],Decs[i], "o", markersize=90, mfc="none", mec="red")
+			plt.plot(RAs[i],Decs[i], "x", markersize=10, mfc="red")
+			plt.xticks(range(-100,200,10))
 			plt.xlabel("RA")
 			plt.ylabel("Dec")
+			plt.axis("equal")
 			plt.axis([-100,200,-65,15])
-			plt.grid(True)
+			plt.grid(which="both")
 			plt.text(-80, 17, "Obsid: " + str(obs))
 			plt.savefig(save_filepath)
+			plt.close()
 			#if i == 50:
 			#	break
 
