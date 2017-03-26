@@ -11,6 +11,7 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
     normalize = normalize, $             ;normalized variances to 1, defaults 0
     recalc = recalc, $                   ;does not use saved values, defaults 0
     uvf_input = uvf_input, $             ;uses gridded UVF cubes, defaults 0 (Healpix outputs)
+    save_cubes = save_cubes, $           ;saves output to speed calculations
     ;;OUTPUTS:
     kperp_lambda_conv=kperp_lambda_conv, delay_params=delay_params, kx_mpc=kx_mpc, ky_mpc=ky_mpc, kz_mpc=kz_mpc, $
     ACube_sigma2=ACube_sigma2, BCube_sigma2=BCube_sigma2, ACube=ACube, BCube=BCube, cube_cross=cube_cross, $
@@ -22,22 +23,24 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
   IF N_ELEMENTS(diff_cross) LT 1 then diff_cross = 1
   IF N_ELEMENTS(calculate_var) LT 1 THEN calculate_var = 1
   IF N_ELEMENTS(use_var_correct) LT 1 THEN use_var_correct = 1
+  IF N_ELEMENTS(save_cubes) LT 1 THEN save_cubes = 1
   
   IF N_ELEMENTS(obsid1) LT 1 THEN obsid1 = ''
   IF N_ELEMENTS(obsid2) LT 1 THEN obsid2 = ''
   
-  save_loc = '/data3/MWA/FHD_Aug23/fhd_rlb_cross_diff_noise_sim_flatUV/'
-  if keyword_set(uvf_input) then begin
-    if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
-    else save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
-  endif else begin
-    if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
-    else save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
-  endelse
-  
-  if ~file_test(save_filename) then recalc = 1
-  
+  if keyword_set(save_cubes) then begin
+    save_loc = '/data3/MWA/FHD_Aug23/fhd_rlb_cross_diff_noise_sim_flatUV/'
+    if keyword_set(uvf_input) then begin
+      if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
+      else save_filename = save_loc + 'cross_diff_noise_sim_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
+    endif else begin
+      if keyword_set(uv_img_clip) then save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_uvimgclip' + num_formatter_filename(uv_img_clip) + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav' $
+      else save_filename = save_loc + 'cross_diff_noise_sim_Heal_flatUV' + sample_factor + '_' + polarization + '_term' + number_formatter(choose_term) + '.sav'
+    endelse
     
+    if ~file_test(save_filename) then recalc = 1
+  endif
+  
   ;; get data and variances:
   if ~keyword_set(recalc) then begin
     kperp_lambda_conv = getvar_savefile(save_filename, 'KPERP_LAMBDA_CONV')
@@ -149,12 +152,13 @@ PRO cross_difference, choose_term = choose_term, polarization = polarization, kp
     endelse
   ENDIF
   
-  
+  if keyword_set(save_cubes) then begin
   if keyword_set(recalc) then begin
     print, 'Saving crossed difference cubes here: ' + save_filename
     file_mkdir, save_loc
     save, filename = save_filename, kperp_lambda_conv, delay_params, kx_mpc, ky_mpc, kz_mpc, ACube_sigma2, BCube_sigma2, $
       ACube, BCube, cube_cross, ACube_sim, BCube_sim, sim_cube_cross, sigma2
   endif
-      
+  endif
+  
 END
