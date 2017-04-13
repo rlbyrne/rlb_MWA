@@ -8,11 +8,11 @@ from astropy.time import Time
 
 def main():
 
-	obsfile_name = "/nfs/eor-00/h1/rbyrne/phaseII_commissioning.txt"
+	obsfile_name = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsIDs.txt"
 	version = 5
 	subversion = 1
 	quiet = False
-	delete = True
+	delete = False
 	
 	obsfile = open(obsfile_name, "r")
 	obsids = [line.split( ) for line in obsfile.readlines()]
