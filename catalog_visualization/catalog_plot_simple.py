@@ -46,6 +46,8 @@ def main():
 	#plt.axis('equal')
 	plt.xlim(ra_plot_range[0],ra_plot_range[1])
 	plt.ylim(dec_plot_range[0],dec_plot_range[1])
+	plt.xlabel('RA (deg)')
+	plt.ylabel('Dec (deg)')
 	plt.gca().set_aspect('equal',adjustable='box')
 	plt.savefig('/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'_plot')
 		
