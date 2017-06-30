@@ -55,8 +55,9 @@ def main():
 	plt.figure()
 	plt.scatter(ra_sources,dec_sources,marker='o',s=marker_sizes_sources)
 	plt.scatter(ra_components,dec_components,marker='o',s=marker_sizes_components,c='red')
-	if False:
-		a_team_ras = [83.6331,79.9572,139.524,201.365,252.784,187.706,299.868,350.858] #[Crab,Pic A,Hydra A,Cen A,Her A,Vir A,Cygnus A,Cas A]
+	plt.grid()
+	if True:
+		a_team_ras = [83.6331,79.9572,139.524,201.365,252.784,187.706,299.868,350.858]
 		for i, ra in enumerate(a_team_ras):
 			if ra > ra_plot_range[1]:
 				a_team_ras[i] = ra-360.
@@ -65,11 +66,22 @@ def main():
 		a_team_names = ['Crab','Pic A','Hydra A','Cen A','Her A','Vir A','Cygnus A','Cas A']
 		for i, name in enumerate(a_team_names):
 			plt.annotate(name, (a_team_ras[i],a_team_decs[i]))
+	if True:
+		other_bright_ras = [50.6738,128.836,83.8221]
+		for i, ra in enumerate(other_bright_ras):
+			if ra > ra_plot_range[1]:
+				other_bright_ras[i] = ra-360.
+		other_bright_decs = [-37.2083,-45.1764,-5.3911]
+		plt.scatter(other_bright_ras,other_bright_decs,marker='o',s=markersize_range[1],c='cyan')
+		other_bright_names = ['Fornax A','Vela','Orion']
+		for i, name in enumerate(other_bright_names):
+			plt.annotate(name, (other_bright_ras[i],other_bright_decs[i]))
 	plt.xlim(ra_plot_range[0],ra_plot_range[1])
 	plt.ylim(dec_plot_range[0],dec_plot_range[1])
 	plt.xlabel('RA (deg)')
 	plt.ylabel('Dec (deg)')
 	plt.gca().set_aspect('equal',adjustable='box')
+	print 'Saving plot to /nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'_extended_plot.png'
 	plt.savefig('/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'_extended_plot')
 		
 if __name__ == '__main__':

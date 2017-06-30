@@ -7,15 +7,15 @@ import matplotlib.pyplot as plt
 
 def main():
 
-	catalog_name = '1130781304_run1_catalog'
+	catalog_name = 'Pic_A_run1_catalog'
 	#catalog_name = 'GLEAM'
 	catalog_data_path = '/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'.txt'
 	
-	flux_cut = 0
-	ra_plot_range = [-150,210]
-	dec_plot_range = [-90,90]
-	markersize_range = [.00001,50]
-	flux_plot_max = 50
+	flux_cut = 50
+	ra_plot_range = [50,125]
+	dec_plot_range = [-75,-25]
+	markersize_range = [.00001,100]
+	flux_plot_max = 100
 
 	datafile = open(catalog_data_path, "r")
 	catalog_info = datafile.readlines()
@@ -43,12 +43,15 @@ def main():
 
 	plt.figure()
 	plt.scatter(ra,dec,marker='o',s=marker_sizes)
+	print ra
+	print dec
 	#plt.axis('equal')
 	plt.xlim(ra_plot_range[0],ra_plot_range[1])
 	plt.ylim(dec_plot_range[0],dec_plot_range[1])
 	plt.xlabel('RA (deg)')
 	plt.ylabel('Dec (deg)')
 	plt.gca().set_aspect('equal',adjustable='box')
+	print 'Saving plot to /nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'_plot.png'
 	plt.savefig('/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'_plot')
 		
 if __name__ == '__main__':

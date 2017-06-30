@@ -1,9 +1,11 @@
 pro catalog_sav_to_txt
 
-  catalog_name = 'GLEAM'
-  catalog_path = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAMIDR4_181_consistent.sav'
-  ;catalog_name = '1130781304_run1_catalog'
-  ;catalog_path = '/nfs/mwa-08/d1/DiffuseSurvey2015/1130781304_run1_catalog.sav'
+  ;catalog_name = 'GLEAM'
+  ;catalog_path = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAMIDR4_181_consistent.sav'
+  ;catalog_name = '1130781304_run2_catalog'
+  ;catalog_path = '/nfs/mwa-08/d1/DiffuseSurvey2015/1130781304_run2_catalog.sav'
+  catalog_name = 'Pic_A_run1_catalog'
+  catalog_path = '/nfs/mwa-04/r1/EoRuvfits/DiffuseSurvey2015/Pic_A_run1_catalog.sav'
   restore, catalog_path, /relaxed
   
   openw, outfile, '/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'.txt', /get_lun

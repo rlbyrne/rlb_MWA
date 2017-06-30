@@ -7,12 +7,12 @@ import sys
 
 def main():
 
-	RA_target_h = 3
-	RA_target_m = 22
-	RA_target_s = 41.7
-	Dec_target_deg = -37
-	Dec_target_m = 12
-	Dec_target_s = 30
+	RA_target_h = 5
+	RA_target_m = 19
+	RA_target_s = 49.7
+	Dec_target_deg = -45
+	Dec_target_m = 46
+	Dec_target_s = 44
 	
 	RA_target = (RA_target_h + RA_target_m/60. + RA_target_s/3600.)/24.*360.
 	Dec_target = Dec_target_deg + Dec_target_m/60. + Dec_target_s/3600.
