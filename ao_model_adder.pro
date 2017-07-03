@@ -1,7 +1,9 @@
 ;Script that adds sources from the AO-compatible GLEAM extended source models to an FHD catalog.
 ;Limitations:
+;  Only works when the model file only contains one measurement
 ;  ID, X, Y, STON, ALPHA, GAIN, FLAG are not calculated
-;  Calculates  source flux in Stokes I only
+;  Calculates source flux in Stokes I only
+;  Flux in XX, YY, XY, and YX is not calculated for the source or components.
 ;Written by R. Byrne 06/17
 
 pro ao_model_adder
@@ -11,6 +13,7 @@ pro ao_model_adder
   
   original_catalog_filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAMIDR4_181_consistent.sav'
   desination_catalog_filepath = '/nfs/eor-00/h1/rbyrne/catalogs/GLEAM+'+model_name+'.sav'
+  restore, original_catalog_filepath, /relaxed
   
   ;;;;parameters I don't know so I'm setting arbitrarily;;;;
   id = 0
@@ -83,7 +86,7 @@ pro ao_model_adder
             flux_Q_Jy = float(flux_data[3])
             flux_U_Jy = float(flux_data[4])
             flux_V_Jy = float(flux_data[5])
-            flux_comp = {I:flux_I_Jy, Q:flux_Q_Jy, U:flux_U_Jy, V:flux_V_Jy, XX:0., YY:0., XY: 0., YX: 0.}
+            flux_comp = {XX:0., YY:0., XY: 0., YX: 0., I:flux_I_Jy, Q:flux_Q_Jy, U:flux_U_Jy, V:flux_V_Jy}
           endif
           
         endfor
@@ -109,17 +112,27 @@ pro ao_model_adder
     ra_deg_source = ra_weighted_sum/flux_sum
     dec_deg_source = dec_weighted_sum/flux_sum
     freq_MHz_source = component_array[0].freq ;assume the frequency is equal for all components
-    flux_source = {I:flux_sum, Q:0., U:0., V:0., XX:0., YY:0., XY: 0., YX: 0.}
+    flux_source = {XX:0., YY:0., XY: 0., YX: 0., I:flux_sum, Q:0., U:0., V:0.}
     
-    source = {id:id, x:x, y:y, ra:ra_deg_source, dec:dec_deg_source, ston:ston, freq:freq_MHz_source, $
-      alpha:alpha, gain:gain, flag:flag, extend:extend, flux:flux_source}
+    source = catalog[0]
+    source.id = id
+    source.x = x
+    source.y = y
+    source.ra = ra_deg_source
+    source.dec = dec_deg_source
+    source.ston = ston
+    source.freq = freq_MHz_source
+    source.alpha = alpha
+    source.gain = gain
+    source.flag = flag
+    source.extend = extend
+    source.flux = flux_source
     catalog_addition = [catalog_addition, source]
   endfor
   
-  restore, original_catalog_filepath, /relaxed
-  print, 'Adding '+ string(n_elements(catalog_addition)) + ' new source(s) to catalog.'
+  
   catalog = [catalog, catalog_addition]
-  print, 'Saving new catalog to ' + destination_catalog_filepath
+  print, 'Saving new catalog to ' + desination_catalog_filepath
   save, filename = desination_catalog_filepath, catalog
   
 end

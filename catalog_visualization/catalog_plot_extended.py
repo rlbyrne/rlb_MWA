@@ -8,12 +8,12 @@ import matplotlib.pyplot as plt
 def main():
 
 	#catalog_name = '1130781304_run1_catalog'
-	catalog_name = 'GLEAM'
+	catalog_name = 'GLEAM+PicA'
 	catalog_data_path = '/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'.txt'
 	
 	flux_cut = 0
-	ra_plot_range = [-150,210]
-	dec_plot_range = [-90,90]
+	ra_plot_range = [70,90]
+	dec_plot_range = [-60,-30]
 	markersize_range = [.00001,50]
 	flux_plot_max = 200
 
@@ -56,7 +56,7 @@ def main():
 	plt.scatter(ra_sources,dec_sources,marker='o',s=marker_sizes_sources)
 	plt.scatter(ra_components,dec_components,marker='o',s=marker_sizes_components,c='red')
 	plt.grid()
-	if True:
+	if False:
 		a_team_ras = [83.6331,79.9572,139.524,201.365,252.784,187.706,299.868,350.858]
 		for i, ra in enumerate(a_team_ras):
 			if ra > ra_plot_range[1]:
@@ -66,7 +66,7 @@ def main():
 		a_team_names = ['Crab','Pic A','Hydra A','Cen A','Her A','Vir A','Cygnus A','Cas A']
 		for i, name in enumerate(a_team_names):
 			plt.annotate(name, (a_team_ras[i],a_team_decs[i]))
-	if True:
+	if False:
 		other_bright_ras = [50.6738,128.836,83.8221]
 		for i, ra in enumerate(other_bright_ras):
 			if ra > ra_plot_range[1]:

@@ -4,7 +4,6 @@ import sys
 
 def read_model(name):
 
-	name = 'PicA-88comp'
 	filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/anoko/mwa-reduce/models/model-'+name+'.txt'
 	datafile = open(filepath, 'r')
 	file_contents = datafile.readlines()
