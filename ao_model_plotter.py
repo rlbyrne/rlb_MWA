@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+#Script that plots the AO-compatible GLEAM extended source models.
+
 import sys
 import matplotlib
 matplotlib.use('Agg')
@@ -41,8 +43,6 @@ def main():
 	plt.grid()
 	print 'Saving plot to /nfs/eor-00/h1/rbyrne/catalog_data/'+name+'_plot.png'
 	plt.savefig('/nfs/eor-00/h1/rbyrne/catalog_data/'+name+'_plot')
-	
-	
 	
 	
 if __name__ == '__main__':

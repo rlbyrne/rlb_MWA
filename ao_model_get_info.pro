@@ -1,20 +1,10 @@
-;Script that adds sources from the AO-compatible GLEAM extended source models to an FHD catalog.
-;Limitations:
-;  Only works when the model file only contains one measurement
-;  ID, X, Y, STON, ALPHA, GAIN, FLAG are not calculated
-;  Calculates flux in Stokes I only
-;  Flux in XX, YY, XY, and YX is not calculated for the source or components.
-;Written by R. Byrne 06/17
+pro ao_model_get_info
 
-pro ao_model_adder
-
-  model_name = 'FornaxA-point-source'
+  model_name = 'PicA-88comp'
   filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/anoko/mwa-reduce/models/model-'+model_name+'.txt'
   
-  target_freq_MHz = 180. ;If more than one measurement exists, use the one taken at the freq closest to this value
-  ;original_catalog_filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAMIDR4_181_consistent.sav'
-  original_catalog_filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAM_plus_rlb2017.sav'
-  desination_catalog_filepath = '/nfs/eor-00/h1/rbyrne/catalogs/GLEAM_plus.sav'
+  original_catalog_filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/FHD/catalog_data/GLEAMIDR4_181_consistent.sav'
+  desination_catalog_filepath = '/nfs/eor-00/h1/rbyrne/catalogs/GLEAM+'+model_name+'.sav'
   restore, original_catalog_filepath, /relaxed
   
   ;;;;parameters I don't know so I'm setting arbitrarily;;;;
@@ -55,8 +45,11 @@ pro ao_model_adder
         
         ra_deg = 0
         dec_deg = 0
-        freq_MHz = []
-        flux_I_Jy = []
+        freq_MHz = 0
+        flux_I_Jy = 0
+        flux_Q_Jy = 0
+        flux_U_Jy = 0
+        flux_V_Jy = 0
         
         for line = 0, n_elements(component_data)-1 do begin
         
@@ -66,49 +59,39 @@ pro ao_model_adder
             ra_split = strsplit(ra,'h',/extract)
             ra_split = [ra_split[0], strsplit(ra_split[1],'m',/extract)]
             ra_split = [ra_split[0:1],strsplit(ra_split[2],'s',/extract)]
-            ra_deg = (abs(float(ra_split[0])) + float(ra_split[1])/60. + float(ra_split[2])/3600.)*360./24.
-            if strpos(ra_split[0],'-') ne -1 then begin
-              ra_deg = -ra_deg
-              ra_deg = ra_deg + 360. ;make all the RA values positive
-            endif
+            ra_deg = (float(ra_split[0]) + float(ra_split[1])/60. + float(ra_split[2])/3600.)*360./24.
             dec = pos_data[2]
             dec_split = strsplit(dec,'d',/extract)
             dec_split = [dec_split[0], strsplit(dec_split[1],'m',/extract)]
             dec_split = [dec_split[0:1], strsplit(dec_split[2],'s',/extract)]
             dec_deg = abs(float(dec_split[0])) + float(dec_split[1])/60. + float(dec_split[2])/3600.
-            if strpos(dec_split[0],'-') ne -1 then dec_deg = -dec_deg
+            if float(dec_split[0]) lt 0 then dec_deg = -dec_deg
           endif
           
           if strpos(component_data[line], 'frequency') ne -1 then begin
-            freq_MHz = [freq_MHz, float((strsplit(component_data[line], /extract))[1])]
+            freq_MHz = float((strsplit(component_data[line], /extract))[1])
           endif
           
-          if strpos(component_data[line], 'fluxdensity Jy') ne -1 then begin
+          if strpos(component_data[line], 'fluxdensity') ne -1 then begin
             flux_data = strsplit(component_data[line], /extract)
-            flux_I_Jy = [flux_I_Jy, float(flux_data[2])]
+            flux_I_Jy = float(flux_data[2])
+            flux_Q_Jy = float(flux_data[3])
+            flux_U_Jy = float(flux_data[4])
+            flux_V_Jy = float(flux_data[5])
+            
+            flux_comp = catalog[0].flux
+            flux_comp.XX = 0.
+            flux_comp.YY = 0.
+            flux_comp.XY = 0.
+            flux_comp.YX = 0.
+            flux_comp.I = flux_I_Jy
+            flux_comp.Q = flux_Q_Jy
+            flux_comp.U = flux_U_Jy
+            flux_comp.V = flux_V_Jy
+          ;flux_comp = {XX:0., YY:0., XY: 0., YX: 0., I:flux_I_Jy, Q:flux_Q_Jy, U:flux_U_Jy, V:flux_V_Jy}
           endif
           
         endfor
-        
-        if n_elements(freq_MHz) gt 1 then begin
-          freq_dist = []
-          for freq_index = 0, n_elements(freq_MHz)-1 do begin
-            freq_dist = [freq_dist, abs(freq_MHz[freq_index]-target_freq_MHz)]
-          endfor
-          use_meas = value_locate(freq_dist, min(freq_dist))
-        endif else use_meas = 0
-        freq_MHz_use = freq_MHz[use_meas]
-        flux_I_Jy_use = flux_I_Jy[use_meas]
-        
-        flux_comp = catalog[0].flux
-        flux_comp.XX = 0.
-        flux_comp.YY = 0.
-        flux_comp.XY = 0.
-        flux_comp.YX = 0.
-        flux_comp.I = flux_I_Jy_use
-        flux_comp.Q = 0.
-        flux_comp.U = 0.
-        flux_comp.V = 0.
         
         component = catalog[0]
         component.id = id
@@ -117,7 +100,7 @@ pro ao_model_adder
         component.ra = ra_deg
         component.dec = dec_deg
         component.ston = ston
-        component.freq = freq_MHz_use
+        component.freq = freq_MHz
         component.alpha = alpha
         component.gain = gain
         component.flag = flag
@@ -128,8 +111,7 @@ pro ao_model_adder
       endif
       
     endfor
-    
-    if n_elements(component_array) gt 1 then extend = ptr_new(component_array) else extend = ptr_new()
+    extend = ptr_new(component_array)
     
     ;sum Stokes I flux of the components to get total flux
     ;centroid the source based on the Stokes I flux of the components
@@ -146,38 +128,9 @@ pro ao_model_adder
     dec_deg_source = dec_weighted_sum/flux_sum
     freq_MHz_source = component_array[0].freq ;assume the frequency is equal for all components
     
-    flux_source = catalog[0].flux
-    flux_source.XX = 0.
-    flux_source.YY = 0.
-    flux_source.XY = 0.
-    flux_source.YX = 0.
-    flux_source.I = flux_sum
-    flux_source.Q = 0.
-    flux_source.U = 0.
-    flux_source.V = 0.
-    ;flux_source = {XX:0., YY:0., XY: 0., YX: 0., I:flux_sum, Q:0., U:0., V:0.}
-    
-    source = catalog[0]
-    source.id = id
-    source.x = x
-    source.y = y
-    source.ra = ra_deg_source
-    source.dec = dec_deg_source
-    source.ston = ston
-    source.freq = freq_MHz_source
-    source.alpha = alpha
-    source.gain = gain
-    source.flag = flag
-    source.extend = extend
-    source.flux = flux_source
-    
-    catalog_addition = [catalog_addition, source]
-    
+    print, "....."
+    print, model_name + " RA: " + ra_deg_source + " Dec: " + dec_deg_source + " Flux: " + flux_sum
+    print, "....."
   endfor
-  
-  
-  catalog = [catalog, catalog_addition]
-  print, 'Saving new catalog to ' + desination_catalog_filepath
-  save, filename = desination_catalog_filepath, catalog
-  
+
 end

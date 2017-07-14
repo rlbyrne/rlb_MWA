@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+#Script that parses the AO-compatible GLEAM extended source models.
+#Consider instead using the IDL script ao_model_adder.pro.
+
 import sys
 
 def read_model(name):

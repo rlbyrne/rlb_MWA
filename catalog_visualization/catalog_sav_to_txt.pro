@@ -6,8 +6,8 @@ pro catalog_sav_to_txt
   ;catalog_path = '/nfs/mwa-08/d1/DiffuseSurvey2015/1130781304_run2_catalog.sav'
   ;catalog_name = 'Pic_A_run1_catalog'
   ;catalog_path = '/nfs/mwa-04/r1/EoRuvfits/DiffuseSurvey2015/Pic_A_run1_catalog.sav'
-  catalog_name = 'GLEAM+PicA'
-  catalog_path = '/nfs/eor-00/h1/rbyrne/catalogs/GLEAM+PicA-88comp.sav'
+  catalog_name = 'GLEAM_plus'
+  catalog_path = '/nfs/eor-00/h1/rbyrne/catalogs/GLEAM_plus.sav'
   restore, catalog_path, /relaxed
   
   openw, outfile, '/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'.txt', /get_lun

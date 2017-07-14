@@ -50,10 +50,7 @@ def main():
 			else:
 				num_components = int(info[4])
 				for i in range(num_components):
-					ra_use = float(info[5+3*i])
-					if ra_use >= ra_plot_range[1]:
-						ra_use -= 360.
-					ra_components.append(ra_use)
+					ra_components.append(float(info[5+3*i]))
 					dec_components.append(float(info[6+3*i]))
 					marker_sizes_components.append(float(info[7+3*i])/flux_plot_max*(markersize_range[1]-markersize_range[0])+markersize_range[0])
 					
