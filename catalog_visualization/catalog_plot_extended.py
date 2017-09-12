@@ -8,15 +8,17 @@ import matplotlib.pyplot as plt
 def main():
 
 	#catalog_name = '1130781304_run1_catalog'
-	catalog_name = 'GLEAM_plus'
+	catalog_name = 'GLEAM_plus_extended_fornax'
 	catalog_data_path = '/nfs/eor-00/h1/rbyrne/catalog_data/'+catalog_name+'.txt'
 	
-	saveplot_name = 'GLEAM_plus'
+	saveplot_name = catalog_name
 	
 	flux_cut = 0
-	ra_plot_range = [-150,210]
-	dec_plot_range = [-90,90]
-	markersize_range = [.01,20]
+	ra_plot_range = [48,52]
+	dec_plot_range = [-39,-35]
+	#ra_plot_range = [137,141]
+	#dec_plot_range = [-14,-10]
+	markersize_range = [1,20]
 	flux_plot_max = 200
 
 	datafile = open(catalog_data_path, "r")

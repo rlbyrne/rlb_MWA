@@ -8,7 +8,7 @@
 
 pro ao_model_adder
 
-  model_name = 'FornaxA-point-source'
+  model_name = 'PicA-88comp'
   filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/anoko/mwa-reduce/models/model-'+model_name+'.txt'
   
   target_freq_MHz = 180. ;If more than one measurement exists, use the one taken at the freq closest to this value
