@@ -465,6 +465,7 @@ def main():
 
     write_filename = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsinfo.txt"
     openfile = open(write_filename, "a")
+    openfile.write('obsid, LST, RA, Dec, Az, El\n')
     openfile.write(obsinfo_string)
     openfile.close()
         
