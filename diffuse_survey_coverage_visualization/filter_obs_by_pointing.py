@@ -2,7 +2,8 @@
 
 import sys
 
-#script that finds the pointings of observations in the diffuse survey
+# script that finds the pointings of observations in the diffuse survey
+# Obsolete: see surveyview.py module
 
 def main():
 
@@ -22,7 +23,7 @@ def main():
 	Azimuths = []
 	Elevations = []
 	AzEls = []
-	
+
 	for info in obsinfo:
 		info = info.split(", ")
 		obsids.append(int(info[0]))
@@ -31,17 +32,17 @@ def main():
 		Decs.append(float(info[3]))
 		Azimuths.append(float(info[4]))
 		Elevations.append(float(info[5]))
-		
+
 	Decs_round = [int(Dec/6.)*6 for Dec in Decs] #round the declinations to the nearest 6th to clump them in 7 Dec bands
 	Decs_set = list(set(Decs_round))
 	Decs_set.sort()
 	if len(Decs_set) != 7:
 		print "ERROR: Dividing observations into declination bands failed"
 		sys.exit(1)
-	
+
 	Azimuths = [round(term) for term in Azimuths]
 	Elevations = [round(term) for term in Elevations]
-	
+
 	pointings_codes = ['']*len(obsids)
 	dec_pointings_options = [3,2,1,0,-1,-2,-3]
 	azimuth_pointings_options = [2,1,0,-1,-2]
@@ -64,11 +65,11 @@ def main():
 				Az_wrap += 1
 		if Az_wrap > 0:
 			Azimuth_band_set_sort = Azimuth_band_set_sort[len(Azimuth_band_set_sort)-Az_wrap:] + Azimuth_band_set_sort[:len(Azimuth_band_set_sort)-Az_wrap]
-				
+
 		for obs_index in range(len(obsids)):
 			if Decs_round[obs_index] == dec_band:
 				pointings_codes[obs_index] = azimuth_pointings_options[Azimuth_band_set_sort.index(Azimuths[obs_index])]
-				
+
 	outfile_name = '/nfs/eor-00/h1/rbyrne/diffuse_survey_good_pointings.txt'
 	print 'saving data to ' + outfile_name
 	outfile = open(outfile_name, 'w')
@@ -77,6 +78,6 @@ def main():
 			outfile.write(str(obsid)+'\n')
 	outfile.close()
 
-		
+
 if __name__ == '__main__':
 	main()

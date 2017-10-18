@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# OBSOLETE CODE: see survey_plotter.py function plot_radec_pointings_coverage
+
 import sys
 import matplotlib
 matplotlib.use('Agg')
@@ -12,7 +14,7 @@ def main():
 	resolution = 1
 	radius = 12
 	colorbar_max = 10
-	
+
 	ra_vals = [ra_range[0]+resolution*i for i in range(int((ra_range[1]-ra_range[0])/resolution))]
 	dec_vals = [dec_range[0]+resolution*i for i in range(int((dec_range[1]-dec_range[0])/resolution))]
 	number_obsids = [[0 for i in range(len(ra_vals))] for i in range(len(dec_vals))]
@@ -32,7 +34,7 @@ def main():
 	Azimuths = []
 	Elevations = []
 	#AzEls = []
-	
+
 	for info in obsinfo:
 		info = info.split(", ")
 		#obsids.append(int(info[0]))
@@ -44,13 +46,13 @@ def main():
 		Decs.append(float(info[3]))
 		Azimuths.append(round(float(info[4])))
 		Elevations.append(round(float(info[5])))
-		
+
 	AzEls = zip(Azimuths,Elevations)
-	
+
 	for i, RA_target in enumerate(ra_vals):
 		for j, Dec_target in enumerate(dec_vals):
 			(number_obsids[-(j+1)])[-(i+1)] = check_obsids(RAs, Decs, RA_target, Dec_target, AzEls, radius, colorbar_max)
-			
+
 	plt.figure(figsize=(9,3))
 	plt.imshow(number_obsids, interpolation='none', extent=[ra_range[1]/360.*24.,ra_range[0]/360.*24.,dec_range[0],dec_range[1]], aspect=24/360., cmap=plt.get_cmap('Blues'))
 	plt.xlabel('Right Ascension (hours)')
@@ -59,7 +61,7 @@ def main():
 	cbar = plt.colorbar(extend='max')
 	cbar.set_label('Number of Unique Pointings')
 	plt.savefig("/nfs/eor-00/h1/rbyrne/radec_plots/pointings_coverage.png")
-	
+
 
 def check_obsids(RAs, Decs, RA_target, Dec_target, AzEls, radius, colorbar_max):
 
@@ -72,6 +74,6 @@ def check_obsids(RAs, Decs, RA_target, Dec_target, AzEls, radius, colorbar_max):
 	if number_pointings > colorbar_max:
 		number_pointings = colorbar_max
 	return number_pointings
-		
+
 if __name__ == '__main__':
 	main()

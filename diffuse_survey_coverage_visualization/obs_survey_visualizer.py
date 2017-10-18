@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# OBSOLETE CODE: SEE survey_plotter.py functions plot_azels,
+# plot_radecs_colorcode_decs, and generate_radec_animation
+
 import matplotlib.pyplot as plt
 import sys
 
@@ -20,7 +23,7 @@ def main():
 	Azimuths = []
 	Elevations = []
 	AzEls = []
-	
+
 	for info in obsinfo:
 		info = info.split(", ")
 		obsids.append(int(info[0]))
@@ -30,13 +33,13 @@ def main():
 		Azimuths.append(float(info[4]))
 		Elevations.append(float(info[5]))
 		AzEls.append(str(int(float(info[4]))) + ", " + str(int(float(info[5]))))
-	
+
 	Decs_round = [int(Dec/6.)*6 for Dec in Decs] #round the declinations to the nearest 6th to clump them in 7 Dec bands
 	Decs_set = list(set(Decs_round))
 	Decs_set.sort()
-	
+
 	use_colors = ["black","red","green","magenta","cyan","yellow","blue","black","red","green","magenta","cyan","yellow"]
-	
+
 	if False:
 		plt.figure()
 		for i in range(len(Decs_set)):
@@ -57,13 +60,13 @@ def main():
 		plt.axis([-10,350,60,91])
 		plt.grid(True)
 		plt.savefig("/nfs/eor-00/h1/rbyrne/radec_plots/AzEls.png")
-		
-		
+
+
 	for i, RA in enumerate(RAs):
 		if RA > 250:
 			RAs[i] = RAs[i] - 360
-		
-	if False:	
+
+	if False:
 		save_filepath = "/nfs/eor-00/h1/rbyrne/radec_plots/dec_colorcode_plot.png"
 		plt.figure(figsize=(10,5))
 		for i in range(len(Decs_set)):
@@ -79,8 +82,8 @@ def main():
 		plt.axis([-100,200,-65,15])
 		plt.grid(True)
 		plt.savefig(save_filepath)
-			
-			
+
+
 	if True:
 		for i, obs in enumerate(obsids):
 		#if True:

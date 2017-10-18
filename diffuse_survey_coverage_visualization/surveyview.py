@@ -3,18 +3,17 @@
 
 class Observation:
 
-    def __init__(self, obsid, lst, ra, dec, az, el):
-        self.obsid = obsid
-        self.lst = lst
-        self.ra = ra
-        self.dec = dec
-        self.az = az
-        self.el = el
+    def __init__(self, info):
+        self.obsid = info[0]
+        self.lst = float(info[1])
+        self.ra = float(info[2])
+        self.dec = float(info[3])
+        self.az = float(info[4])
+        self.el = float(info[5])
 
 
-def load_diffuse_survey():
+def load_survey(obsfile_name):
 
-    obsfile_name = "/nfs/eor-00/h1/rbyrne/sidelobe_survey_obsinfo.txt"
     obsfile = open(obsfile_name, "r")
     obsinfo = [line.split("\n") for line in obsfile.readlines()]
     obsfile.close()
@@ -74,4 +73,7 @@ def get_pointings(observations):
                 observations[obs_index].pointing = '({}, {})'.format(
                     azimuth_pointings_options[
                         Azimuth_band_set_sort.index(Azimuths[obs_index])],
-                    dec_pointings_options[band_index])
+                    dec_pointings_options[band_index]
+                    )
+
+    return observations
