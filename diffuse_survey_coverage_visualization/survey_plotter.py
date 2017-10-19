@@ -1,5 +1,19 @@
 #!/usr/bin/python
 
+# Code for plotting the coverage of a survey
+# Creates the following plots:
+#   plot_azels: Creates a scatter plot of Az/El values represented in the
+#       survey
+#   plot_radecs_colorcode_decs: Creates a scatter plot of RA/Dec values present
+#       in the survey; each declination band has a different color
+#   generate_radec_animation: Creates a series of plots showing the RA/Dec
+#       values of each observation. These plots can be combined to create an
+#       animation of the survey in the order the data was taken.
+#   plot_radec_pointings_coverage: Creates a heatmap showing the
+#       number of different pointings covering points in the RA/Dec plane
+#   plot_radec_obs_coverage:Creates a heatmap showing the
+#       number of different observations covering points in the RA/Dec plane
+
 
 import surveyview
 import matplotlib

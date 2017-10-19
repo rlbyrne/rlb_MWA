@@ -1,10 +1,13 @@
 #!/usr/bin/python
 
+# Script that finds the obsids closest to a given RA/Dec
+# Prints both the closest three obsids and the closest three obsids with "best"
+# pointings (highest elevation out of observations in its survey with the same
+# declination)
+
+
 import sys
 import surveyview
-
-#script that finds the obsids closest to a given RA/Dec
-#also gives information about the pointings of those obsids
 
 
 def main(obsfile_name,

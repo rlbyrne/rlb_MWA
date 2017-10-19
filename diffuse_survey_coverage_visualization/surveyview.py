@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+# Tools for characterizing a survey
+
 
 class Observation:
 
