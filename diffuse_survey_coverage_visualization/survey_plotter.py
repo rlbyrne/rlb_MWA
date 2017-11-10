@@ -15,10 +15,13 @@
 #       number of different observations covering points in the RA/Dec plane
 
 
+import os
 import surveyview
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+from matplotlib import gridspec
 
 
 # Set color scheme for all plots
@@ -96,13 +99,13 @@ def plot_radecs_colorcode_decs(obsfile_name, save_loc):
     plt.close()
 
 
-def generate_radec_animation(obsfile_name, save_loc):
+def generate_radec_animation(obsfile_name, save_dir):
 
-    if save_loc.endswith('.png'):  # User doesn't get to set file name
-        save_loc_split = save_loc.split('/')
-        save_loc = '/'.join(save_loc_split[:-1])
-    if save_loc.endswith('/'):
-        save_loc = save_loc[:-1]
+    if save_dir.endswith('.png'):  # User doesn't get to set file name
+        save_dir_split = save_dir.split('/')
+        save_dir = '/'.join(save_dir_split[:-1])
+    if save_dir.endswith('/'):
+        save_dir = save_dir[:-1]
 
     observations = surveyview.load_survey(obsfile_name)
 
@@ -122,7 +125,7 @@ def generate_radec_animation(obsfile_name, save_loc):
                 filepath_num = '0' + str(i+1)
             else:
                 filepath_num = str(i+1)
-        save_filepath = '{}/radec_plot{}.png'.format(save_loc, filepath_num)
+        save_loc = '{}/radec_plot{}.png'.format(save_dir, filepath_num)
 
         plt.figure(figsize=(17, 5))
         plt.plot(ras[0:i+1], decs[0:i+1], 'o', markersize=90, mfc='blue',
@@ -136,8 +139,8 @@ def generate_radec_animation(obsfile_name, save_loc):
         plt.axis([-100, 200, -65, 15])
         plt.grid(which='both')
         plt.text(-80, 17, 'Obsid: ' + str(obs))
-        print 'Saving plot to {}'.format(save_filepath)
-        plt.savefig(save_filepath)
+        print 'Saving plot to {}'.format(save_loc)
+        plt.savefig(save_loc)
         plt.close()
 
 
@@ -145,7 +148,7 @@ def plot_radec_pointings_coverage(obsfile_name, save_loc):
 
     def check_obsids(observations, ra_target, dec_target, radius,
                      colorbar_max):
-        pointings = []
+        number_pointings = 0
         for i, obs in enumerate(observations):
             distance_2 = (obs.dec-dec_target)**2+(obs.ra-ra_target)**2
             if distance_2 <= radius**2:
@@ -191,8 +194,8 @@ def plot_radec_pointings_coverage(obsfile_name, save_loc):
     plt.tight_layout()
     cbar = plt.colorbar(extend='max')
     cbar.set_label('Number of Unique Pointings')
-    print 'Saving plot to {}'.format(save_filepath)
-    plt.savefig(save_filepath)
+    print 'Saving plot to {}'.format(save_loc)
+    plt.savefig(save_loc)
     plt.close()
 
 
@@ -200,7 +203,7 @@ def plot_radec_obs_coverage(obsfile_name, save_loc):
 
     def check_obsids(observations, ra_target, dec_target, radius,
                      colorbar_max):
-        pointings = []
+        number_pointings = 0
         for i, obs in enumerate(observations):
             distance_2 = (obs.dec-dec_target)**2+(obs.ra-ra_target)**2
             if distance_2 <= radius**2:
@@ -245,9 +248,93 @@ def plot_radec_obs_coverage(obsfile_name, save_loc):
     plt.tight_layout()
     cbar = plt.colorbar(extend='max')
     cbar.set_label('Number of Unique Observations')
-    print 'Saving plot to {}'.format(save_filepath)
-    plt.savefig(save_filepath)
+    print 'Saving plot to {}'.format(save_loc)
+    plt.savefig(save_loc)
     plt.close()
+
+
+def radec_reference_for_images(obsfile_name, image_filename, save_loc,
+                               reduced_obslist=''):
+
+    save_loc = format_save_loc(save_loc, 'radec_reference')
+
+    observations = surveyview.load_survey(obsfile_name)
+    for obs in observations:
+        if obs.ra > 250:
+            obs.ra -= 360
+
+    if reduced_obslist != '':
+        reduced_obslist = open(reduced_obslist, "r")
+        obs_reduced = reduced_obslist.readlines()
+        reduced_obslist.close()
+        obs_reduced = [obs.strip() for obs in obs_reduced]
+        observations = [
+            obs for obs in observations if obs.obsid in obs_reduced]
+
+    ras = [obs.ra for obs in observations]
+    decs = [obs.dec for obs in observations]
+
+    highlight_obs = (image_filename.split('/')[-1]).split('_')[0]
+    i = [obs.obsid for obs in observations].index(highlight_obs)
+
+    a_teams = surveyview.get_a_team_sources()
+    for source in a_teams:
+        if source.ra > 250:
+            source.ra -= 360
+
+    plt.figure(figsize=(11, 14))
+    gs = gridspec.GridSpec(2, 3, height_ratios=[1, 4], width_ratios=[1, 50, 1])
+
+    plt.subplot(gs[0, 1])
+    plt.plot(ras, decs, 'o', markersize=90, mfc='0.9', mec='none', zorder=1)
+    plt.plot(ras[i], decs[i], 'o', markersize=90, mfc='none', mec='red',
+             zorder=11)
+    plt.plot(ras[i], decs[i], 'x', markersize=10, mec='red', zorder=12)
+    plt.plot([source.ra for source in a_teams],
+             [source.dec for source in a_teams],
+             'o', markersize=5, mfc='orange', mec='none')
+    for index in range(len(a_teams)):
+        plt.annotate(
+            a_teams[index].name, (a_teams[index].ra, a_teams[index].dec))
+    plt.xticks(range(-100, 200, 10))
+    plt.xlabel('RA')
+    plt.ylabel('Dec')
+    plt.axis('equal')
+    plt.axis([200, -100, -65, 15])
+    plt.grid(which='both', zorder=10)
+
+    plt.subplot(gs[1, :])
+    img = mpimg.imread(image_filename)
+    plt.imshow(img)
+
+    plt.tight_layout()
+    print 'Saving plot to {}'.format(save_loc)
+    plt.savefig(save_loc, dpi=300)
+    plt.close()
+
+
+def radec_reference_for_images_wrapper(obsfile_name, images_dir, save_dir,
+                                       reduced_obslist=''):
+
+    if save_dir.endswith('.png'):  # User doesn't get to set file name
+        save_dir_split = save_dir.split('/')
+        save_dir = '/'.join(save_dir_split[:-1])
+    if save_dir.endswith('/'):
+        save_dir = save_dir[:-1]
+
+    if images_dir.endswith('/'):
+        images_dir = images_dir[:-1]
+
+    images = os.listdir(images_dir)
+    for filename in images:
+        if not filename.endswith('.png'):
+            images.remove(filename)
+
+    for filename in images:
+        output_path = '{}/{}_radec_ref.png'.format(save_dir, filename[0:-4])
+        radec_reference_for_images(
+            obsfile_name, '{}/{}'.format(images_dir, filename),
+            output_path, reduced_obslist)
 
 
 def format_save_loc(save_loc, default_filename):
@@ -256,3 +343,7 @@ def format_save_loc(save_loc, default_filename):
             save_loc = save_loc[:-1]
         save_loc = '{}/{}.png'.format(save_loc, default_filename)
     return save_loc
+
+
+if __name__ == '__main__':
+    radec_reference_for_images_wrapper('/Users/ruby/EoR/sidelobe_survey_obsinfo.txt', '/Users/ruby/EoR/aws_plots/residual_I', '/Users/ruby/EoR/radec_reference_plots', '/Users/ruby/EoR/diffuse_survey_good_pointings.txt')

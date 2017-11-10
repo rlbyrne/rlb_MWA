@@ -14,6 +14,14 @@ class Observation:
         self.el = float(info[5])
 
 
+class KnownSource:
+
+    def __init__(self, name, ra, dec):
+        self.name = name
+        self.ra = float(ra)
+        self.dec = float(dec)
+
+
 def load_survey(obsfile_name):
 
     obsfile = open(obsfile_name, "r")
@@ -79,3 +87,29 @@ def get_pointings(observations):
                     )
 
     return observations
+
+
+def get_a_team_sources():
+
+    a_team_ras = [
+        83.6331, 79.9572, 139.524, 201.365,
+        252.784, 187.706, 299.868, 350.858,
+        50.6738, 128.836, 83.8221
+        ]
+    a_team_decs = [
+        22.0145, -45.7788, -12.0956, -43.0192,
+        4.9925, 12.3911, 40.7339, 58.8,
+        -37.2083, -45.1764, -5.3911
+        ]
+    a_team_names = [
+        'Crab', 'Pic A', 'Hydra A', 'Cen A',
+        'Her A', 'Vir A', 'Cygnus A', 'Cas A',
+        'Fornax A', 'Vela', 'Orion'
+        ]
+
+    a_teams = []
+    for i in range(len(a_team_names)):
+        a_teams.append(KnownSource(a_team_names[i], a_team_ras[i],
+                                   a_team_decs[i]))
+
+    return a_teams
