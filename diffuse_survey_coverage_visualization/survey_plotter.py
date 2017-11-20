@@ -11,8 +11,12 @@
 #       animation of the survey in the order the data was taken.
 #   plot_radec_pointings_coverage: Creates a heatmap showing the
 #       number of different pointings covering points in the RA/Dec plane
-#   plot_radec_obs_coverage:Creates a heatmap showing the
+#   plot_radec_obs_coverage: Creates a heatmap showing the
 #       number of different observations covering points in the RA/Dec plane
+#   radec_reference_for_images: Adds a reference plot to the top of FHD output
+#       images that shows the observation's field in relation to the survey
+#       field, EoR fields, and the brightest sources (to run on all images in
+#       a directory, use radec_reference_for_images_wrapper)
 
 
 import os
@@ -296,6 +300,10 @@ def radec_reference_for_images(obsfile_name, image_filename, save_loc,
     for index in range(len(a_teams)):
         plt.annotate(
             a_teams[index].name, (a_teams[index].ra, a_teams[index].dec))
+    plt.plot([0, 60], [-27, -27], 'o', markersize=90, mfc='cyan', alpha=0.2,
+             mec='none', zorder=2)
+    plt.annotate('EoR-0', (0, -27))
+    plt.annotate('EoR-1', (60, -27))
     plt.xticks(range(-100, 200, 10))
     plt.xlabel('RA')
     plt.ylabel('Dec')
@@ -346,4 +354,4 @@ def format_save_loc(save_loc, default_filename):
 
 
 if __name__ == '__main__':
-    radec_reference_for_images_wrapper('/Users/ruby/EoR/sidelobe_survey_obsinfo.txt', '/Users/ruby/EoR/aws_plots/residual_I', '/Users/ruby/EoR/radec_reference_plots', '/Users/ruby/EoR/diffuse_survey_good_pointings.txt')
+    radec_reference_for_images_wrapper('/Users/ruby/EoR/sidelobe_survey_obsinfo.txt', '/Users/ruby/EoR/aws_plots/restored_I', '/Users/ruby/EoR/radec_reference_plots', '/Users/ruby/EoR/diffuse_survey_good_pointings.txt')
