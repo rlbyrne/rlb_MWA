@@ -8,6 +8,8 @@ from mpl_toolkits.basemap import Basemap
 from astropy.io import fits
 import numpy as np
 import healpy as hp
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
@@ -137,7 +139,7 @@ def plot_healpix_tiling():
         use_pixels = hp.query_polygon(nside, tile_bounds_vec, nest=nest)
         data.extend([data_point for data_point in obs_data if data_point.pixelnum in use_pixels])
 
-    fig, ax = plt.subplots(figsize=(12, 6), dpi=2000)
+    fig, ax = plt.subplots(figsize=(48, 16), dpi=500)
 
     # Collect Healpix pixels to plot
     patches = []
@@ -184,7 +186,7 @@ def plot_healpix_tiling():
     cbar = fig.colorbar(collection, ax=ax)  # add colorbar
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
-    plt.savefig('/Users/ruby/EoR/Healpix_fits/mosaicplot.png', format='png', dpi=2000)
+    plt.savefig('/Users/ruby/EoR/Healpix_fits/mosaicplot.png', format='png', dpi=500)
 
 
 def plot_healpix_mosaic(data_dir, obs_array, save_filename):
@@ -238,7 +240,9 @@ def plot_healpix_mosaic(data_dir, obs_array, save_filename):
                                                    lonlat=True)
         for j, obs in enumerate(observations):
             if pixel in [data_point.pixelnum for data_point in obs.heal_data]:
-                pixel_dist[j] = (obs.ra-pixel_ra)**2 + (obs.dec-pixel_dec)**2
+                ra_dist = min([abs(obs.ra - pixel_ra + delta) for delta in
+                              [-360., 0, 360]])
+                pixel_dist[j] = (ra_dist)**2 + (obs.dec-pixel_dec)**2
 
         pixel_dist_sorted = sorted(pixel_dist)
         obs_use_data = observations[pixel_dist.index(pixel_dist_sorted[0])].heal_data
@@ -261,7 +265,10 @@ def plot_filled_pixels(data, nside, nest, save_filename):
         point.get_pixel_corners(nside, nest)
         polygon = Polygon(zip(point.pix_corner_ras, point.pix_corner_decs))
         patches.append(polygon)
-        colors.append(point.signal)
+        if point.signal < 0.04:
+            colors.append(point.signal)
+        else:
+            colors.append(0.04)
 
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.04)
     collection.set_array(np.array(colors))  # set the data colors
@@ -271,9 +278,10 @@ def plot_filled_pixels(data, nside, nest, save_filename):
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
     ax.set_facecolor('black')  # make plot background black
-    plt.axis([65, 40, -50, -30])
+    plt.axis([14, -11, -37, -16])
     plt.grid(which='both', zorder=10)
-    fig.colorbar(collection, ax=ax)  # add colorbar
+    cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
+    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
     plt.savefig(save_filename, format='png', dpi=2000)
 
@@ -283,6 +291,11 @@ def load_map(data_filename):
     contents = fits.open(data_filename)
     nside = int(contents[1].header['nside'])
     ordering = contents[1].header['ordering']
+    data = contents[1].data
+    contents.close()
+
+    pixel_vals = data.field('PIXEL')
+    signal_vals = data.field('SIGNAL')
 
     if ordering.lower() == 'ring':
         nest = False
@@ -293,9 +306,6 @@ def load_map(data_filename):
         print 'Ordering must be "ring" or "nested". Exiting.'
         sys.exit(1)
 
-    data = contents[1].data
-    pixel_vals = data.field('PIXEL')
-    signal_vals = data.field('SIGNAL')
 
     if len(pixel_vals) != len(signal_vals):
         print 'ERROR: Pixel index and data lengths do not match. Exiting.'
@@ -318,13 +328,19 @@ class HealpixPixel:
     def get_ra_dec(self, nside, nest):
         ra, dec = hp.pixelfunc.pix2ang(nside, self.pixelnum,
                                        nest=nest, lonlat=True)
-        self.ra = ra
+        if ra > 270:
+            self.ra = ra
+        else:
+            self.ra = ra - 360.
         self.dec = dec
 
     def get_pixel_corners(self, nside, nest):
         coords = hp.boundaries(nside, self.pixelnum, step=1,
                                nest=nest)
         ras, decs = hp.pixelfunc.vec2ang(np.transpose(coords), lonlat=True)
+        for i, ra in enumerate(ras):
+            if ra > 270:
+                ras[i] -= 360.
         self.pix_corner_ras = ras
         self.pix_corner_decs = decs
 
