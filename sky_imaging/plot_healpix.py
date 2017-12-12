@@ -106,13 +106,6 @@ def plot_healpix_tiling():
                         -5, -15, -25, -35, -45,
                         -5, -15, -25, -35, -45]
 
-    #obsids = [1131478056, 1131472536, 1131468936, 1131463536, 1131717352,
-    #          1131711952, 1131535544,
-    #          1131477936, 1131472416, 1131468816, 1131463416, 1131457896,
-    #          1131454296, 1131710032,
-    #          1131477816, 1131731632, 1130778424, 1131463296, 1131459576,
-    #          1131713512, 1131709912]
-
     obsids = [1131478056, 1131564464, 1131477936, 1130787784, 1131477816,
               1131733672, 1131562544, 1131733552, 1130785864, 1131475896,
               1131559064, 1131558944, 1131731752, 1130782264, 1130783824,
@@ -127,21 +120,34 @@ def plot_healpix_tiling():
               1131710152, 1131537224, 1131710032, 1131710032, 1131709912,
               1131535544, 1131535424, 1131535304, 1131710032, 1131709912]
 
-
     data = []
     for i, obs in enumerate(obsids):
-        obs_data, nside, nest = load_map('{}/{}_{}_{}_HEALPix.fits'.format(data_dir, obs, normalization, data_type))
+        print 'Gathering pixels from obsid {} of {}.'.format(i+1, len(obsids))
+        obs_data, nside, nest = load_map(
+            '{}/{}_{}_{}_HEALPix.fits'.format(data_dir, obs, normalization,
+                                              data_type)
+            )
         tile_bounds_radec = [[tile_center_ras[i]-5, tile_center_decs[i]-5],
                              [tile_center_ras[i]-5, tile_center_decs[i]+5],
                              [tile_center_ras[i]+5, tile_center_decs[i]+5],
                              [tile_center_ras[i]+5, tile_center_decs[i]-5]]
-        tile_bounds_vec = np.array([hp.pixelfunc.ang2vec(corner[0], corner[1], lonlat=True) for corner in tile_bounds_radec])
+        tile_bounds_vec = np.array(
+            [hp.pixelfunc.ang2vec(corner[0], corner[1], lonlat=True) for
+                corner in tile_bounds_radec]
+            )
         use_pixels = hp.query_polygon(nside, tile_bounds_vec, nest=nest)
-        data.extend([data_point for data_point in obs_data if data_point.pixelnum in use_pixels])
+        data.extend(
+            [data_point for data_point in obs_data if data_point.pixelnum in
+                use_pixels]
+            )
 
-    fig, ax = plt.subplots(figsize=(48, 16), dpi=500)
+    write_data_to_fits(data, nside, nest, '/Users/ruby/Desktop/mosaic_data.fits')
 
-    # Collect Healpix pixels to plot
+    sys.exit(0)
+
+    fig, ax = plt.subplots(figsize=(24, 8), dpi=1000)
+
+    # Define Healpix pixels to plot
     patches = []
     colors = []
     for point in data:
@@ -180,13 +186,13 @@ def plot_healpix_tiling():
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
-    ax.set_facecolor('black')  # make plot background black
-    plt.axis([130, -45, -75, 20])
-    plt.grid(which='both', lw=1.0, zorder=10)
-    cbar = fig.colorbar(collection, ax=ax)  # add colorbar
+    ax.set_facecolor('gray')  # make plot background gray
+    plt.axis([110, -30, -50, 0])
+    cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
-    plt.savefig('/Users/ruby/EoR/Healpix_fits/mosaicplot.png', format='png', dpi=500)
+    plt.savefig('/Users/ruby/EoR/Healpix_fits/mosaicplot.png', format='png',
+                dpi=1000)
 
 
 def plot_healpix_mosaic(data_dir, obs_array, save_filename):
@@ -245,8 +251,11 @@ def plot_healpix_mosaic(data_dir, obs_array, save_filename):
                 pixel_dist[j] = (ra_dist)**2 + (obs.dec-pixel_dec)**2
 
         pixel_dist_sorted = sorted(pixel_dist)
-        obs_use_data = observations[pixel_dist.index(pixel_dist_sorted[0])].heal_data
-        use_data[i] = obs_use_data[([data_point.pixelnum for data_point in obs_use_data]).index(pixel)]
+        obs_use_data = observations[
+            pixel_dist.index(pixel_dist_sorted[0])].heal_data
+        use_data[i] = obs_use_data[
+            ([data_point.pixelnum for data_point in obs_use_data]).index(pixel)
+            ]
         if pixel_dist_sorted[1]-pixel_dist_sorted[0] < boundary_width**2:
             use_data[i].signal = 0
 
@@ -272,15 +281,17 @@ def plot_filled_pixels(data, nside, nest, save_filename):
 
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.04)
     collection.set_array(np.array(colors))  # set the data colors
+    collection.set_clim(vmin=-.02, vmax=.02)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
     ax.add_collection(collection)  # plot data
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
-    ax.set_facecolor('black')  # make plot background black
+    ax.set_facecolor('gray')  # make plot background gray
     plt.axis([14, -11, -37, -16])
     plt.grid(which='both', zorder=10)
-    cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
+    #cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
+    cbar = fig.colorbar(collection, ax=ax)
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
     plt.savefig(save_filename, format='png', dpi=2000)
@@ -306,7 +317,6 @@ def load_map(data_filename):
         print 'Ordering must be "ring" or "nested". Exiting.'
         sys.exit(1)
 
-
     if len(pixel_vals) != len(signal_vals):
         print 'ERROR: Pixel index and data lengths do not match. Exiting.'
         sys.exit(1)
@@ -317,6 +327,35 @@ def load_map(data_filename):
         pixel_data.append(data_point)
 
     return pixel_data, nside, nest
+
+
+def write_data_to_fits(data, nside, nest, save_filename):
+
+    signal_column = fits.Column(
+        name='SIGNAL',
+        array=np.array([data_point.signal for data_point in data]),
+        format='1E'
+        )
+    pixelnum_column = fits.Column(
+        name='PIXEL',
+        array=np.array([data_point.pixelnum for data_point in data]),
+        format='1J'
+        )
+    header = fits.Header()  # initialize header object
+    header['nside'] = nside
+    if nest:
+        header['ordering'] = 'nested'
+    else:
+        header['ordering'] = 'ring'
+    header['indxschm'] = 'explicit'
+
+    hdu_0 = fits.PrimaryHDU()
+    hdu_1 = fits.BinTableHDU.from_columns(
+        [signal_column, pixelnum_column],
+        header=header
+        )
+    hdu_list = fits.HDUList([hdu_0, hdu_1])
+    hdu_list.writeto(save_filename)
 
 
 class HealpixPixel:
