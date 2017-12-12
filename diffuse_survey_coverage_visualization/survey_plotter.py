@@ -33,14 +33,14 @@ from matplotlib import gridspec
 use_colors = ['black', 'red', 'green', 'magenta', 'cyan', 'yellow', 'blue']*3
 
 
-def plot_azels(obsfile_name, save_loc):
+def plot_azels(obs_info_file, save_loc):
 
     # Plots the points in the Az/El plane that are covered by the survey
     # Az/El values are rounded to prevent redundancy
     # Data points are color-coded based on their declination
 
     save_loc = format_save_loc(save_loc, 'AzEls_plot')
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
 
     # Round the declinations to the nearest 6th to clump them in 7 Dec bands
     decs_round = [int(obs.dec/6.)*6 for obs in observations]
@@ -70,10 +70,10 @@ def plot_azels(obsfile_name, save_loc):
     plt.close()
 
 
-def plot_radecs_colorcode_decs(obsfile_name, save_loc):
+def plot_radecs_colorcode_decs(obs_info_file, save_loc):
 
     save_loc = format_save_loc(save_loc, 'radec_coverage_colorcode_plot')
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
 
     for obs in observations:
         if obs.ra > 250:
@@ -103,7 +103,7 @@ def plot_radecs_colorcode_decs(obsfile_name, save_loc):
     plt.close()
 
 
-def generate_radec_animation(obsfile_name, save_dir):
+def generate_radec_animation(obs_info_file, save_dir):
 
     if save_dir.endswith('.png'):  # User doesn't get to set file name
         save_dir_split = save_dir.split('/')
@@ -111,7 +111,7 @@ def generate_radec_animation(obsfile_name, save_dir):
     if save_dir.endswith('/'):
         save_dir = save_dir[:-1]
 
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
 
     for obs in observations:
         if obs.ra > 250:
@@ -148,7 +148,7 @@ def generate_radec_animation(obsfile_name, save_dir):
         plt.close()
 
 
-def plot_radec_pointings_coverage(obsfile_name, save_loc):
+def plot_radec_pointings_coverage(obs_info_file, save_loc):
 
     def check_obsids(observations, ra_target, dec_target, radius,
                      colorbar_max):
@@ -176,7 +176,7 @@ def plot_radec_pointings_coverage(obsfile_name, save_loc):
                 range(int((dec_range[1]-dec_range[0])/resolution))]
     counts = [[0 for i in range(len(ra_vals))] for i in range(len(dec_vals))]
 
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
     observations = surveyview.get_pointings(observations)
 
     for i, ra_target in enumerate(ra_vals):
@@ -203,7 +203,7 @@ def plot_radec_pointings_coverage(obsfile_name, save_loc):
     plt.close()
 
 
-def plot_radec_obs_coverage(obsfile_name, save_loc):
+def plot_radec_obs_coverage(obs_info_file, save_loc):
 
     def check_obsids(observations, ra_target, dec_target, radius,
                      colorbar_max):
@@ -230,7 +230,7 @@ def plot_radec_obs_coverage(obsfile_name, save_loc):
                 range(int((dec_range[1]-dec_range[0])/resolution))]
     counts = [[0 for i in range(len(ra_vals))] for i in range(len(dec_vals))]
 
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
     observations = surveyview.get_pointings(observations)
 
     for i, ra_target in enumerate(ra_vals):
@@ -257,12 +257,12 @@ def plot_radec_obs_coverage(obsfile_name, save_loc):
     plt.close()
 
 
-def radec_reference_for_images(obsfile_name, image_filename, save_loc,
+def radec_reference_for_images(obs_info_file, image_filename, save_loc,
                                reduced_obslist=''):
 
     save_loc = format_save_loc(save_loc, 'radec_reference')
 
-    observations = surveyview.load_survey(obsfile_name)
+    observations = surveyview.load_survey(obs_info_file)
     for obs in observations:
         if obs.ra > 250:
             obs.ra -= 360
@@ -321,7 +321,7 @@ def radec_reference_for_images(obsfile_name, image_filename, save_loc,
     plt.close()
 
 
-def radec_reference_for_images_wrapper(obsfile_name, images_dir, save_dir,
+def radec_reference_for_images_wrapper(obs_info_file, images_dir, save_dir,
                                        reduced_obslist=''):
 
     if save_dir.endswith('.png'):  # User doesn't get to set file name
@@ -341,7 +341,7 @@ def radec_reference_for_images_wrapper(obsfile_name, images_dir, save_dir,
     for filename in images:
         output_path = '{}/{}_radec_ref.png'.format(save_dir, filename[0:-4])
         radec_reference_for_images(
-            obsfile_name, '{}/{}'.format(images_dir, filename),
+            obs_info_file, '{}/{}'.format(images_dir, filename),
             output_path, reduced_obslist)
 
 

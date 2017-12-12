@@ -22,9 +22,9 @@ class KnownSource:
         self.dec = float(dec)
 
 
-def load_survey(obsfile_name):
+def load_survey(obs_info_file):
 
-    obsfile = open(obsfile_name, "r")
+    obsfile = open(obs_info_file, "r")
     obsinfo = [line.split("\n") for line in obsfile.readlines()]
     obsfile.close()
     obsinfo = [obs[0] for obs in obsinfo]
