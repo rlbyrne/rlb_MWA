@@ -117,14 +117,13 @@ def healpix_downsample(data, nside_in, nside_out, nest):
     # Convert data to implicit indexing
     signal_vals = [data_point.signal for data_point in data]
     pixel_vals = [data_point.pixelnum for data_point in data]
-    signal_vals_implict = [hp.pixelfunc.UNSEEN]*12*nside**2
-    for i in range(len(signal_vals_implicit)):
-        if i in pixel_vals:
-            signal_vals_implict[i] = signal_vals[pixel_vals.index(i)]
+    signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside_in**2
+    for i, val in enumerate(pixel_vals):
+        signal_vals_implicit[val] = signal_vals[i]
 
     downsampled_map = hp.pixelfunc.ud_grade(
-        signal_vals_implicit, nside_out, pess=True, order_in=ordering,
-        order_out=ordering)
+        np.array(signal_vals_implicit), nside_out, pess=True,
+        order_in=ordering)
 
     data_out = []
     for i in range(len(downsampled_map)):
