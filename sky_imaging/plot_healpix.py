@@ -9,7 +9,7 @@ from astropy.io import fits
 import numpy as np
 import healpy as hp
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import os
@@ -19,6 +19,8 @@ from scipy.interpolate import griddata
 import sys
 sys.path.insert(0, '/Users/ruby/EoR/rlb_MWA/diffuse_survey_coverage_visualization/')
 import surveyview
+import math
+import healpix_utils
 
 
 def healpix_converter(data_filename):
@@ -68,8 +70,57 @@ def healpix_converter(data_filename):
 
 def plot_healpix_file(data_filename, save_filename):
 
-    data, nside, nest = load_map(data_filename)
+    data, nside, nest = healpix_utils.load_map(data_filename)
     plot_filled_pixels(data, nside, nest, save_filename)
+
+
+def plot_haslam_contour(data_filename, save_filename):
+
+    contents = fits.open(data_filename)
+    nside = int(contents[1].header['nside'])
+    ordering = contents[1].header['ordering']
+    data = contents[1].data
+    contents.close()
+
+    signal_vals = data.field('TEMPERATURE')
+    pixel_vals = range(len(signal_vals))
+
+    if ordering.lower() == 'ring':
+        nest = False
+    elif ordering.lower() == 'nested':
+        nest = True
+
+    pixel_data = []
+    for i in range(len(pixel_vals)):
+        data_point = healpix_utils.HealpixPixel(pixel_vals[i], signal_vals[i])
+        theta_gal, phi_gal = hp.pixelfunc.pix2ang(nside, data_point.pixelnum,
+                                       nest=nest)
+        rot = hp.rotator.Rotator(coord=['G', 'C'])
+        theta_eq, phi_eq = rot(theta_gal, phi_gal)
+        ra = phi_eq*180/math.pi  # why do we need to add 360???
+        dec = 90. - theta_eq*180/math.pi
+        if ra > 270:
+            data_point.ra = ra - 360.
+        else:
+            data_point.ra = ra
+        data_point.dec = dec
+        pixel_data.append(data_point)
+        if i % 10000 == 0:
+            print 'analyzing pixel {} of {}'.format(i, len(pixel_vals))
+
+    fig, ax = plt.subplots()
+
+    cax = plt.tricontour(
+        [point.ra for point in pixel_data],
+        [point.dec for point in pixel_data],
+        [point.signal for point in pixel_data], 5, norm=mpl.colors.LogNorm())
+    plt.xlabel('RA (deg)')
+    plt.ylabel('Dec (deg)')
+    plt.axis('equal')
+    plt.show()
+
+    plt.savefig(save_filename, format='png',
+                dpi=1000)
 
 
 def plot_healpix_tiling():
@@ -123,7 +174,7 @@ def plot_healpix_tiling():
     data = []
     for i, obs in enumerate(obsids):
         print 'Gathering pixels from obsid {} of {}.'.format(i+1, len(obsids))
-        obs_data, nside, nest = load_map(
+        obs_data, nside, nest = healpix_utils.load_map(
             '{}/{}_{}_{}_HEALPix.fits'.format(data_dir, obs, normalization,
                                               data_type)
             )
@@ -141,7 +192,7 @@ def plot_healpix_tiling():
                 use_pixels]
             )
 
-    write_data_to_fits(data, nside, nest, '/Users/ruby/Desktop/mosaic_data.fits')
+    healpix_utils.write_data_to_fits(data, nside, nest, '/Users/ruby/Desktop/mosaic_data.fits')
 
     sys.exit(0)
 
@@ -216,7 +267,7 @@ def plot_healpix_mosaic(data_dir, obs_array, save_filename):
         if heal_file in data_files:
             observations[obsid_list.index(use_obsid)].heal_data, \
                 nside_new, nest_new \
-                = load_map('{}/{}'.format(data_dir, heal_file))
+                = healpix_utils.load_map('{}/{}'.format(data_dir, heal_file))
             if i != 0:
                 if nside_new != nside:
                     print 'ERROR: HEALPix nsides do not match. Exiting.'
@@ -288,7 +339,7 @@ def plot_filled_pixels(data, nside, nest, save_filename):
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
     ax.set_facecolor('gray')  # make plot background gray
-    plt.axis([14, -11, -37, -16])
+    plt.axis([270, -90, -90, 90])
     plt.grid(which='both', zorder=10)
     #cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
     cbar = fig.colorbar(collection, ax=ax)
@@ -297,92 +348,5 @@ def plot_filled_pixels(data, nside, nest, save_filename):
     plt.savefig(save_filename, format='png', dpi=2000)
 
 
-def load_map(data_filename):
-
-    contents = fits.open(data_filename)
-    nside = int(contents[1].header['nside'])
-    ordering = contents[1].header['ordering']
-    data = contents[1].data
-    contents.close()
-
-    pixel_vals = data.field('PIXEL')
-    signal_vals = data.field('SIGNAL')
-
-    if ordering.lower() == 'ring':
-        nest = False
-    elif ordering.lower() == 'nested':
-        nest = True
-    else:
-        print 'ERROR: Invalid ordering parameter.'
-        print 'Ordering must be "ring" or "nested". Exiting.'
-        sys.exit(1)
-
-    if len(pixel_vals) != len(signal_vals):
-        print 'ERROR: Pixel index and data lengths do not match. Exiting.'
-        sys.exit(1)
-
-    pixel_data = []
-    for i in range(len(pixel_vals)):
-        data_point = HealpixPixel(pixel_vals[i], signal_vals[i])
-        pixel_data.append(data_point)
-
-    return pixel_data, nside, nest
-
-
-def write_data_to_fits(data, nside, nest, save_filename):
-
-    signal_column = fits.Column(
-        name='SIGNAL',
-        array=np.array([data_point.signal for data_point in data]),
-        format='1E'
-        )
-    pixelnum_column = fits.Column(
-        name='PIXEL',
-        array=np.array([data_point.pixelnum for data_point in data]),
-        format='1J'
-        )
-    header = fits.Header()  # initialize header object
-    header['nside'] = nside
-    if nest:
-        header['ordering'] = 'nested'
-    else:
-        header['ordering'] = 'ring'
-    header['indxschm'] = 'explicit'
-
-    hdu_0 = fits.PrimaryHDU()
-    hdu_1 = fits.BinTableHDU.from_columns(
-        [signal_column, pixelnum_column],
-        header=header
-        )
-    hdu_list = fits.HDUList([hdu_0, hdu_1])
-    hdu_list.writeto(save_filename)
-
-
-class HealpixPixel:
-
-    def __init__(self, pixelnum, signal):
-        self.pixelnum = int(pixelnum)
-        self.signal = float(signal)
-
-    def get_ra_dec(self, nside, nest):
-        ra, dec = hp.pixelfunc.pix2ang(nside, self.pixelnum,
-                                       nest=nest, lonlat=True)
-        if ra > 270:
-            self.ra = ra
-        else:
-            self.ra = ra - 360.
-        self.dec = dec
-
-    def get_pixel_corners(self, nside, nest):
-        coords = hp.boundaries(nside, self.pixelnum, step=1,
-                               nest=nest)
-        ras, decs = hp.pixelfunc.vec2ang(np.transpose(coords), lonlat=True)
-        for i, ra in enumerate(ras):
-            if ra > 270:
-                ras[i] -= 360.
-        self.pix_corner_ras = ras
-        self.pix_corner_decs = decs
-
-
 if __name__ == '__main__':
-    plot_healpix_tiling()
+    plot_haslam_contour('/Users/ruby/EoR/Healpix_fits/lambda_haslam408_dsds.fits', '')
