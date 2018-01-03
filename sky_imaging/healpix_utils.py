@@ -30,6 +30,8 @@ class HealpixPixel:
 
         if ra > ra_cut:
             self.ra = ra - 360.
+        elif ra < ra_cut-360.:
+            self.ra = ra + 360.
         else:
             self.ra = ra
         self.dec = dec
