@@ -117,11 +117,9 @@ def healpix_downsample(data, nside_in, nside_out, nest):
         ordering = 'ring'
 
     # Convert data to implicit indexing
-    signal_vals = [data_point.signal for data_point in data]
-    pixel_vals = [data_point.pixelnum for data_point in data]
     signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside_in**2
-    for i, val in enumerate(pixel_vals):
-        signal_vals_implicit[val] = signal_vals[i]
+    for i in range(len(data)):
+        signal_vals_implicit[data[i].pixelnum] = data[i].signal
 
     downsampled_map = hp.pixelfunc.ud_grade(
         np.array(signal_vals_implicit), nside_out, pess=True,
@@ -163,3 +161,75 @@ def write_data_to_fits(data, nside, nest, save_filename):
         )
     hdu_list = fits.HDUList([hdu_0, hdu_1])
     hdu_list.writeto(save_filename)
+
+
+def get_alm(data, nside, nest, lmax=None):
+
+    # Convert data to implicit indexing
+    signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside**2
+    for i in range(len(data)):
+        signal_vals_implicit[data[i].pixelnum] = data[i].signal
+
+    # Convert to ring ordering if nested (map2alm doesn't support nested)
+    if nest:
+        signal_vals_implicit = hp.pixelfunc.reorder(
+            signal_vals_implicit, n2r=True)
+
+    alm = hp.sphtfunc.map2alm(signal_vals_implicit, lmax=lmax)
+    alm = np.copy(alm)
+    lmax = hp.sphtfunc.Alm.getlmax(len(alm))
+    l, m = hp.sphtfunc.Alm.getlm(lmax)
+    lm = np.zeros([len(alm), 2])
+    lm[:, 0] = l
+    lm[:, 1] = m
+
+    return alm, lm
+
+
+def filter_map(data, nside, nest, lmin=None, lmax=None, filter_width=0):
+    # This function borrows from code by Miguel Morales
+
+    if lmax is not None:
+        alm_limit = int(math.ceil(lmax + filter_width/2.))
+    else:
+        alm_limit = None
+
+    alm, lm = get_alm(data, nside, nest, lmax=alm_limit)
+
+    # Define tukey windowing function
+    window_fn = np.ones(int(max(lm[:, 0])+1))
+    if lmin is not None:
+        for i in range(int(math.ceil(lmin-filter_width/2.))):
+            window_fn[i] = 0
+        for i in range(int(math.ceil(lmin-filter_width/2.)),
+                       int(math.floor(lmin+filter_width/2.))+1
+                       ):
+            window_fn[i] = (-math.cos((i-lmin+filter_width/2.)*math.pi/filter_width)+1)/2.
+    if lmax is not None:
+        for i in range(int(math.ceil(lmax-filter_width/2.)),
+                       int(math.floor(lmax+filter_width/2.))+1
+                       ):
+            window_fn[i] = (math.cos((i-lmax+filter_width/2.)*math.pi/filter_width)+1)/2.
+        for i in range(int(math.floor(lmax+filter_width/2.))+1,
+                       len(window_fn)
+                       ):
+            window_fn[i] = 0
+
+    # Apply windowing function
+    for i in range(len(window_fn)):
+        alm[np.where(lm[:, 0] == i)] = alm[np.where(lm[:, 0] == i)]*window_fn[i]
+
+    filtered_map = hp.sphtfunc.alm2map(alm, nside)
+
+    # If input was nested ordering, convert to nested
+    if nest:
+        filtered_map = hp.pixelfunc.reorder(filtered_map, r2n=True)
+
+    # Convert to explicit indexing
+    output_data = []
+    for i in range(len(filtered_map)):
+        if filted_map[i] != hp.pixelfunc.UNSEEN:
+            data_point = HealpixPixel(i, filted_map[i])
+            output_data.append(data_point)
+
+    return output_data
