@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 import healpix_utils
+from scipy.interpolate import griddata
 
 
 def healpix_converter(data_filename):
@@ -62,11 +63,13 @@ def healpix_converter(data_filename):
 
 def plot_healpix_file(data_filename, save_filename):
 
-    data, nside, nest = healpix_utils.load_map(data_filename)
+    nside = 64
+    data, nside_old, nest = healpix_utils.load_global_map(data_filename)
     print 'Downsampling...'
-    data_downsampled = healpix_utils.healpix_downsample(data, nside, 512, nest)
+    data_downsampled = healpix_utils.healpix_downsample(data, nside_old, nside, nest)
     print 'Plotting...'
-    plot_filled_pixels(data_downsampled, 512, nest, save_filename)
+    #plot_filled_pixels(data_downsampled, nside, nest, save_filename, coords='galactic')
+    plot_grid_interp(data_downsampled, nside, nest, save_filename, coords='galactic')
 
 
 def overplot_haslam_contour():
@@ -205,9 +208,7 @@ def plot_healpix_tiling():
                 use_pixels]
             )
 
-    healpix_utils.write_data_to_fits(data, nside, nest, '/Users/ruby/EoR/mosaic_data.fits')
-
-    fig, ax = plt.subplots(figsize=(24, 8), dpi=1000)
+    #healpix_utils.write_data_to_fits(data, nside, nest, '/Users/ruby/EoR/mosaic_data.fits')
 
     # Define Healpix pixels to plot
     patches = []
@@ -221,6 +222,8 @@ def plot_healpix_tiling():
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.04)
     collection.set_array(np.array(colors))  # set the data colors
     collection.set_edgecolor('face')  # make the face and edge colors match
+
+    fig, ax = plt.subplots(figsize=(24, 8), dpi=1000)
     ax.add_collection(collection)  # plot data
 
     # plot lines between tiles
@@ -257,40 +260,70 @@ def plot_healpix_tiling():
                 dpi=1000)
 
 
-def plot_filled_pixels(data, nside, nest, save_filename):
-
-    fig, ax = plt.subplots()
+def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
 
     # Collect Healpix pixels to plot
     patches = []
     colors = []
     for point in data:
-        point.get_pixel_corners(nside, nest)
+        point.get_pixel_corners(nside, nest, coords=coords)
         polygon = Polygon(zip(point.pix_corner_ras, point.pix_corner_decs))
         patches.append(polygon)
-        if point.signal < 0.04:
-            colors.append(point.signal)
-        else:
-            colors.append(0.04)
+        #if point.signal < 0.04:
+        #    colors.append(point.signal)
+        #else:
+        #    colors.append(0.04)
+        colors.append(point.signal)
 
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.04)
     collection.set_array(np.array(colors))  # set the data colors
-    collection.set_clim(vmin=-.02, vmax=.02)  # set the colorbar min and max
+    #collection.set_clim(vmin=-.02, vmax=.02)  # set the colorbar min and max
+    collection.set_clim(vmin=0., vmax=60.)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
+
+    fig, ax = plt.subplots(figsize=(21, 8), dpi=500)
+
     ax.add_collection(collection)  # plot data
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
     ax.set_facecolor('gray')  # make plot background gray
-    plt.axis([270, -90, -90, 90])
-    plt.grid(which='both', zorder=10)
+    #plt.axis([270, -90, -90, 90])
+    plt.axis([105, -25, -50, 0])
+    plt.grid(which='both', zorder=10, lw=0.5)
     #cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
-    cbar = fig.colorbar(collection, ax=ax)
+    cbar = fig.colorbar(collection, ax=ax, extend='max')
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
-    plt.savefig(save_filename, format='png', dpi=2000)
+    plt.savefig(save_filename, format='png', dpi=500)
+
+
+def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
+
+    stepsize = .1
+
+    for point in data:
+        point.get_ra_dec(nside, nest, coords=coords)
+    ra_min = min([point.ra for point in data])
+    ra_max = max([point.ra for point in data])
+    dec_min = min([point.dec for point in data])
+    dec_max = max([point.dec for point in data])
+
+    grid_dec, grid_ra = np.mgrid[dec_min:dec_max:stepsize, ra_min:ra_max:stepsize]
+    gridded_signal = griddata(([point.ra for point in data], [point.dec for point in data]), [point.signal for point in data], (grid_ra, grid_dec), method='linear')
+
+    fig, ax = plt.subplots()
+    plt.imshow(gridded_signal, origin='lower', interpolation='none', extent=[ra_min, ra_max, dec_min, dec_max], cmap='Greys_r', vmin=0., vmax=60.)
+    plt.xlabel('RA (deg)')
+    plt.ylabel('Dec (deg)')
+    plt.axis('equal')
+    ax.set_facecolor('gray')  # make plot background gray
+    plt.axis([ra_max, ra_min, dec_min, dec_max])
+    plt.grid(which='both', zorder=10, lw=0.5)
+    cbar = plt.colorbar(extend='max')
+    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
+    plt.show()
 
 
 if __name__ == '__main__':
-    #plot_haslam_contour()
-    overplot_haslam_contour()
+    plot_healpix_file('/Users/ruby/EoR/Healpix_fits/lambda_haslam408_dsds.fits', '/Users/ruby/Desktop/haslam_nofilter.png')
