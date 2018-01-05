@@ -36,13 +36,38 @@ class HealpixPixel:
             self.ra = ra
         self.dec = dec
 
-    def get_pixel_corners(self, nside, nest):
-        coords = hp.boundaries(nside, self.pixelnum, step=1,
-                               nest=nest)
-        ras, decs = hp.pixelfunc.vec2ang(np.transpose(coords), lonlat=True)
-        for i, ra in enumerate(ras):
-            if ra > 270:
+    def get_pixel_corners(self, nside, nest, coords='equitorial', ra_cut=270):
+        corner_coords = hp.boundaries(nside, self.pixelnum, step=1,
+                                      nest=nest)
+        if coords == 'galactic':
+            thetas_gal, phis_gal = hp.pixelfunc.vec2ang(
+                np.transpose(corner_coords), lonlat=False)
+            rot = hp.rotator.Rotator(coord=['G', 'C'])
+            ras = [0]*len(thetas_gal)
+            decs = [0]*len(thetas_gal)
+            for corner in range(len(thetas_gal)):
+                theta_eq, phi_eq = rot(thetas_gal[corner], phis_gal[corner])
+                ras[corner] = phi_eq*180/math.pi
+                decs[corner] = 90. - theta_eq*180/math.pi
+        elif coords == 'equitorial':
+            ras, decs = hp.pixelfunc.vec2ang(np.transpose(corner_coords),
+                                             lonlat=True)
+        else:
+            print 'ERROR: Coordinates must be galactic or equitorial.'
+            sys.exit(1)
+
+        # Cluster pixel corners that are separated by the branch cut
+        for i in range(1, len(ras)):
+            if abs(ras[i]-ras[0]-360.) < abs(ras[i]-ras[0]):
                 ras[i] -= 360.
+            elif abs(ras[i]-ras[0]+360.) < abs(ras[i]-ras[0]):
+                ras[i] += 360.
+
+        if np.mean(ras) > ra_cut:
+            ras = [ra-360. for ra in ras]
+        elif np.mean(ras) < ra_cut-360.:
+            ras = [ra+360. for ra in ras]
+
         self.pix_corner_ras = ras
         self.pix_corner_decs = decs
 
@@ -204,12 +229,16 @@ def filter_map(data, nside, nest, lmin=None, lmax=None, filter_width=0):
         for i in range(int(math.ceil(lmin-filter_width/2.)),
                        int(math.floor(lmin+filter_width/2.))+1
                        ):
-            window_fn[i] = (-math.cos((i-lmin+filter_width/2.)*math.pi/filter_width)+1)/2.
+            window_fn[i] = (
+                -math.cos((i-lmin+filter_width/2.)*math.pi/filter_width)+1
+                )/2.
     if lmax is not None:
         for i in range(int(math.ceil(lmax-filter_width/2.)),
                        int(math.floor(lmax+filter_width/2.))+1
                        ):
-            window_fn[i] = (math.cos((i-lmax+filter_width/2.)*math.pi/filter_width)+1)/2.
+            window_fn[i] = (
+                math.cos((i-lmax+filter_width/2.)*math.pi/filter_width)+1
+                )/2.
         for i in range(int(math.floor(lmax+filter_width/2.))+1,
                        len(window_fn)
                        ):
@@ -217,7 +246,9 @@ def filter_map(data, nside, nest, lmin=None, lmax=None, filter_width=0):
 
     # Apply windowing function
     for i in range(len(window_fn)):
-        alm[np.where(lm[:, 0] == i)] = alm[np.where(lm[:, 0] == i)]*window_fn[i]
+        alm[np.where(lm[:, 0] == i)] = alm[
+                                           np.where(lm[:, 0] == i)
+                                           ]*window_fn[i]
 
     filtered_map = hp.sphtfunc.alm2map(alm, nside)
 
