@@ -259,8 +259,8 @@ def filter_map(data, nside, nest, lmin=None, lmax=None, filter_width=0):
     # Convert to explicit indexing
     output_data = []
     for i in range(len(filtered_map)):
-        if filted_map[i] != hp.pixelfunc.UNSEEN:
-            data_point = HealpixPixel(i, filted_map[i])
+        if filtered_map[i] != hp.pixelfunc.UNSEEN:
+            data_point = HealpixPixel(i, filtered_map[i])
             output_data.append(data_point)
 
     return output_data

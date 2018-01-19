@@ -1,17 +1,15 @@
 #!/usr/bin/python
 
-# Based on code by Jared Canright, Univ of WA, and Kiana Henny, Whitman Col,
-# 9/17
-
-
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 import healpy as hp
+import sys
 import matplotlib
 #matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
+from matplotlib.colors import LogNorm
 import healpix_utils
 from scipy.interpolate import griddata
 
@@ -63,13 +61,10 @@ def healpix_converter(data_filename):
 
 def plot_healpix_file(data_filename, save_filename):
 
-    nside = 64
-    data, nside_old, nest = healpix_utils.load_global_map(data_filename)
-    print 'Downsampling...'
-    data_downsampled = healpix_utils.healpix_downsample(data, nside_old, nside, nest)
+    data, nside, nest = healpix_utils.load_map(data_filename)
     print 'Plotting...'
-    #plot_filled_pixels(data_downsampled, nside, nest, save_filename, coords='galactic')
-    plot_grid_interp(data_downsampled, nside, nest, save_filename, coords='galactic')
+    plot_filled_pixels(data, nside, nest, save_filename)
+    #plot_grid_interp(data_downsampled, nside, nest, save_filename, coords='galactic')
 
 
 def overplot_haslam_contour():
@@ -139,9 +134,11 @@ def overplot_haslam_contour():
 
 def plot_healpix_tiling():
 
-    data_type = 'Residual_I'
+    #data_type = 'Residual_I'
+    data_type = 'Dirty_I'
     normalization = 'uniform'
-    data_dir = '/Users/ruby/EoR/Healpix_fits'
+    #data_dir = '/Users/ruby/EoR/Healpix_fits'
+    data_dir = '/Users/ruby/EoR/Healpix_fits/haslam_sim'
 
     tile_center_ras = [100, 100, 100, 100, 100,
                        90, 90, 90, 90, 90,
@@ -186,7 +183,8 @@ def plot_healpix_tiling():
               1131535544, 1131535424, 1131535304, 1131710032, 1131709912]
 
     data = []
-    nside = 512
+    #nside = 512
+    nside = 256
     for i, obs in enumerate(obsids):
         print 'Gathering pixels from obsid {} of {}.'.format(i+1, len(obsids))
         obs_data, nside_old, nest = healpix_utils.load_map(
@@ -230,11 +228,13 @@ def plot_healpix_tiling():
     line_width = 2.0
     color = 'gray'
     order = 8
+    plt.plot([130, -45], [0, 0], lw=line_width, c=color, zorder=order)
     plt.plot([130, -45], [-10, -10], lw=line_width, c=color, zorder=order)
     plt.plot([130, -45], [-20, -20], lw=line_width, c=color, zorder=order)
     plt.plot([130, -45], [-30, -30], lw=line_width, c=color, zorder=order)
     plt.plot([130, -45], [-40, -40], lw=line_width, c=color, zorder=order)
     plt.plot([130, -45], [-50, -50], lw=line_width, c=color, zorder=order)
+    plt.plot([105, 105], [-75, 20], lw=line_width, c=color, zorder=order)
     plt.plot([95, 95], [-75, 20], lw=line_width, c=color, zorder=order)
     plt.plot([85, 85], [-75, 20], lw=line_width, c=color, zorder=order)
     plt.plot([75, 75], [-75, 20], lw=line_width, c=color, zorder=order)
@@ -247,6 +247,7 @@ def plot_healpix_tiling():
     plt.plot([5, 5], [-75, 20], lw=line_width, c=color, zorder=order)
     plt.plot([-5, -5], [-75, 20], lw=line_width, c=color, zorder=order)
     plt.plot([-15, -15], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([-25, -25], [-75, 20], lw=line_width, c=color, zorder=order)
 
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
@@ -256,43 +257,85 @@ def plot_healpix_tiling():
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
-    plt.savefig('/Users/ruby/EoR/Healpix_fits/mosaicplot.png', format='png',
-                dpi=1000)
+    plt.savefig('/Users/ruby/Desktop/haslam_mosaicplot_nside{}.png'.format(nside), format='png', dpi=1000)
 
 
 def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
 
-    # Collect Healpix pixels to plot
+    ra_min = -30
+    ra_max = 110
+    dec_min = -50
+    dec_max = 0
+
+    # Only calculate pixel boundaries for pixels within the plot region
+    # Only bother if data is in equitorial coordinates
+    if coords == 'equatorial':
+        tile_bounds_radec = [[ra_min, dec_min], [ra_min, dec_max],
+                             [ra_max, dec_max], [ra_max, dec_min]]
+        tile_bounds_vec = np.array(
+            [hp.pixelfunc.ang2vec(corner[0], corner[1], lonlat=True) for
+                corner in tile_bounds_radec]
+            )
+        use_pixels = hp.query_polygon(nside, tile_bounds_vec, nest=nest)
+        data = [data_point for data_point in data if data_point.pixelnum in
+                use_pixels]
+
     patches = []
     colors = []
     for point in data:
+
+        if coords != 'equitorial':
+            point.get_ra_dec(nside, nest, coords=coords)
+            if not (ra_min < point.ra < ra_max and
+                    dec_min < point.dec < dec_max):
+                continue
+
         point.get_pixel_corners(nside, nest, coords=coords)
         polygon = Polygon(zip(point.pix_corner_ras, point.pix_corner_decs))
         patches.append(polygon)
-        #if point.signal < 0.04:
-        #    colors.append(point.signal)
-        #else:
-        #    colors.append(0.04)
         colors.append(point.signal)
 
-    collection = PatchCollection(patches, cmap='Greys_r', lw=0.04)
+    collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
-    #collection.set_clim(vmin=-.02, vmax=.02)  # set the colorbar min and max
-    collection.set_clim(vmin=0., vmax=60.)  # set the colorbar min and max
+    #collection.set_norm(LogNorm())  # set the color bar to a log scale
+    #collection.set_clim(vmin=0.0000001, vmax=.005)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
 
-    fig, ax = plt.subplots(figsize=(21, 8), dpi=500)
-
+    #fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
+    fig, ax = plt.subplots(figsize=(24, 8), dpi=500)
     ax.add_collection(collection)  # plot data
+
+    # plot lines between tiles
+    line_width = 2.0
+    color = 'gray'
+    order = 8
+    plt.plot([130, -45], [0, 0], lw=line_width, c=color, zorder=order)
+    plt.plot([130, -45], [-10, -10], lw=line_width, c=color, zorder=order)
+    plt.plot([130, -45], [-20, -20], lw=line_width, c=color, zorder=order)
+    plt.plot([130, -45], [-30, -30], lw=line_width, c=color, zorder=order)
+    plt.plot([130, -45], [-40, -40], lw=line_width, c=color, zorder=order)
+    plt.plot([130, -45], [-50, -50], lw=line_width, c=color, zorder=order)
+    plt.plot([105, 105], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([95, 95], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([85, 85], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([75, 75], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([65, 65], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([55, 55], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([45, 45], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([35, 35], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([25, 25], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([15, 15], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([5, 5], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([-5, -5], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([-15, -15], [-75, 20], lw=line_width, c=color, zorder=order)
+    plt.plot([-25, -25], [-75, 20], lw=line_width, c=color, zorder=order)
+
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
     ax.set_facecolor('gray')  # make plot background gray
-    #plt.axis([270, -90, -90, 90])
-    plt.axis([105, -25, -50, 0])
-    plt.grid(which='both', zorder=10, lw=0.5)
-    #cbar = fig.colorbar(collection, ax=ax, extend='max')  # add colorbar
-    cbar = fig.colorbar(collection, ax=ax, extend='max')
+    plt.axis([ra_max, ra_min, dec_min, dec_max])
+    cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
 
     plt.savefig(save_filename, format='png', dpi=500)
@@ -300,20 +343,31 @@ def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
 
 def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
 
-    stepsize = .1
+    resolution = .1  # in degrees
 
     for point in data:
         point.get_ra_dec(nside, nest, coords=coords)
-    ra_min = min([point.ra for point in data])
-    ra_max = max([point.ra for point in data])
-    dec_min = min([point.dec for point in data])
-    dec_max = max([point.dec for point in data])
+    #ra_min = min([point.ra for point in data])
+    #ra_max = max([point.ra for point in data])
+    #dec_min = min([point.dec for point in data])
+    #dec_max = max([point.dec for point in data])
+    ra_min = -25
+    ra_max = 105
+    dec_min = -50
+    dec_max = 0
 
-    grid_dec, grid_ra = np.mgrid[dec_min:dec_max:stepsize, ra_min:ra_max:stepsize]
-    gridded_signal = griddata(([point.ra for point in data], [point.dec for point in data]), [point.signal for point in data], (grid_ra, grid_dec), method='linear')
+    grid_dec, grid_ra = np.mgrid[dec_min:dec_max:resolution,
+                                 ra_min:ra_max:resolution
+                                 ]
+    gridded_signal = griddata(([point.ra for point in data],
+                               [point.dec for point in data]),
+                              [point.signal for point in data],
+                              (grid_ra, grid_dec), method='linear')
 
-    fig, ax = plt.subplots()
-    plt.imshow(gridded_signal, origin='lower', interpolation='none', extent=[ra_min, ra_max, dec_min, dec_max], cmap='Greys_r', vmin=0., vmax=60.)
+    fig, ax = plt.subplots(figsize=(21, 8), dpi=500)
+    plt.imshow(gridded_signal, origin='lower', interpolation='none',
+               extent=[ra_min, ra_max, dec_min, dec_max], cmap='Greys_r',
+               vmin=-6., vmax=6.)
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
@@ -322,8 +376,8 @@ def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
     plt.grid(which='both', zorder=10, lw=0.5)
     cbar = plt.colorbar(extend='max')
     cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
-    plt.show()
+    plt.savefig(save_filename, format='png', dpi=500)
 
 
 if __name__ == '__main__':
-    plot_healpix_file('/Users/ruby/EoR/Healpix_fits/lambda_haslam408_dsds.fits', '/Users/ruby/Desktop/haslam_nofilter.png')
+    plot_healpix_file('/Users/ruby/Desktop/data_var_nside256.fits', '/Users/ruby/Desktop/data_var_log.png')
