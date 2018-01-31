@@ -12,7 +12,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
 import healpix_utils
 from scipy.interpolate import griddata
-
+sys.path.append('/Users/ruby/EoR/rlb_MWA/diffuse_survey_coverage_visualization')
+import surveyview
 
 
 def calculate_mean_and_var():
@@ -71,19 +72,59 @@ def hist2d_datastat_plot():
     obs_list = open(obs_list_file, 'r').readlines()
     obs_list = [obs.strip() for obs in obs_list]  # strip newline characters
     obs_list = list(set(obs_list))  # remove duplicates
+    #obs_list = obs_list[:4]
+    observations = surveyview.load_survey('/Users/ruby/EoR/sidelobe_survey_obsinfo.txt')
+    observations = [obs for obs in observations if obs.obsid in obs_list]
 
     var_data, nside, nest = healpix_utils.load_map(
         '/Users/ruby/Desktop/data_var_nside256.fits')
+    var_pixelvals = [data_point.pixelnum for data_point in var_data]
 
-    for i, obs in enumerate(obs_list):
+    #observations = observations[:2]
+
+    data_diff = []
+    data_dist = []
+    for i, obs in enumerate(observations):
         print 'Gathering data from obsid {} of {}'.format(i+1, len(obs_list))
         print 'Loading data'
         data, nside_old, nest = healpix_utils.load_map(
-            '{}/{}_uniform_Residual_I_HEALPix.fits'.format(data_loc, obs))
+            '{}/{}_uniform_Residual_I_HEALPix.fits'.format(data_loc, obs.obsid))
         data = healpix_utils.healpix_downsample(
             data, nside_old, nside, nest)
 
+        print 'Calculating data statistics'
+        for data_point in data:
+            data_diff.append(
+                data_point.signal - var_data[
+                    var_pixelvals.index(data_point.pixelnum)].signal
+                )
+            data_point.get_ra_dec(nside, nest)
+            data_dist.append(
+                hp.rotator.angdist([obs.ra, obs.dec],
+                                   [data_point.ra, data_point.dec],
+                                   lonlat=True)[0]/np.pi*180.
+                )
 
+    hist, dist_edges, diff_edges = np.histogram2d(data_dist, data_diff, bins=100)
+    hist = hist.T
+
+    for j in range(len(hist[0])):
+        total = sum([hist[i][j] for i in range(len(hist))])
+        if total != 0:
+            for i in range(len(hist)):
+                hist[i][j] = hist[i][j]/total
+
+    fig, ax = plt.subplots()
+    plt.imshow(
+        hist, origin='lower', interpolation='none',
+        extent=[dist_edges[0], dist_edges[-1], diff_edges[0], diff_edges[-1]],
+        vmin=0, vmax=0.1)
+    ax.set_aspect((dist_edges[-1]-dist_edges[0])/(diff_edges[-1]-diff_edges[0]))
+    plt.xlabel('Distance from Pointing Center (deg)')
+    plt.ylabel('Difference from Mean (Jy/sr)')
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('Counts, Normalized', rotation=270)  # label colorbar
+    plt.savefig('/Users/ruby/Desktop/data_var_2dhist_testing.png', format='png', dpi=500)
 
 if __name__ == '__main__':
-    plot_healpix_file('/Users/ruby/Desktop/data_var_nside256.fits', '/Users/ruby/Desktop/data_var_log.png')
+    hist2d_datastat_plot()
