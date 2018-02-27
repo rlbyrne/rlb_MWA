@@ -80,8 +80,6 @@ def hist2d_datastat_plot():
         '/Users/ruby/Desktop/data_var_nside256.fits')
     var_pixelvals = [data_point.pixelnum for data_point in var_data]
 
-    #observations = observations[:2]
-
     data_diff = []
     data_dist = []
     for i, obs in enumerate(observations):

@@ -12,6 +12,8 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
 import healpix_utils
 from scipy.interpolate import griddata
+sys.path.append('/Users/ruby/EoR/rlb_MWA/diffuse_survey_coverage_visualization')
+import surveyview
 
 
 def healpix_converter(data_filename):
@@ -61,7 +63,12 @@ def healpix_converter(data_filename):
 
 def plot_healpix_file(data_filename, save_filename):
 
-    data, nside, nest = healpix_utils.load_map(data_filename)
+    #nside = 256
+    print 'Loading data...'
+    data, nside_old, nest = healpix_utils.load_map(data_filename)
+    #print 'Downsampling...'
+    #data = healpix_utils.healpix_downsample(data, nside_old, nside, nest)
+    nside = nside_old
     print 'Plotting...'
     plot_filled_pixels(data, nside, nest, save_filename)
     #plot_grid_interp(data_downsampled, nside, nest, save_filename, coords='galactic')
@@ -260,12 +267,63 @@ def plot_healpix_tiling():
     plt.savefig('/Users/ruby/Desktop/haslam_mosaicplot_nside{}.png'.format(nside), format='png', dpi=1000)
 
 
+def plot_nearest_data():
+
+    obs_list_file = '/Users/ruby/EoR/obs_lists/diffuse_survey_good_pointings_successful.txt'
+    obs_info_file = '/Users/ruby/EoR/sidelobe_survey_obsinfo.txt'
+    data_loc = '/Users/ruby/EoR/Healpix_fits'
+    nside = 256
+
+    obs_list = open(obs_list_file, 'r').readlines()
+    obs_list = [obs.strip() for obs in obs_list]  # strip newline characters
+    obs_list = list(set(obs_list))  # remove duplicates
+    #obs_list = obs_list[:10]
+    observations = surveyview.load_survey(obs_info_file)  # get obs metadata
+    observations = [obs for obs in observations if obs.obsid in obs_list]
+
+    indices = []
+    signal_vals = []
+    distances = []
+    for i, obs in enumerate(observations):
+        print 'Gathering data from obsid {} of {}'.format(i+1, len(obs_list))
+        print 'Loading data'
+        data, nside_old, nest = healpix_utils.load_map(
+            '{}/{}_uniform_Residual_I_HEALPix.fits'.format(data_loc, obs.obsid)
+            )
+        data = healpix_utils.healpix_downsample(
+            data, nside_old, nside, nest)
+
+        for data_point in data:
+            data_point.get_ra_dec(nside, nest)
+            data_dist = hp.rotator.angdist(
+                [obs.ra, obs.dec], [data_point.ra, data_point.dec],
+                lonlat=True
+                )[0]/np.pi*180.
+            if data_point.pixelnum in indices:
+                list_pos = indices.index(data_point.pixelnum)
+                if data_dist < distances[list_pos]:
+                    signal_vals[list_pos] = data_point.signal
+                    distances[list_pos] = data_dist
+            else:
+                indices.append(data_point.pixelnum)
+                signal_vals.append(data_point.signal)
+                distances.append(data_dist)
+
+    use_data = [healpix_utils.HealpixPixel(indices[i], signal_vals[i]) for i
+                in range(len(indices))]
+
+    #healpix_utils.write_data_to_fits(data, nside, nest, '/Users/ruby/Desktop/nearest_data.fits')
+
+    print 'Plotting'
+    plot_filled_pixels(use_data, nside, nest, '/Users/ruby/Desktop/nearest_data_test.png')
+
+
 def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
 
-    ra_min = -30
-    ra_max = 110
-    dec_min = -50
-    dec_max = 0
+    ra_min = -25
+    ra_max = 25
+    dec_min = -45
+    dec_max = -5
 
     # Only calculate pixel boundaries for pixels within the plot region
     # Only bother if data is in equitorial coordinates
@@ -298,37 +356,39 @@ def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
     #collection.set_norm(LogNorm())  # set the color bar to a log scale
-    #collection.set_clim(vmin=0.0000001, vmax=.005)  # set the colorbar min and max
+    #collection.set_clim(vmin=-.03, vmax=.03)  # set the colorbar min and max
+    collection.set_clim(vmin=-.00001, vmax=.00001)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
 
-    #fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
-    fig, ax = plt.subplots(figsize=(24, 8), dpi=500)
+    fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
+    #fig, ax = plt.subplots(figsize=(24, 8), dpi=500)
     ax.add_collection(collection)  # plot data
 
     # plot lines between tiles
-    line_width = 2.0
-    color = 'gray'
-    order = 8
-    plt.plot([130, -45], [0, 0], lw=line_width, c=color, zorder=order)
-    plt.plot([130, -45], [-10, -10], lw=line_width, c=color, zorder=order)
-    plt.plot([130, -45], [-20, -20], lw=line_width, c=color, zorder=order)
-    plt.plot([130, -45], [-30, -30], lw=line_width, c=color, zorder=order)
-    plt.plot([130, -45], [-40, -40], lw=line_width, c=color, zorder=order)
-    plt.plot([130, -45], [-50, -50], lw=line_width, c=color, zorder=order)
-    plt.plot([105, 105], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([95, 95], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([85, 85], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([75, 75], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([65, 65], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([55, 55], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([45, 45], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([35, 35], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([25, 25], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([15, 15], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([5, 5], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([-5, -5], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([-15, -15], [-75, 20], lw=line_width, c=color, zorder=order)
-    plt.plot([-25, -25], [-75, 20], lw=line_width, c=color, zorder=order)
+    if False:
+        line_width = 2.0
+        color = 'gray'
+        order = 8
+        plt.plot([130, -45], [0, 0], lw=line_width, c=color, zorder=order)
+        plt.plot([130, -45], [-10, -10], lw=line_width, c=color, zorder=order)
+        plt.plot([130, -45], [-20, -20], lw=line_width, c=color, zorder=order)
+        plt.plot([130, -45], [-30, -30], lw=line_width, c=color, zorder=order)
+        plt.plot([130, -45], [-40, -40], lw=line_width, c=color, zorder=order)
+        plt.plot([130, -45], [-50, -50], lw=line_width, c=color, zorder=order)
+        plt.plot([105, 105], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([95, 95], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([85, 85], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([75, 75], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([65, 65], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([55, 55], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([45, 45], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([35, 35], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([25, 25], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([15, 15], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([5, 5], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([-5, -5], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([-15, -15], [-75, 20], lw=line_width, c=color, zorder=order)
+        plt.plot([-25, -25], [-75, 20], lw=line_width, c=color, zorder=order)
 
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
@@ -367,7 +427,7 @@ def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
     fig, ax = plt.subplots(figsize=(21, 8), dpi=500)
     plt.imshow(gridded_signal, origin='lower', interpolation='none',
                extent=[ra_min, ra_max, dec_min, dec_max], cmap='Greys_r',
-               vmin=-6., vmax=6.)
+               vmin=-.03, vmax=.03)
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
@@ -380,4 +440,4 @@ def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
 
 
 if __name__ == '__main__':
-    plot_healpix_file('/Users/ruby/Desktop/data_var_nside256.fits', '/Users/ruby/Desktop/data_var_log.png')
+    plot_healpix_file('/Users/ruby/EoR/full_pol_branch_ps_testing/workflow_3_100jy/stokes_I_sim_bright_fullpol_4pol_uniform_Residual_U_HEALPix.fits', '/Users/ruby/EoR/full_pol_branch_ps_testing/workflow_3_100jy/sim_fullpol_bright_4pol_Residual_U.png')
