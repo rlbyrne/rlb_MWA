@@ -43,8 +43,8 @@ def main():
         comp_ras = [0.]*num_comps
         comp_decs = [0.]*num_comps
         for i in range(num_comps):
-            comp_ras[i] = source_array[brightest_ind]['extend']['ra']
-            comp_decs[i] = source_array[brightest_ind]['extend']['dec']
+            comp_ras[i] = source_array[brightest_ind]['extend'][i]['ra']
+            comp_decs[i] = source_array[brightest_ind]['extend'][i]['dec']
         ra_range = [
             min([min(comp_ras), brightest_loc[0]-min_patch_size/2.]),
             max([max(comp_ras), brightest_loc[0]+min_patch_size/2.])
