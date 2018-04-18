@@ -40,10 +40,10 @@ def main():
 
     # Define a rectangle to integrate flux over
     if source_array[brightest_ind]['extend'] is not None:
-        num_comps = len(source[brightest_ind]['extend'])
+        num_comps = len(source_array[brightest_ind]['extend'])
         comp_ras = [0.]*num_comps
         comp_decs = [0.]*num_comps
-        for i, comp in source[brightest_ind]['extend']:
+        for i, comp in source_array[brightest_ind]['extend']:
             comp_ras[i] = comp['ra']
             comp_decs[i] = comp['dec']
         ra_range = [
