@@ -39,7 +39,7 @@ def main():
     brightest_loc = [source_ras[brightest_ind], source_decs[brightest_ind]]
 
     # Define a rectangle to integrate flux over
-    if source[brightest_ind]['extend'] is not None:
+    if source_array[brightest_ind]['extend'] is not None:
         num_comps = len(source[brightest_ind]['extend'])
         comp_ras = [0.]*num_comps
         comp_decs = [0.]*num_comps
@@ -66,7 +66,7 @@ def main():
             total_decon_stokes_I += source_fluxes[i]
 
     print total_decon_stokes_I
-        
+
 
 if __name__=='__main__':
     main()
