@@ -9,7 +9,6 @@
 
 from astropy.io import fits
 import numpy as np
-import healpy as hp
 import sys
 import math
 import matplotlib.pyplot as plt
@@ -43,9 +42,9 @@ def main():
         num_comps = len(source_array[brightest_ind]['extend'])
         comp_ras = [0.]*num_comps
         comp_decs = [0.]*num_comps
-        for i, comp in source_array[brightest_ind]['extend']:
-            comp_ras[i] = comp['ra']
-            comp_decs[i] = comp['dec']
+        for i in range(num_comps):
+            comp_ras[i] = source_array[brightest_ind]['extend']['ra']
+            comp_decs[i] = source_array[brightest_ind]['extend']['dec']
         ra_range = [
             min([min(comp_ras), brightest_loc[0]-min_patch_size/2.]),
             max([max(comp_ras), brightest_loc[0]+min_patch_size/2.])
