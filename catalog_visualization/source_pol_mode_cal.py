@@ -98,19 +98,21 @@ def main():
                         ]
         res_flux[pol_ind] = np.sum(data_cut)
 
+        if pol == 'Q':
+            fig, ax = plt.subplots()
+            plt.imshow(data_cut, origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]])
+            plt.axis('equal')
+            ax.set_facecolor('gray')  # make plot background gray
+            plt.grid(which='both', zorder=10, lw=0.5)
+            cbar = plt.colorbar()
+            cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
+            plt.savefig('q_res_plot.png')
+
     print ra_range
     print dec_range
     print res_flux
 
-    fig, ax = plt.subplots()
-    plt.imshow(data_diff, origin='lower', interpolation='none', cmap='Greys_r', vmin=-.00001, vmax=.00001)
-    plt.axis('equal')
-    ax.set_facecolor('gray')  # make plot background gray
-    plt.grid(which='both', zorder=10, lw=0.5)
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
-    #plt.savefig('/Users/ruby/Desktop/dirty_2pol_XX_diff.png', format='png')
-    plt.show()
+
 
 
 
