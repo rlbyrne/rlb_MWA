@@ -10,7 +10,6 @@
 from astropy.io import fits
 import numpy as np
 import sys
-import math
 import scipy.io
 import astropy.io
 import matplotlib
@@ -22,7 +21,7 @@ def main():
 
     fhd_run_path = '/home/rlbyrne/fhd_rlb_GLEAM+Fornax_cal_decon_4pol_Jan2018'
     obsid = '1130776744'
-    min_patch_size = .1  # minimum box dimension in degrees
+    min_patch_size = .5  # minimum box dimension in degrees
 
     decon_data = '{}/deconvolution/{}_fhd.sav'.format(fhd_run_path, obsid)
     sav = scipy.io.readsav(decon_data)
@@ -102,7 +101,7 @@ def main():
 
         if pol == 'Q':
             fig, ax = plt.subplots()
-            plt.imshow(data_cut, origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]])
+            plt.imshow(data_cut, origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]], aspect='auto')
             plt.axis('equal')
             ax.set_facecolor('gray')  # make plot background gray
             plt.grid(which='both', zorder=10, lw=0.5)
