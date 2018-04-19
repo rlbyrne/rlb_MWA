@@ -21,7 +21,7 @@ def main():
 
     fhd_run_path = '/home/rlbyrne/fhd_rlb_GLEAM+Fornax_cal_decon_4pol_Jan2018'
     obsid = '1130776744'
-    min_patch_size = .5  # minimum box dimension in degrees
+    min_patch_size = .2  # minimum box dimension in degrees
 
     decon_data = '{}/deconvolution/{}_fhd.sav'.format(fhd_run_path, obsid)
     sav = scipy.io.readsav(decon_data)
@@ -48,12 +48,12 @@ def main():
             comp_ras[i] = source_array[brightest_ind]['extend'][i]['ra']
             comp_decs[i] = source_array[brightest_ind]['extend'][i]['dec']
         ra_range = [
-            min([min(comp_ras), brightest_loc[0]-min_patch_size/2.]),
-            max([max(comp_ras), brightest_loc[0]+min_patch_size/2.])
+            min([min(comp_ras)-min_patch_size/2.]),
+            max([max(comp_ras)+min_patch_size/2.])
             ]
         dec_range = [
-            min([min(comp_decs), brightest_loc[1]-min_patch_size/2.]),
-            max([max(comp_decs), brightest_loc[1]+min_patch_size/2.])
+            min([min(comp_decs)-min_patch_size/2.]),
+            max([max(comp_decs)+min_patch_size/2.])
             ]
     else:
         ra_range = [brightest_loc[0]-min_patch_size/2.,
