@@ -21,7 +21,7 @@ def main():
 
     fhd_run_path = '/home/rlbyrne/fhd_rlb_GLEAM+Fornax_cal_decon_4pol_Jan2018'
     obsid = '1130776744'
-    min_patch_size = .2  # minimum box dimension in degrees
+    min_patch_size = 2.  # minimum box dimension in degrees
 
     decon_data = '{}/deconvolution/{}_fhd.sav'.format(fhd_run_path, obsid)
     sav = scipy.io.readsav(decon_data)
@@ -114,9 +114,5 @@ def main():
     print res_flux
 
 
-
-
-
-
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
