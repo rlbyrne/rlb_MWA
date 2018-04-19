@@ -13,6 +13,7 @@ import sys
 import math
 import matplotlib.pyplot as plt
 import scipy.io
+import astropy.io
 
 
 def main():
@@ -59,12 +60,37 @@ def main():
         dec_range = [brightest_loc[1]-min_patch_size/2.,
                      brightest_loc[1]+min_patch_size/2.]
 
+    # Make sure to grab all sources within the defined boundaries
     total_decon_stokes_I = 0.
     for i in range(len(source_array)):
         if ra_range[0] < source_ras[i] < ra_range[1] and dec_range[0] < source_decs[i] < dec_range[1]:
             total_decon_stokes_I += source_fluxes[i]
 
     print total_decon_stokes_I
+
+    pol_mode = ['I', 'Q', 'U', 'V']
+    res_flux = [0.]*4
+    for pol_ind, pol in enumerate(pol_mode):
+        res_file = '{}/output_data/{}_uniform_Residual_{}.fits'.format(fhd_run_path, obsid, pol)
+        contents = astropy.io.fits.open(res_file)
+        res_data = contents[0].data
+        ra_axis = [
+            contents[0]['crval1'] +
+            contents[0]['cdelt1']*(i-contents[0]['crpix1'])
+            for i in range(contents[0]['naxis1'])
+            ]
+        dec_axis = [
+            contents[0]['crval2'] +
+            contents[0]['cdelt2']*(i-contents[0]['crpix2'])
+            for i in range(contents[0]['naxis2'])
+            ]
+        for ra_ind, ra in enumerate(ra_axis):
+            if ra_range[0] < ra < ra_range[1]:
+                for dec_ind, dec in enumerate(dec_axis):
+                    if dec_range[0] < dec < dec_range[1]:
+                        res_flux[pol_ind] = res_flux[pol_ind] + res_data[ra_ind, dec_ind]
+
+    print res_flux
 
 
 if __name__=='__main__':
