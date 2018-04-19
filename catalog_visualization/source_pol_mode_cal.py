@@ -77,12 +77,12 @@ def main():
         header = contents[0].header
         ra_axis = [
             header['crval1'] +
-            header['cdelt1']*(i-header['crpix1'])
+            header['cd1_1']*(i-header['crpix1'])
             for i in range(header['naxis1'])
             ]
         dec_axis = [
             header['crval2'] +
-            header['cdelt2']*(i-header['crpix2'])
+            header['cd2_2']*(i-header['crpix2'])
             for i in range(header['naxis2'])
             ]
         for ra_ind, ra in enumerate(ra_axis):
