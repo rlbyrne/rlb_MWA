@@ -73,22 +73,23 @@ def main():
     for pol_ind, pol in enumerate(pol_mode):
         res_file = '{}/output_data/{}_uniform_Residual_{}.fits'.format(fhd_run_path, obsid, pol)
         contents = astropy.io.fits.open(res_file)
-        res_data = contents[0].data
+        data = contents[0].data
+        header = contents[0].header
         ra_axis = [
-            contents[0]['crval1'] +
-            contents[0]['cdelt1']*(i-contents[0]['crpix1'])
-            for i in range(contents[0]['naxis1'])
+            header['crval1'] +
+            header['cdelt1']*(i-header['crpix1'])
+            for i in range(header['naxis1'])
             ]
         dec_axis = [
-            contents[0]['crval2'] +
-            contents[0]['cdelt2']*(i-contents[0]['crpix2'])
-            for i in range(contents[0]['naxis2'])
+            header['crval2'] +
+            header['cdelt2']*(i-header['crpix2'])
+            for i in range(header['naxis2'])
             ]
         for ra_ind, ra in enumerate(ra_axis):
             if ra_range[0] < ra < ra_range[1]:
                 for dec_ind, dec in enumerate(dec_axis):
                     if dec_range[0] < dec < dec_range[1]:
-                        res_flux[pol_ind] = res_flux[pol_ind] + res_data[ra_ind, dec_ind]
+                        res_flux[pol_ind] = res_flux[pol_ind] + data[ra_ind, dec_ind]
 
     print res_flux
 
