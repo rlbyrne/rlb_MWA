@@ -91,6 +91,8 @@ def main():
                     if dec_range[0] < dec < dec_range[1]:
                         res_flux[pol_ind] = res_flux[pol_ind] + data[ra_ind, dec_ind]
 
+    print ra_range
+    print dec_range
     print res_flux
 
 
