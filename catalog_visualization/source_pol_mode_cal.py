@@ -85,15 +85,34 @@ def main():
             header['cd2_2']*(i-header['crpix2'])
             for i in range(header['naxis2'])
             ]
-        for ra_ind, ra in enumerate(ra_axis):
-            if ra_range[0] < ra < ra_range[1]:
-                for dec_ind, dec in enumerate(dec_axis):
-                    if dec_range[0] < dec < dec_range[1]:
-                        res_flux[pol_ind] = res_flux[pol_ind] + data[ra_ind, dec_ind]
+
+        use_ra_inds = [i for i in range(len(ra_axis))
+                       if ra_range[0] < ra_axis[i] < ra_range[1]
+                       ]
+        use_dec_inds = [i for i in range(len(dec_axis))
+                        if dec_range[0] < dec_axis[i] < dec_range[1]
+                        ]
+        data_cut = data[
+                        use_ra_inds[0]:use_ra_inds[-1],
+                        use_dec_inds[0]:use_dec_inds[-1]
+                        ]
+        res_flux[pol_ind] = np.sum(data_cut)
 
     print ra_range
     print dec_range
     print res_flux
+
+    fig, ax = plt.subplots()
+    plt.imshow(data_diff, origin='lower', interpolation='none', cmap='Greys_r', vmin=-.00001, vmax=.00001)
+    plt.axis('equal')
+    ax.set_facecolor('gray')  # make plot background gray
+    plt.grid(which='both', zorder=10, lw=0.5)
+    cbar = plt.colorbar()
+    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
+    #plt.savefig('/Users/ruby/Desktop/dirty_2pol_XX_diff.png', format='png')
+    plt.show()
+
+
 
 
 if __name__=='__main__':
