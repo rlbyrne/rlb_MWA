@@ -11,9 +11,11 @@ from astropy.io import fits
 import numpy as np
 import sys
 import math
-import matplotlib.pyplot as plt
 import scipy.io
 import astropy.io
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 
 def main():
@@ -93,8 +95,8 @@ def main():
                         if dec_range[0] < dec_axis[i] < dec_range[1]
                         ]
         data_cut = data[
-                        use_ra_inds[0]:use_ra_inds[-1],
-                        use_dec_inds[0]:use_dec_inds[-1]
+                        use_ra_inds[0]:use_ra_inds[-1]+1,
+                        use_dec_inds[0]:use_dec_inds[-1]+1
                         ]
         res_flux[pol_ind] = np.sum(data_cut)
 
