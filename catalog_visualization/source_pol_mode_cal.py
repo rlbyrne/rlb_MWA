@@ -73,7 +73,7 @@ def main():
     res_flux = [0.]*4
     for pol_ind, pol in enumerate(pol_mode):
         res_file = '{}/output_data/{}_uniform_Residual_{}.fits'.format(fhd_run_path, obsid, pol)
-        contents = astropy.io.fits.open(res_file)
+        contents = fits.open(res_file)
         data = contents[0].data
         header = contents[0].header
         ra_axis = [
@@ -101,7 +101,7 @@ def main():
 
         if pol == 'Q':
             fig, ax = plt.subplots()
-            plt.imshow(data_cut, origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]], aspect='auto')
+            plt.imshow(np.transpose(data_cut), origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]], aspect='auto')
             plt.axis('equal')
             ax.set_facecolor('gray')  # make plot background gray
             plt.grid(which='both', zorder=10, lw=0.5)
