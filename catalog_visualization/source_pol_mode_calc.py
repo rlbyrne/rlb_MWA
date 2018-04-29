@@ -94,14 +94,14 @@ def main():
                         if dec_range[0] < dec_axis[i] < dec_range[1]
                         ]
         data_cut = data[
-                        use_ra_inds[0]:use_ra_inds[-1]+1,
-                        use_dec_inds[0]:use_dec_inds[-1]+1
+                        use_dec_inds[0]:use_dec_inds[-1]+1,
+                        use_ra_inds[0]:use_ra_inds[-1]+1
                         ]
         res_flux[pol_ind] = np.sum(data_cut)
 
         if pol == 'Q':
             fig, ax = plt.subplots()
-            plt.imshow(np.transpose(data_cut), origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]], aspect='auto')
+            plt.imshow(data_cut, origin='lower', interpolation='none', cmap='Greys_r', extent=[ra_axis[use_ra_inds[0]], ra_axis[use_ra_inds[-1]], dec_axis[use_dec_inds[0]], dec_axis[use_dec_inds[-1]]], aspect='auto')
             plt.axis('equal')
             ax.set_facecolor('gray')  # make plot background gray
             plt.grid(which='both', zorder=10, lw=0.5)
