@@ -144,6 +144,13 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
     phase_center_dec = UV.phase_center_dec
     phase_center_epoch = UV.phase_center_epoch
     UV.unphase_to_drift()  # unphase data
+    for ant1 in range(antenna_locs_ENU.size[0]):
+        for ant2 in range(antenna_locs_ENU.size[0]):
+            baseline_inds = np.intersect1d(
+                np.where(UV.ant_1_array == ant1)[0],
+                np.where(UV.ant_2_array == ant2)[0]
+                )
+            UV.uvw_array[baseline_inds, :] = antenna_locs_ENU[ant2, :] - antenna_locs_ENU[ant1, :]
     antenna_locs_ECEF = uvutils.ECEF_from_ENU(
         antenna_locs_ENU.T, *UV.telescope_location_lat_lon_alt
         ).T
