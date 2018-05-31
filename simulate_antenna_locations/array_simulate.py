@@ -49,7 +49,7 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
         plt.xlabel('East/West Location (m)')
         plt.ylabel('North/South Location (m)')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.savefig('/Users/ruby/Desktop/antenna_hex.png')
+        plt.savefig('/Users/rubybyrne/array_simulation/antenna_hex.png')
         plt.close()
 
     # find the array's radial distribution
@@ -64,11 +64,11 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
         ]
     plt.figure()
     plt.scatter(bin_centers, radial_hist)
-    plt.savefig('/Users/ruby/Desktop/antenna_hex_dist.png')
+    plt.savefig('/Users/rubybyrne/array_simulation/antenna_hex_dist.png')
     plt.close()
 
     if save_uvfits:
-        create_uvfits(antennas, antenna_xlocs, antenna_ylocs, 'hex_array_sim.uvfits')
+        create_uvfits(antennas, antenna_xlocs, antenna_ylocs, '/Users/rubybyrne/array_simulation/hex_array_sim.uvfits')
 
     print antennas
 
@@ -124,11 +124,11 @@ def create_random_array():
         plt.xlabel('East/West Location (m)')
         plt.ylabel('North/South Location (m)')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.savefig('/Users/ruby/Desktop/antenna_random.png')
+        plt.savefig('/Users/rubybyrne/array_simulation/antenna_random1.png')
         plt.close()
 
     if save_uvfits:
-        create_uvfits(antennas, antenna_xlocs, antenna_ylocs, 'random_array_sim.uvfits')
+        create_uvfits(antennas, antenna_xlocs, antenna_ylocs, '/Users/rubybyrne/array_simulation/random1_array_sim.uvfits')
 
 
 def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
@@ -137,15 +137,15 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
     antenna_locs_ENU[:, 0] = antenna_xlocs
     antenna_locs_ENU[:, 1] = antenna_ylocs
 
-    filename = '/Users/ruby/EoR/1061316296.uvfits'
+    filename = '/Users/Shared/uvfits/4.1/1061316296.uvfits'
     UV = UVData()
     UV.read_uvfits(filename)
     phase_center_ra = UV.phase_center_ra
     phase_center_dec = UV.phase_center_dec
     phase_center_epoch = UV.phase_center_epoch
     UV.unphase_to_drift()  # unphase data
-    for ant1 in range(antenna_locs_ENU.size[0]):
-        for ant2 in range(antenna_locs_ENU.size[0]):
+    for ant1 in range(antenna_locs_ENU.shape[0]):
+        for ant2 in range(antenna_locs_ENU.shape[0]):
             baseline_inds = np.intersect1d(
                 np.where(UV.ant_1_array == ant1)[0],
                 np.where(UV.ant_2_array == ant2)[0]
