@@ -3,14 +3,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import math
+import sys
 from pyuvdata import UVData
 from pyuvdata import uvutils
 
 
 def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
                      plot_array=True):
-
-    save_uvfits=False
 
     # get the number of antennas in an array with this side length
     antennas = ((side_length-1)**2 + (side_length-1))*3 + 1
@@ -19,12 +18,11 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     antenna_xlocs = []
     antenna_ylocs = []
 
-    add_extra_antenna = 1
     for row in range(0, side_length):
         yloc = row*antenna_spacing*(3.**.5)/2
         if row % 2 == 0:
             new_xlocs = [
-                i*antenna_spacing for i in range(-side_length+row/2+1, side_length-row/2 + add_extra_antenna)
+                i*antenna_spacing for i in range(-side_length+row/2+1, side_length-row/2)
                 ]
             antenna_xlocs.extend(new_xlocs)
             antenna_ylocs.extend([yloc]*len(new_xlocs))
@@ -38,7 +36,6 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
             antenna_xlocs.extend(new_xlocs*2)
             antenna_ylocs.extend([yloc]*len(new_xlocs))
             antenna_ylocs.extend([-yloc]*len(new_xlocs))
-        add_extra_antenna = 0
     antennas = len(antenna_xlocs)
 
     if plot_array:
@@ -144,8 +141,13 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
     phase_center_dec = UV.phase_center_dec
     phase_center_epoch = UV.phase_center_epoch
     UV.unphase_to_drift()  # unphase data
-    for ant1 in range(antenna_locs_ENU.shape[0]):
-        for ant2 in range(antenna_locs_ENU.shape[0]):
+    ant1_list = list(set(UV.ant_1_array))
+    ant2_list = list(set(UV.ant_2_array))
+    if ant1_list != antennas or ant2_list != antennas:
+        print 'ERROR: Incorrect number of antennas in reference uvfits'
+        sys.exit(1)
+    for ant1 in ant1_list:
+        for ant2 in ant2_list:
             baseline_inds = np.intersect1d(
                 np.where(UV.ant_1_array == ant1)[0],
                 np.where(UV.ant_2_array == ant2)[0]
@@ -160,4 +162,4 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    create_random_array()
+    create_hex_array(7, 15.)
