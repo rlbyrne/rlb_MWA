@@ -52,7 +52,8 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
         plt.xlabel('East/West Location (m)')
         plt.ylabel('North/South Location (m)')
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.savefig('/Users/rubybyrne/array_simulation/'
+        plt.savefig(
+            '/Users/rubybyrne/array_simulation/'
             'antenna_hex_{}m.png'.format(int(antenna_spacing))
         )
         plt.close()
@@ -71,7 +72,8 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     ]
     plt.figure()
     plt.scatter(bin_centers, radial_hist)
-    plt.savefig('/Users/rubybyrne/array_simulation/'
+    plt.savefig(
+        '/Users/rubybyrne/array_simulation/'
         'antenna_hex_dist_{}m.png'.format(antenna_spacing)
     )
     plt.close()
@@ -83,7 +85,7 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
                       antenna_xlocs,
                       antenna_ylocs,
                       '/Users/rubybyrne/array_simulation/'
-                      'hex_array_sim_{}m.uvfits'.format(antenna_spacing)
+                      'hex_array_sim_{}m.uvfits'.format(int(antenna_spacing))
                       )
 
     return antennas, radial_hist, bin_centers
@@ -127,7 +129,8 @@ def create_random_array(antenna_spacing):
                 # Check that the antenna does not overlap others
                 check_overlap = True
                 for i in range(len(antenna_xlocs)):
-                    if (abs(antenna_xlocs[i]-xloc) < antenna_size
+                    if (
+                        abs(antenna_xlocs[i]-xloc) < antenna_size
                         and abs(antenna_ylocs[i]-yloc) < antenna_size
                     ):
                         check_overlap = False
@@ -144,18 +147,48 @@ def create_random_array(antenna_spacing):
             plt.ylabel('North/South Location (m)')
             plt.gca().set_aspect('equal', adjustable='box')
             plt.savefig('/Users/rubybyrne/array_simulation/'
-                'antenna_random{}_{}m.png'.format(array, int(antenna_spacing))
-            )
+                        'antenna_random{}_{}m.png'.format(
+                            array,
+                            int(antenna_spacing))
+                        )
             plt.close()
 
         if save_uvfits:
             print 'creating uvfits'
             create_uvfits(antennas, antenna_xlocs, antenna_ylocs,
-                '/Users/rubybyrne/array_simulation/'
-                'random{}_array_sim_{}m.uvfits'.format(array,
-                                                       int(antnna_spacing)
-                                                       )
-            )
+                          '/Users/rubybyrne/array_simulation/'
+                          'random{}_array_sim_{}m.uvfits'.format(
+                              array,
+                              int(antenna_spacing))
+                          )
+
+
+def create_hera_array(side_length, antenna_spacing):
+
+    a1 = np.array([15,15*np.sqrt(3)])
+    a2 = np.array([15,-15*np.sqrt(3)])
+    a3 = -a1-a2
+    d0 = np.array([20,0])
+    d1 = np.array([-10,10*np.sqrt(3)])
+    d2 = np.array([-10,-10*np.sqrt(3)])
+    pos = np.zeros((127, 2))
+    n = 0
+    for ii in range(side_length):
+        for jj in range(side_length):
+            pos[n, :] = d0+ii*a1+jj*a2
+            n += 1
+    for ii in range(side_length):
+        for jj in range(side_length):
+            pos[n, :] = d1+ii*a3+jj*a1
+            n += 1
+    for ii in range(side_length):
+        for jj in range(side_length):
+            pos[n, :] = d2+ii*a2+jj*a3
+            n += 1
+
+    plt.scatter(pos[:, 0], pos[:, 1], marker='o', s=1.)
+    plt.show()
+    print pos
 
 
 def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
@@ -196,5 +229,6 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    #create_hex_array(7, 10.)
+    create_hex_array(7, 10.)
     create_random_array(10.)
+    #create_hera_array(6, 0)
