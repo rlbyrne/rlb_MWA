@@ -86,7 +86,9 @@ pro pol_leakage_calc
       endif
     endfor
     brightest_indices = (reverse(sort(apparent_fluxes)))
-    if fit_sources_number lt n_elements(brightest_indices) then brightest_indices = brightest_indices[0:fit_sources_number-1]
+    if fit_sources_number lt n_elements(brightest_indices) then brightest_indices = brightest_indices[0:fit_sources_number-1] else begin
+      fit_sources_number = n_elements(brightest_indices)
+    endelse
     fit_sources = catalog[brightest_indices]
     
     residual_I = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_I.fits', header)  ; assume all headers are the same
