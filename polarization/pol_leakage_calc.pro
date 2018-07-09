@@ -1,27 +1,53 @@
 pro pol_leakage_calc
 
-  plot = 0
+  plot = 1
   make_catalog = 0
-  write_fit_params = 1
+  write_fit_params = 0
   create_decon_catalogs = 0
   
   fhd_path = '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018/'
+  
+  ; Find obsids where all files are present
   decon_filenames = file_search(fhd_path+'deconvolution/*')
-  obsids = []
+  obsids_decon = []
   for file=0,n_elements(decon_filenames)-1 do begin
-    obsids = [obsids, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
+    obsids_decon = [obsids_decon, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
   endfor
-  obsids = obsids[uniq(obsids, sort(obsids))]
+  residual_I_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_I.fits')
+  obsids_residual_I = []
+  for file=0,n_elements(residual_I_filenames)-1 do begin
+    obsids_residual_I = [obsids_residual_I, strmid(residual_I_filenames, strlen(fhd_path+'output_data/'), 10)]
+  endfor
+  residual_Q_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_Q.fits')
+  obsids_residual_Q = []
+  for file=0,n_elements(residual_Q_filenames)-1 do begin
+    obsids_residual_Q = [obsids_residual_Q, strmid(residual_Q_filenames, strlen(fhd_path+'output_data/'), 10)]
+  endfor
+  residual_U_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_U.fits')
+  obsids_residual_U = []
+  for file=0,n_elements(residual_U_filenames)-1 do begin
+    obsids_residual_U = [obsids_residual_U, strmid(residual_U_filenames, strlen(fhd_path+'output_data/'), 10)]
+  endfor
+  residual_V_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_V.fits')
+  obsids_residual_V = []
+  for file=0,n_elements(residual_V_filenames)-1 do begin
+    obsids_residual_V = [obsids_residual_V, strmid(residual_V_filenames, strlen(fhd_path+'output_data/'), 10)]
+  endfor
+  obs_filenames = file_search(fhd_path+'metadata/*_obs.sav')
+  obsids_obsfile = []
+  for file=0,n_elements(obs_filenames)-1 do begin
+    obsids_obsfile = [obsids_obsfile, strmid(obs_filenames, strlen(fhd_path+'metadata/'), 10)]
+  endfor
+  obsids = cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(long(obsids_decon), long(obsids_residual_I)), long(obsids_residual_Q)), long(obsids_residual_U)), long(obsids_residual_V)), long(obsids_obsfile))
+  obsids = strtrim(obsids[uniq(obsids, sort(obsids))],1)
+  ;obsids=['1130773024']
   
   if keyword_set(create_decon_catalogs) then begin
     for obs_index=0, n_elements(obsids)-1 do begin
       obsid = obsids[obs_index]
       generate_calibration_catalog, source_list=fhd_path+'deconvolution/'+obsid+'_fhd.sav', file_path=fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     endfor
-  endif
-  
-  ;obsids=obsids[0:20]
-  
+  endif  
   
   if keyword_set(write_fit_params) then begin
     ;openw, outfile, output_path+'pol_leakage_fit_params.csv', /get_lun
@@ -34,27 +60,39 @@ pro pol_leakage_calc
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 400
-    fit_radius = 12  ; use only sources within 15 degrees of the pointing center
-    source_size = 1.5  ; stddev of the Gaussian sources fit in pixels
-    output_path = fhd_path
+    fit_radius = 18  ; use only sources within this many degrees of the pointing center
+    fit_radius_pixels = 380
+    ;source_size = 1.5  ; stddev of the Gaussian sources fit in pixels
+    source_size = 1.
+    output_path = fhd_path+'plots/'
     
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
-    obs = getvar_savefile(output_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
+    obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
     apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
+;    for source_ind = 0, n_elements(catalog)-1 do begin
+;      if catalog[source_ind].ra-obs.obsra gt 180. then catalog[source_ind].ra=catalog[source_ind].ra-360. 
+;      if catalog[source_ind].ra-obs.obsra lt -180. then catalog[source_ind].ra=catalog[source_ind].ra+360.
+;      if (catalog[source_ind].ra-obs.obsra)^2. + (catalog[source_ind].dec-obs.obsdec)^2. lt fit_radius^2. then begin
+;        if catalog[source_ind].extend eq !null then begin  ; use point sources only (no extended)
+;          apparent_fluxes[source_ind] = catalog[source_ind].flux.I
+;        endif
+;      endif
+;    endfor
     for source_ind = 0, n_elements(catalog)-1 do begin
-      if (catalog[source_ind].ra-obs.obsra)^2. + (catalog[source_ind].dec-obs.obsdec)^2. lt fit_radius^2. then begin
+      if (catalog[source_ind].X-obs.dimension/2.)^2. + (catalog[source_ind].Y-obs.dimension/2.)^2. lt fit_radius_pixels^2. then begin
         if catalog[source_ind].extend eq !null then begin  ; use point sources only (no extended)
           apparent_fluxes[source_ind] = catalog[source_ind].flux.I
         endif
       endif
     endfor
-    brightest_indices = (reverse(sort(apparent_fluxes)))[0:fit_sources_number-1]
+    brightest_indices = (reverse(sort(apparent_fluxes)))
+    if fit_sources_number lt n_elements(brightest_indices) then brightest_indices = brightest_indices[0:fit_sources_number-1]
     fit_sources = catalog[brightest_indices]
     
-    residual_I = readfits(output_path + 'output_data/' + obsid + '_uniform_Residual_I.fits', header)  ; assume all headers are the same
-    residual_Q = readfits(output_path + 'output_data/' + obsid + '_uniform_Residual_Q.fits')
-    residual_U = readfits(output_path + 'output_data/' + obsid + '_uniform_Residual_U.fits')
-    residual_V = readfits(output_path + 'output_data/' + obsid + '_uniform_Residual_V.fits')
+    residual_I = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_I.fits', header)  ; assume all headers are the same
+    residual_Q = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_Q.fits')
+    residual_U = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_U.fits')
+    residual_V = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_V.fits')
     
     pol_fluxes = make_array(fit_sources_number, 4, /float, value=0.)
     source_ras = make_array(fit_sources_number, 1, /float, value=0.)
@@ -121,40 +159,68 @@ pro pol_leakage_calc
     
     if keyword_set(plot) then begin
       for pol = 0, 2 do begin
-        cgPS_Open, obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
-        colorbar_scale_factor = 127./max(abs(frac_pol_leakage[*,pol]))
+        cgPS_Open, '/Users/rubybyrne/polarization_leakage/plots/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
+        ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
+        colorbar_extent = .3
+        plot_range = [1024-400, 1024+400]
+        colorbar_scale_factor = 127./colorbar_extent
         colors = reform(frac_pol_leakage[*,pol])*colorbar_scale_factor+127.
+        for color_ind = 0,n_elements(colors)-1 do begin
+          if colors[color_ind] gt 255 then colors[color_ind]=255 else begin
+            if colors[color_ind] lt 0 then colors[color_ind]=0
+          endelse
+        endfor
         cgLoadCT, 70
-        cgplot, source_ras, source_decs, /nodata, xtitle='RA (deg)', ytitle='Dec (deg)', title='Stokes '+polarizations[pol]+' Leakage', $
-          aspect=1.0, xrange=[obs.obsra-fit_radius-5, obs.obsra+fit_radius+5], yrange=[obs.obsdec-fit_radius-5, obs.obsdec+fit_radius+5]
-        for j=0,fit_sources_number-1 do cgplots, source_ras[j], source_decs[j], psym=16, color=fix(colors[j])
+        cgplot, source_xvals, source_yvals, /nodata, xtitle='RA (pixel)', ytitle='Dec (pixel)', title='Stokes '+polarizations[pol]+' Leakage', $
+          aspect=1.0, xrange=[plot_range[0], plot_range[1]], yrange=[plot_range[0], plot_range[1]], position=pos
         if pol ne 2 then begin
-          fit_result = fit_params[*,pol]
-          fitted_vals = fit_result[0]*source_xvals^2. + fit_result[1]*source_yvals^2. + fit_result[2]*source_xvals*source_yvals $
-            + fit_result[3]*source_xvals + fit_result[4]*source_yvals + fit_result[5]
-          errors = frac_pol_leakage[*,pol]-fitted_vals
-          
-          colors_fit = fitted_vals*colorbar_scale_factor+127.
-          colors_fit[where(colors_fit lt 0, /null)] = 0  ; this is buggy
-          colors_fit[where(colors_fit gt 254, /null)] = 254  ; this is buggy
-          for j=0,fit_sources_number-1 do cgplots, source_ras[j], source_decs[j], psym=7, color=fix(colors_fit[j])
-          cgcolorbar, range=[-max(abs(frac_pol_leakage[*,pol])), max(abs(frac_pol_leakage[*,pol]))], /vertical, $
-            title = 'Fractional Polarization Leakage'
-          cgps_close, /delete_ps
-          
-          cgPS_Open, obsid+'_stokes_'+polarizations[pol]+'_source_leakage_residual.png'
-          cgplot, source_ras, source_decs, /nodata, xtitle='RA (deg)', ytitle='Dec (deg)', title='Stokes '+polarizations[pol]+' Resiudal Leakage', $
-            aspect=1.0, xrange=[obs.obsra-fit_radius-5, obs.obsra+fit_radius+5], yrange=[obs.obsdec-fit_radius-5, obs.obsdec+fit_radius+5]
-          colors_residual = reform(errors)*colorbar_scale_factor+127.
-          for j=0,fit_sources_number-1 do cgplots, source_ras[j], source_decs[j], psym=16, color=fix(colors_residual[j])
-          cgcolorbar, range=[-max(abs(frac_pol_leakage[*,pol])), max(abs(frac_pol_leakage[*,pol]))], /vertical, $
-            title = 'Polarization Residual'
-          cgps_close, /delete_ps
-        endif else begin
-        cgcolorbar, range=[-max(abs(frac_pol_leakage[*,pol])), max(abs(frac_pol_leakage[*,pol]))], /vertical, $
+          resolution=200
+          pixel_size = (plot_range[1]-plot_range[0])/float(200)
+          image_xvals = findgen(resolution, start=plot_range[0]+pixel_size/2., increment=pixel_size)
+          image_yvals = findgen(resolution, start=plot_range[0]+pixel_size/2., increment=pixel_size)
+          fit_image = make_array(resolution, resolution, /float, value=0.)
+          for xind = 0, resolution-1 do begin
+            for yind = 0, resolution-1 do begin
+              fit_val = fit_params[0,pol]*image_xvals[xind]^2. + fit_params[1,pol]*image_yvals[yind]^2. + fit_params[2,pol]*image_xvals[xind]*image_yvals[yind] $
+                + fit_params[3,pol]*image_xvals[xind] + fit_params[4,pol]*image_yvals[yind] + fit_params[5,pol]
+              fit_color = fit_val*colorbar_scale_factor+127.
+              if fit_color gt 255 then fit_color=255 else begin
+                if fit_color lt 0 then fit_color=0
+              endelse
+              fit_image[xind, yind] = fit_color
+            endfor
+          endfor
+          cgimage, fit_image, position=pos, /noerase
+        endif
+        for j=0,fit_sources_number-1 do cgplots, source_xvals[j], source_yvals[j], psym=16, color=fix(colors[j])
+        cgplot, source_xvals, source_yvals, psym=9, color='black', thick=0.1, /overplot
+;        if pol ne 2 then begin
+;          fit_result = fit_params[*,pol]
+;          fitted_vals = fit_result[0]*source_xvals^2. + fit_result[1]*source_yvals^2. + fit_result[2]*source_xvals*source_yvals $
+;            + fit_result[3]*source_xvals + fit_result[4]*source_yvals + fit_result[5]
+;          errors = frac_pol_leakage[*,pol]-fitted_vals
+;          
+;          colors_fit = fitted_vals*colorbar_scale_factor+127.
+;          colors_fit[where(colors_fit lt 0, /null)] = 0  ; this is buggy
+;          colors_fit[where(colors_fit gt 254, /null)] = 254  ; this is buggy
+;          for j=0,fit_sources_number-1 do cgplots, source_ras[j], source_decs[j], psym=7, color=fix(colors_fit[j])
+;          cgcolorbar, range=[-max(abs(frac_pol_leakage[*,pol])), max(abs(frac_pol_leakage[*,pol]))], /vertical, $
+;            title = 'Fractional Polarization Leakage'
+;          cgps_close, /delete_ps
+;          
+;          cgPS_Open, obsid+'_stokes_'+polarizations[pol]+'_source_leakage_residual.png'
+;          cgplot, source_ras, source_decs, /nodata, xtitle='RA (deg)', ytitle='Dec (deg)', title='Stokes '+polarizations[pol]+' Resiudal Leakage', $
+;            aspect=1.0, xrange=[obs.obsra-fit_radius-5, obs.obsra+fit_radius+5], yrange=[obs.obsdec-fit_radius-5, obs.obsdec+fit_radius+5]
+;          colors_residual = reform(errors)*colorbar_scale_factor+127.
+;          for j=0,fit_sources_number-1 do cgplots, source_ras[j], source_decs[j], psym=16, color=fix(colors_residual[j])
+;          cgcolorbar, range=[-max(abs(frac_pol_leakage[*,pol])), max(abs(frac_pol_leakage[*,pol]))], /vertical, $
+;            title = 'Polarization Residual'
+;          cgps_close, /delete_ps
+;        endif else begin
+        cgcolorbar, range=[-colorbar_extent, colorbar_extent], /vertical, $
           title = 'Fractional Polarization Leakage'
-        cgps_close, /delete_ps
-        endelse
+        cgps_close, /delete_ps, width=1200  ; width determines the image resolution
+;        endelse
       endfor
     endif
       
@@ -179,15 +245,10 @@ pro pol_leakage_calc
     if keyword_set(write_fit_params) then begin
       line = obsid+','+strtrim(fit_params[0,0],2)+','+strtrim(fit_params[1,0],2)+','+strtrim(fit_params[2,0],2)+','+strtrim(fit_params[3,0],2)+','+strtrim(fit_params[4,0],2)+','+strtrim(fit_params[5,0],2) $
         +','+strtrim(fit_params[0,1],2)+','+strtrim(fit_params[1,1],2)+','+strtrim(fit_params[2,1],2)+','+strtrim(fit_params[3,1],2)+','+strtrim(fit_params[4,1],2)+','+strtrim(fit_params[5,1],2)
-      ;printf, outfile, line
-      ;output_string = output_string+line+'\n'
-      ;print, output_string
       spawn, 'printf "'+line+'\n" >> '+output_path+'pol_leakage_fit_params.csv'
     endif
   
   endfor
   
-  ;spawn, 'printf "'+output_string+'" > '+output_path+'pol_leakage_fit_params.csv'
-
   stop
 end
