@@ -3,16 +3,49 @@
 import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 
-def match_catalogs():
+def match_catalogs_wrapper():
 
     fhd_run_path = '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018'
-    obsid = '1130773024'
     ref_catalog_path = '/Users/rubybyrne/FHD/catalog_data/GLEAM_plus_rlb2017.sav'
     output_path = '/Users/rubybyrne/diffuse_survey_qa_plots'
+    obsid = '1130773024'
+
+    # Find all obs files in the run path directory
+    obs_file_list = os.listdir('{}/metadata/'.format(fhd_run_path))
+    obs_file_list = [
+        filename.replace('{}/metadata/'.format(fhd_run_path), ''
+                         )[0:10] for filename in obs_file_list if filename.endswith('_obs.sav')
+    ]
+    obs_file_list = list(set(obs_file_list))
+
+    # Find all deconvolution output files in the run path directory
+    decon_catalog_file_list = os.listdir('{}/deconvolution/'.format(fhd_run_path))
+    decon_catalog_file_list = [
+        filename.replace('{}/deconvolution/'.format(fhd_run_path), ''
+                         )[0:10] for filename in decon_catalog_file_list if filename.endswith('_fhd.sav')
+    ]
+    decon_catalog_file_list = list(set(decon_catalog_file_list))
+
+    # Run all obsids that have both their obs files and deconvolution outputs
+    obsid_list = [obs for obs in obs_file_list if obs in decon_catalog_file_list]
+
+    print 'Restoring GLEAM catalog'
+    ref_catalog = scipy.io.readsav(ref_catalog_path)['catalog']
+
+    for i, obsid in enumerate(obsid_list):
+        print 'Creating deconvolution QA plots for {}, obsid {}/{}'.format(
+            obsid, i+1, len(obsid_list)
+        )
+        match_catalogs(fhd_run_path, output_path, ref_catalog, obsid)
+
+
+def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
+
     search_radius = 12.  # match sources out to 12 degrees from pointing center
-    match_radius = .05  # a match is within 3 arcmin of the source
+    match_radius = .04  # a match is within .02 degrees of the source
 
     obs_sav = scipy.io.readsav(
         '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -33,9 +66,8 @@ def match_catalogs():
             decon_catalog_limited.append(source)
     # sort sources by flux
     decon_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
-    decon_catalog_limited = decon_catalog_limited[0:100]  # for debugging
+    #decon_catalog_limited = decon_catalog_limited[0:100]  # for debugging
 
-    ref_catalog = scipy.io.readsav(ref_catalog_path)['catalog']
     # grab sources near the pointing center
     ref_catalog_limited = []
     for source in ref_catalog:
@@ -46,7 +78,7 @@ def match_catalogs():
             ref_catalog_limited.append(source)
     # sort sources by flux
     ref_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
-    ref_catalog_limited = ref_catalog_limited[0:100]  # for debugging
+    #ref_catalog_limited = ref_catalog_limited[0:100]  # for debugging
 
     plot_flux_hist([source['flux']['I'] for source in ref_catalog_limited],
                    [source['flux']['I'] for source in decon_catalog_limited],
@@ -112,11 +144,11 @@ def match_catalogs():
         matched_decon_catalog_decs[i]-matched_ref_catalog_decs[i]
     )*60. for i in range(len(matched_ref_catalog_decs))]
 
-    plot_pos_offsets_scatter(ra_offsets, dec_offsets,
+    plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius,
         '{}/{}_pos_offsets_scatter.png'.format(output_path, obsid)
     )
     plot_pos_offsets_vectors(matched_ref_catalog_ras, matched_ref_catalog_decs,
-        ra_offsets, dec_offsets, match_radius, search_radius,
+        ra_offsets, dec_offsets, obs_ra, obs_dec, match_radius, search_radius,
         '{}/{}_pos_offsets_vectors.png'.format(output_path, obsid)
     )
 
@@ -142,8 +174,14 @@ def plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
     plt.title('Deconvolved Flux Density Agreement With GLEAM: '
               'Match Ratio {:.3f}'.format(decon_catalog_match_ratio))
     plt.gca().set_aspect('equal', adjustable='box')
+    plt.axis([min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]),
+              max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)]),
+              min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]),
+              max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])
+              ])
     plt.legend(loc='upper left')
-    plt.savefig(saveloc)
+    print 'Saving plot to {}'.format(saveloc)
+    plt.savefig(saveloc, dpi=300)
     plt.close()
 
 
@@ -151,7 +189,7 @@ def plot_flux_hist(ref_catalog_fluxes, decon_catalog_fluxes, saveloc):
 
     # get bin edges
     null, bin_edges = np.histogram(
-        [np.log(val) for val in ref_catalog_fluxes.extend(decon_cal_fluxes)],
+        [np.log(val) for val in ref_catalog_fluxes+decon_catalog_fluxes],
         bins='auto'
     )
     # histogram data
@@ -186,11 +224,12 @@ def plot_flux_hist(ref_catalog_fluxes, decon_catalog_fluxes, saveloc):
     plt.ylabel('Histogram Count')
     plt.title('Source Flux Density Histogram')
     plt.legend(loc='upper right')
-    plt.savefig(saveloc)
+    print 'Saving plot to {}'.format(saveloc)
+    plt.savefig(saveloc, dpi=300)
     plt.close()
 
 
-def plot_pos_offsets_scatter(ra_offsets, dec_offsets, saveloc):
+def plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius, saveloc):
     plt.figure()
     plt.grid(True, zorder=0)
     plt.scatter(ra_offsets, dec_offsets, marker='o', s=1., color='black', zorder=10)
@@ -199,39 +238,34 @@ def plot_pos_offsets_scatter(ra_offsets, dec_offsets, saveloc):
     plt.title('Source Positional Offsets, Deconvolved - GLEAM')
     plt.gca().set_aspect('equal', adjustable='box')
     plt.axis([-match_radius*60., match_radius*60., -match_radius*60., match_radius*60.])
-    plt.savefig(saveloc)
+    print 'Saving plot to {}'.format(saveloc)
+    plt.savefig(saveloc, dpi=300)
     plt.close()
 
 
 def plot_pos_offsets_vectors(matched_ref_catalog_ras, matched_ref_catalog_decs,
                              ra_offsets, dec_offsets,
+                             obs_ra, obs_dec,
                              match_radius, search_radius,
                              saveloc):
-    ave_ra = np.mean(matched_ref_catalog_ras)
-    ave_dec = np.mean(matched_ref_catalog_decs)
+    arrow_scale_factor = .5
     plt.figure()
     for i in range(len(ra_offsets)):
-        if matched_ref_catalog_ras[i]-ave_ra > search_radius:
-            use_ra = matched_ref_catalog_ras[i]-360.
-        elif matched_ref_catalog_ras[i]-ave_ra < -search_radius:
-            use_ra = matched_ref_catalog_ras[i]+360.
-        else:
-            use_ra = matched_ref_catalog_ras[i]
-        plt.arrow(use_ra,
-                  matched_ref_catalog_decs[i],
-                  ra_offsets[i]*arrow_scale_factor,
-                  dec_offsets[i]*arrow_scale_factor,
-                  length_includes_head=True, width=.00001, head_width = .1,
-                  fc='black')
+        if matched_ref_catalog_ras[i]-obs_ra > search_radius:
+            matched_ref_catalog_ras[i] = matched_ref_catalog_ras[i]-360.
+        elif matched_ref_catalog_ras[i]-obs_ra < -search_radius:
+            matched_ref_catalog_ras[i] = matched_ref_catalog_ras[i]+360.
+    plt.quiver(matched_ref_catalog_ras, matched_ref_catalog_decs, ra_offsets, dec_offsets)
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.title('Source Positional Offsets')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.axis([ave_ra-search_radius-2., ave_ra+search_radius+2.,
-              ave_dec-search_radius-2., ave_dec+search_radius+2.])
-    plt.savefig(saveloc)
+    plt.axis([obs_ra-search_radius-2., obs_ra+search_radius+2.,
+              obs_dec-search_radius-2., obs_dec+search_radius+2.])
+    print 'Saving plot to {}'.format(saveloc)
+    plt.savefig(saveloc, dpi=300)
     plt.close()
 
 
 if __name__=='__main__':
-    match_catalogs()
+    match_catalogs_wrapper()
