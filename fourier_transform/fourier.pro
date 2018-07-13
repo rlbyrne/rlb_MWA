@@ -24,14 +24,15 @@ pro fourier, y_time=y_time, time=time, t_range=t_range, $
     ; inputs: y_freq, freq OR freq_range, t_range
     ; outputs: y_time, time
   
+    if ~keyword_set(t_range) then t_start = 0 else t_start = t_range[0]
     n = n_elements(y_freq)
     if n_elements(frequencies) gt 0 then freq_range = minmax(frequencies)
     freq_step = float(freq_range[1]-freq_range[0])/(n-1)
     y_time_unnorm = fft(y_freq, /center, /inverse)
     y_time_shift = freq_step/(2*!Pi)*y_time_unnorm
     t_step = 2*!Pi/(n*freq_step)
-    time = (findgen(n)*t_step) + t_range[0]
-    y_time = shift(y_time_shift, -floor(t_range[0]/t_step))
+    time = (findgen(n)*t_step) + t_start
+    y_time = shift(y_time_shift, -floor(t_start/t_step))
   endelse
   
 end
