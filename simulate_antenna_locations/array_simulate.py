@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 import sys
+import csv
 from pyuvdata import UVData
 from pyuvdata import uvutils
 
@@ -87,6 +88,20 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
                       '/Users/rubybyrne/array_simulation/'
                       'hex_array_sim_{}m.uvfits'.format(int(antenna_spacing))
                       )
+        # Save antenna locations to a csv
+        csv_outfile = open(
+            '/Users/rubybyrne/array_simulation/'
+            'hex_array_sim_{}m_antenna_locs.csv'.format(int(antenna_spacing)),
+            'w'
+        )
+        outfile_writer = csv.writer(csv_outfile)
+        outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
+                                 'N-S Location (m)', 'Altitude (m)'])
+        for i in range(len(antenna_nums)):
+            outfile_writer.writerow(
+                [i]+list(antenna_locs_ENU[i, :])
+            )
+        csv_outfile.close()
 
     return antennas, radial_hist, bin_centers
 
@@ -161,6 +176,20 @@ def create_random_array(antenna_spacing):
                               array,
                               int(antenna_spacing))
                           )
+            # Save antenna locations to a csv
+            csv_outfile = open(
+                '/Users/rubybyrne/array_simulation/'
+                'hex_array_sim_{}m_antenna_locs.csv'.format(int(antenna_spacing)),
+                'w'
+            )
+            outfile_writer = csv.writer(csv_outfile)
+            outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
+                                     'N-S Location (m)', 'Altitude (m)'])
+            for i in range(len(antenna_nums)):
+                outfile_writer.writerow(
+                    [i]+list(antenna_locs_ENU[i, :])
+                )
+            csv_outfile.close()
 
 
 def create_hera_array(side_length, antenna_spacing):
