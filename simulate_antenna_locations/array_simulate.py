@@ -165,13 +165,13 @@ def create_random_array(antenna_spacing):
 
 def create_hera_array(side_length, antenna_spacing):
 
-    a1 = np.array([15,15*np.sqrt(3)])
-    a2 = np.array([15,-15*np.sqrt(3)])
+    a1 = np.array([15, 15*np.sqrt(3)])
+    a2 = np.array([15, -15*np.sqrt(3)])
     a3 = -a1-a2
-    d0 = np.array([20,0])
-    d1 = np.array([-10,10*np.sqrt(3)])
-    d2 = np.array([-10,-10*np.sqrt(3)])
-    pos = np.zeros((127, 2))
+    d0 = np.array([20, 0])
+    d1 = np.array([-10, 10*np.sqrt(3)])
+    d2 = np.array([-10, -10*np.sqrt(3)])
+    pos = np.zeros((side_length**2*3, 2))
     n = 0
     for ii in range(side_length):
         for jj in range(side_length):
@@ -229,6 +229,6 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    create_hex_array(7, 10.)
-    create_random_array(10.)
-    #create_hera_array(6, 0)
+    #create_hex_array(7, 10.)
+    #create_random_array(10.)
+    create_hera_array(6, 0)
