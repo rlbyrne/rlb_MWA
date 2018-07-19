@@ -45,6 +45,9 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
             antenna_ylocs.extend([-yloc]*len(new_xlocs))
     antennas = len(antenna_xlocs)
 
+    print antennas
+    sys.exit()
+
     if plot_array:
         plt.figure()
         plt.scatter(antenna_xlocs, antenna_ylocs, marker='o', s=1.)
@@ -179,7 +182,10 @@ def create_random_array(antenna_spacing):
             # Save antenna locations to a csv
             csv_outfile = open(
                 '/Users/rubybyrne/array_simulation/'
-                'hex_array_sim_{}m_antenna_locs.csv'.format(int(antenna_spacing)),
+                'random{}_array_sim_{}m_antenna_locs.csv'.format(
+                    array,
+                    int(antenna_spacing)
+                ),
                 'w'
             )
             outfile_writer = csv.writer(csv_outfile)
@@ -192,32 +198,73 @@ def create_random_array(antenna_spacing):
             csv_outfile.close()
 
 
-def create_hera_array(side_length, antenna_spacing):
+def create_hera_array(side_length, antenna_spacing, plot_array=True,
+                      save_uvfits=True):
 
-    a1 = np.array([15, 15*np.sqrt(3)])
-    a2 = np.array([15, -15*np.sqrt(3)])
+    antenna_spacing = float(antenna_spacing)
+
+    a1 = np.array([antenna_spacing, antenna_spacing*np.sqrt(3)])
+    a2 = np.array([antenna_spacing, -antenna_spacing*np.sqrt(3)])
     a3 = -a1-a2
-    d0 = np.array([20, 0])
-    d1 = np.array([-10, 10*np.sqrt(3)])
-    d2 = np.array([-10, -10*np.sqrt(3)])
-    pos = np.zeros((side_length**2*3, 2))
+    d0 = np.array([antenna_spacing*4./3., 0])
+    d1 = np.array([-antenna_spacing*2./3., antenna_spacing*2./3.*np.sqrt(3)])
+    d2 = np.array([-antenna_spacing*2./3., -antenna_spacing*2./3.*np.sqrt(3)])
+    pos = []
+
     n = 0
+    for ii in range(side_length-1):
+        for jj in range(side_length-1):
+            pos.append(d0+ii*a1+jj*a2)
+            #pos[n, :] = d0+ii*a1+jj*a2
+            n += 1
     for ii in range(side_length):
-        for jj in range(side_length):
-            pos[n, :] = d0+ii*a1+jj*a2
+        for jj in range(side_length-1):
+            pos.append(d1+ii*a3+jj*a1)
+            #pos[n, :] = d1+ii*a3+jj*a1
             n += 1
     for ii in range(side_length):
         for jj in range(side_length):
-            pos[n, :] = d1+ii*a3+jj*a1
-            n += 1
-    for ii in range(side_length):
-        for jj in range(side_length):
-            pos[n, :] = d2+ii*a2+jj*a3
+            pos.append(d2+ii*a2+jj*a3)
+            #pos[n, :] = d2+ii*a2+jj*a3
             n += 1
 
-    plt.scatter(pos[:, 0], pos[:, 1], marker='o', s=1.)
-    plt.show()
-    print pos
+    antennas = len(pos)
+    pos = np.array(pos)
+
+    if plot_array:
+        plt.figure()
+        plt.scatter(pos[:,0], pos[:,1], marker='o', s=1.)
+        plt.xlabel('East/West Location (m)')
+        plt.ylabel('North/South Location (m)')
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.savefig(
+            '/Users/rubybyrne/array_simulation/'
+            'antenna_split_hex_{}.png'.format(int(antennas))
+        )
+        plt.close()
+
+    if save_uvfits:
+        print 'creating uvfits'
+        create_uvfits(antennas, pos[:,0], pos[:,0],
+                      '/Users/rubybyrne/array_simulation/'
+                      'split_hex_array_sim_.uvfits'.format(
+                          array,
+                          int(antennas))
+                      )
+        # Save antenna locations to a csv
+        csv_outfile = open(
+            '/Users/rubybyrne/array_simulation/'
+            'split_hex_array_sim_{}_antenna_locs.csv'.format(int(antennas)),
+            'w'
+        )
+        outfile_writer = csv.writer(csv_outfile)
+        outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
+                                 'N-S Location (m)', 'Altitude (m)'])
+        for i in range(len(antenna_nums)):
+            outfile_writer.writerow(
+                [i]+list(antenna_locs_ENU[i, :])
+            )
+        csv_outfile.close()
 
 
 def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
@@ -260,4 +307,5 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
 if __name__ == '__main__':
     #create_hex_array(7, 10.)
     #create_random_array(10.)
-    create_hera_array(6, 0)
+    create_hera_array(11, 15)
+    #create_hex_array(11, 15)
