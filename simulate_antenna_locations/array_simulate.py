@@ -85,8 +85,7 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     print antennas
 
     if save_uvfits:
-        create_uvfits(antennas,
-                      antenna_xlocs,
+        create_uvfits(antenna_xlocs,
                       antenna_ylocs,
                       '/Users/rubybyrne/array_simulation/'
                       'hex_array_sim_{}m.uvfits'.format(int(antenna_spacing))
@@ -173,7 +172,7 @@ def create_random_array(antenna_spacing):
 
         if save_uvfits:
             print 'creating uvfits'
-            create_uvfits(antennas, antenna_xlocs, antenna_ylocs,
+            create_uvfits(antenna_xlocs, antenna_ylocs,
                           '/Users/rubybyrne/array_simulation/'
                           'random{}_array_sim_{}m.uvfits'.format(
                               array,
@@ -245,7 +244,7 @@ def create_hera_array(side_length, antenna_spacing, plot_array=True,
 
     if save_uvfits:
         print 'creating uvfits'
-        create_uvfits(antennas, pos[:,0], pos[:,0],
+        create_uvfits(pos[:,0], pos[:,0],
                       '/Users/rubybyrne/array_simulation/'
                       'split_hex_array_sim_.uvfits'.format(
                           array,
@@ -267,39 +266,64 @@ def create_hera_array(side_length, antenna_spacing, plot_array=True,
         csv_outfile.close()
 
 
-def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
+def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
-    antenna_locs_ENU = np.zeros((antennas+1, 3))  # Add an extra antenna because there must be 128 antenna locs
-    antenna_locs_ENU[:-1, 0] = antenna_xlocs
-    antenna_locs_ENU[:-1, 1] = antenna_ylocs
+    Nants = len(antenna_xlocs)
+    antenna_locs_ENU = np.zeros((Nants, 3))
+    antenna_locs_ENU[:, 0] = antenna_xlocs
+    antenna_locs_ENU[:, 1] = antenna_ylocs
 
     filename = '/Users/Shared/uvfits/4.1/1061316296.uvfits'
     UV = UVData()
     UV.read_uvfits(filename)
-    phase_center_ra = UV.phase_center_ra
-    phase_center_dec = UV.phase_center_dec
-    phase_center_epoch = UV.phase_center_epoch
-    UV.unphase_to_drift()  # unphase data
-    ant1_list = list(set(UV.ant_1_array))
-    ant2_list = list(set(UV.ant_2_array))
-    UV.select(antenna_nums=ant1_list)
-    if len(ant1_list) != antennas or len(ant2_list) != antennas:
-        print 'ERROR: Incorrect number of antennas in reference uvfits'
-        sys.exit(1)
-    for ind1, ant1 in enumerate(ant1_list):
-        for ind2, ant2 in enumerate(ant2_list):
-            baseline_inds = np.intersect1d(
-                np.where(UV.ant_1_array == ant1)[0],
-                np.where(UV.ant_2_array == ant2)[0]
-                )
-            UV.uvw_array[baseline_inds, :] = (antenna_locs_ENU[ind2, :]
-                                              - antenna_locs_ENU[ind1, :]
-                                              )
+
+    UV.Nants_data = Nants
+    UV.Nants_telescope = Nants
+    UV.Nbls = (Nants**2 + Nants)/2
+    UV.Nblts = UV.Nbls*UV.Ntimes
+    UV.antenna_numbers = np.array(range(Nants), dtype=int)
+    UV.antenna_names = [str(ant) for ant in UV.antenna_numbers]
+    ant_1_array = np.zeros(UV.Nbls, dtype=int)
+    ant_2_array = np.zeros(UV.Nbls, dtype=int)
+    baseline_array = np.zeros(UV.Nbls, dtype=int)
+    index = 0
+    for ant1 in range(Nants):
+        for ant2 in range(ant1, Nants):
+            ant_1_array[index] = ant1
+            ant_2_array[index] = ant2
+            baseline_array[index] =  2048 * (ant1+1) + (ant2+1) + 2**16
+            index += 1
+    UV.ant_1_array = np.tile(ant_1_array, UV.Ntimes)
+    UV.ant_2_array = np.tile(ant_2_array, UV.Ntimes)
+    UV.baseline_array = np.tile(baseline_array, UV.Ntimes)
+    old_time_array = np.copy(UV.time_array)
+    UV.time_array = np.repeat(np.array(list(set(UV.time_array))), UV.Nbls)
+    UV.lst_array = np.array(
+        [UV.lst_array[
+                      np.where(old_time_array == time)[0][0]
+                      ] for time in UV.time_array]
+    )
+    # Add dummy data
+    UV.data_array = np.full((UV.Nblts, UV.Nspws, UV.Nfreqs, UV.Npols),
+                            UV.data_array[0, 0, 0, 0],
+                            dtype=complex)
+    UV.nsample_array = np.full((UV.Nblts, UV.Nspws, UV.Nfreqs, UV.Npols),
+                            1.,
+                            dtype=float)
+    # Unflag all
+    UV.flag_array = np.full((UV.Nblts, UV.Nspws, UV.Nfreqs, UV.Npols),
+                            False,
+                            dtype=bool)
+    # Calculate UVWs
+    UV.uvw_array = np.zeros((UV.Nblts, 3), dtype=float)
     antenna_locs_ECEF = uvutils.ECEF_from_ENU(
         antenna_locs_ENU.T, *UV.telescope_location_lat_lon_alt
         ).T
     UV.antenna_positions = antenna_locs_ECEF - UV.telescope_location
-    UV.phase(phase_center_ra, phase_center_dec, phase_center_epoch)
+    UV.set_uvws_from_antenna_positions(
+        allow_phasing=True, orig_phase_frame='gcrs', output_phase_frame='icrs'
+    )
+
     print 'Saving uvfits to {}'.format(save_filename)
     UV.write_uvfits(save_filename, spoof_nonessential=True)
 
@@ -307,5 +331,6 @@ def create_uvfits(antennas, antenna_xlocs, antenna_ylocs, save_filename):
 if __name__ == '__main__':
     #create_hex_array(7, 10.)
     #create_random_array(10.)
-    create_hera_array(11, 15)
+    #create_hera_array(11, 15)
     #create_hex_array(11, 15)
+    create_uvfits([1.,2.,3.,4.], [0.,0.,0.,0.], '/Users/rubybyrne/test.uvfits')
