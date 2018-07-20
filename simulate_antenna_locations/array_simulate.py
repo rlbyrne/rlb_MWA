@@ -9,8 +9,8 @@ from pyuvdata import UVData
 from pyuvdata import uvutils
 
 
-def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
-                     plot_array=True):
+def create_hex_array(side_length, antenna_spacing, output_path,
+                     save_uvfits=True, plot_array=True):
 
     # get the number of antennas in an array with this side length
     antennas = ((side_length-1)**2 + (side_length-1))*3 + 1
@@ -57,8 +57,7 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
         plt.ylabel('North/South Location (m)')
         plt.gca().set_aspect('equal', adjustable='box')
         plt.savefig(
-            '/Users/rubybyrne/array_simulation/'
-            'antenna_hex_{}m.png'.format(int(antenna_spacing))
+            '{}/antenna_hex_{}.png'.format(output_path, int(antennas))
         )
         plt.close()
 
@@ -77,8 +76,7 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     plt.figure()
     plt.scatter(bin_centers, radial_hist)
     plt.savefig(
-        '/Users/rubybyrne/array_simulation/'
-        'antenna_hex_dist_{}m.png'.format(antenna_spacing)
+        '{}/antenna_hex_dist_{}.png'.format(antennas, output_path)
     )
     plt.close()
 
@@ -87,13 +85,11 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     if save_uvfits:
         create_uvfits(antenna_xlocs,
                       antenna_ylocs,
-                      '/Users/rubybyrne/array_simulation/'
-                      'hex_array_sim_{}m.uvfits'.format(int(antenna_spacing))
+                      '{}/hex_array_sim_{}.uvfits'.format(output_path, int(antennas))
                       )
         # Save antenna locations to a csv
         csv_outfile = open(
-            '/Users/rubybyrne/array_simulation/'
-            'hex_array_sim_{}m_antenna_locs.csv'.format(int(antenna_spacing)),
+            '{}/hex_array_sim_{}_antenna_locs.csv'.format(output_path, int(antennas)),
             'w'
         )
         outfile_writer = csv.writer(csv_outfile)
@@ -108,14 +104,15 @@ def create_hex_array(side_length, antenna_spacing, save_uvfits=True,
     return antennas, radial_hist, bin_centers
 
 
-def create_random_array(antenna_spacing):
+def create_random_array(side_length, antenna_spacing, output_path):
 
     save_uvfits = True
     plot_array = True
     number_of_arrays = 5
 
     antenna_size = antenna_spacing/3.  # Minimum antenna spacing
-    antennas, radial_hist, bin_centers = create_hex_array(7, antenna_spacing,
+    antennas, radial_hist, bin_centers = create_hex_array(side_length,
+                                                          antenna_spacing,
                                                           save_uvfits=False)
     print antennas
     radial_vals = np.arange(bin_centers[0], bin_centers[-1], .1)
@@ -163,27 +160,27 @@ def create_random_array(antenna_spacing):
             plt.xlabel('East/West Location (m)')
             plt.ylabel('North/South Location (m)')
             plt.gca().set_aspect('equal', adjustable='box')
-            plt.savefig('/Users/rubybyrne/array_simulation/'
-                        'antenna_random{}_{}m.png'.format(
+            plt.savefig('{}/antenna_random{}_{}.png'.format(
+                            output_path,
                             array,
-                            int(antenna_spacing))
+                            int(antennas))
                         )
             plt.close()
 
         if save_uvfits:
             print 'creating uvfits'
             create_uvfits(antenna_xlocs, antenna_ylocs,
-                          '/Users/rubybyrne/array_simulation/'
-                          'random{}_array_sim_{}m.uvfits'.format(
+                          '{}/random{}_array_sim_{}.uvfits'.format(
+                              output_path,
                               array,
-                              int(antenna_spacing))
+                              int(antennas))
                           )
             # Save antenna locations to a csv
             csv_outfile = open(
-                '/Users/rubybyrne/array_simulation/'
-                'random{}_array_sim_{}m_antenna_locs.csv'.format(
+                '{}/random{}_array_sim_{}_antenna_locs.csv'.format(
+                    output_path,
                     array,
-                    int(antenna_spacing)
+                    int(antennas)
                 ),
                 'w'
             )
@@ -197,8 +194,8 @@ def create_random_array(antenna_spacing):
             csv_outfile.close()
 
 
-def create_hera_array(side_length, antenna_spacing, plot_array=True,
-                      save_uvfits=True):
+def create_hera_array(side_length, antenna_spacing, output_path,
+                      plot_array=True, save_uvfits=True):
 
     antenna_spacing = float(antenna_spacing)
 
@@ -237,23 +234,21 @@ def create_hera_array(side_length, antenna_spacing, plot_array=True,
         plt.ylabel('North/South Location (m)')
         plt.gca().set_aspect('equal', adjustable='box')
         plt.savefig(
-            '/Users/rubybyrne/array_simulation/'
-            'antenna_split_hex_{}.png'.format(int(antennas))
+            '{}/antenna_split_hex_{}.png'.format(output_path, int(antennas))
         )
         plt.close()
 
     if save_uvfits:
         print 'creating uvfits'
         create_uvfits(pos[:,0], pos[:,0],
-                      '/Users/rubybyrne/array_simulation/'
-                      'split_hex_array_sim_.uvfits'.format(
+                      '{}/split_hex_array_sim_.uvfits'.format(
+                          output_path,
                           array,
                           int(antennas))
                       )
         # Save antenna locations to a csv
         csv_outfile = open(
-            '/Users/rubybyrne/array_simulation/'
-            'split_hex_array_sim_{}_antenna_locs.csv'.format(int(antennas)),
+            '{}/split_hex_array_sim_{}_antenna_locs.csv'.format(output_path, int(antennas)),
             'w'
         )
         outfile_writer = csv.writer(csv_outfile)
@@ -329,8 +324,8 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    #create_hex_array(7, 10.)
+    output_path = '/Users/rubybyrne/array_simulation'
+    create_hex_array(11, 15., output_path)
     #create_random_array(10.)
     #create_hera_array(11, 15)
     #create_hex_array(11, 15)
-    create_uvfits([1.,2.,3.,4.], [0.,0.,0.,0.], '/Users/rubybyrne/test.uvfits')
