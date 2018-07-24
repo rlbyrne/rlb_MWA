@@ -46,7 +46,6 @@ def create_hex_array(side_length, antenna_spacing, output_path,
     antennas = len(antenna_xlocs)
 
     print antennas
-    sys.exit()
 
     if plot_array:
         plt.figure()
@@ -76,7 +75,7 @@ def create_hex_array(side_length, antenna_spacing, output_path,
     plt.figure()
     plt.scatter(bin_centers, radial_hist)
     plt.savefig(
-        '{}/antenna_hex_dist_{}.png'.format(antennas, output_path)
+        '{}/antenna_hex_dist_{}.png'.format(output_path, antennas)
     )
     plt.close()
 
@@ -108,7 +107,8 @@ def create_random_array(side_length, antenna_spacing, output_path):
 
     save_uvfits = True
     plot_array = True
-    number_of_arrays = 5
+    array_numbers = [1]
+    number_of_arrays = len(array_numbers)
 
     antenna_size = antenna_spacing/3.  # Minimum antenna spacing
     antennas, radial_hist, bin_centers = create_hex_array(side_length,
@@ -120,7 +120,7 @@ def create_random_array(side_length, antenna_spacing, output_path):
     norm_factor = sum(radial_distribution)
     radial_distribution = [i/norm_factor for i in radial_distribution]
 
-    for array in range(1, number_of_arrays+1):
+    for array in array_numbers:
 
         antenna_xlocs = []
         antenna_ylocs = []
@@ -324,7 +324,7 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    output_path = '/Users/rubybyrne/array_simulation'
+    output_path = '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation'
     create_hex_array(11, 15., output_path)
     #create_random_array(10.)
     #create_hera_array(11, 15)
