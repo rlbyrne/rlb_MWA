@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 import math
@@ -268,7 +270,7 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
     antenna_locs_ENU[:, 0] = antenna_xlocs
     antenna_locs_ENU[:, 1] = antenna_ylocs
 
-    filename = '/Users/Shared/uvfits/4.1/1061316296.uvfits'
+    filename = '/home/ubuntu/1061316296.uvfits'
     UV = UVData()
     UV.read_uvfits(filename)
 
@@ -324,7 +326,7 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
 
 if __name__ == '__main__':
-    output_path = '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation'
+    output_path = '/home/ubuntu'
     create_hex_array(11, 15., output_path)
     #create_random_array(10.)
     #create_hera_array(11, 15)
