@@ -243,9 +243,8 @@ def create_hera_array(side_length, antenna_spacing, output_path,
     if save_uvfits:
         print 'creating uvfits'
         create_uvfits(pos[:,0], pos[:,1],
-                      '{}/split_hex_array_sim_.uvfits'.format(
+                      '{}/split_hex_array_sim_{}.uvfits'.format(
                           output_path,
-                          array,
                           int(antennas))
                       )
         # Save antenna locations to a csv
@@ -328,7 +327,7 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
 if __name__ == '__main__':
     output_path = '/home/ubuntu'
-    create_hex_array(11, 15., output_path)
+    create_hera_array(11, 15., output_path)
     #create_random_array(10.)
     #create_hera_array(11, 15)
     #create_hex_array(11, 15)
