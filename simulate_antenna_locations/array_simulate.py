@@ -98,7 +98,7 @@ def create_hex_array(side_length, antenna_spacing, output_path,
                                  'N-S Location (m)', 'Altitude (m)'])
         for i in range(antennas):
             outfile_writer.writerow(
-                [i]+list(antenna_locs_ENU[i, :])
+                [i, antenna_xlocs[i], antenna_ylocs[i], 0.]
             )
         csv_outfile.close()
 
@@ -189,9 +189,9 @@ def create_random_array(side_length, antenna_spacing, output_path):
             outfile_writer = csv.writer(csv_outfile)
             outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
                                      'N-S Location (m)', 'Altitude (m)'])
-            for i in range(len(antenna_nums)):
+            for i in range(antennas):
                 outfile_writer.writerow(
-                    [i]+list(antenna_locs_ENU[i, :])
+                    [i, antenna_xlocs[i], antenna_ylocs[i], 0.]
                 )
             csv_outfile.close()
 
@@ -242,7 +242,7 @@ def create_hera_array(side_length, antenna_spacing, output_path,
 
     if save_uvfits:
         print 'creating uvfits'
-        create_uvfits(pos[:,0], pos[:,0],
+        create_uvfits(pos[:,0], pos[:,1],
                       '{}/split_hex_array_sim_.uvfits'.format(
                           output_path,
                           array,
@@ -258,7 +258,7 @@ def create_hera_array(side_length, antenna_spacing, output_path,
                                  'N-S Location (m)', 'Altitude (m)'])
         for i in range(len(antenna_nums)):
             outfile_writer.writerow(
-                [i]+list(antenna_locs_ENU[i, :])
+                [i, pos[i,0], pos[i,1], 0.]
             )
         csv_outfile.close()
 
