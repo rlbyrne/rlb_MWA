@@ -255,7 +255,7 @@ def create_hera_array(side_length, antenna_spacing, output_path,
         outfile_writer = csv.writer(csv_outfile)
         outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
                                  'N-S Location (m)', 'Altitude (m)'])
-        for i in range(len(antenna_nums)):
+        for i in range(antennas):
             outfile_writer.writerow(
                 [i, pos[i,0], pos[i,1], 0.]
             )
