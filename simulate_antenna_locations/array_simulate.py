@@ -115,6 +115,7 @@ def create_random_array(side_length, antenna_spacing, output_path):
     antenna_size = antenna_spacing/3.  # Minimum antenna spacing
     antennas, radial_hist, bin_centers = create_hex_array(side_length,
                                                           antenna_spacing,
+        						  output_path,
                                                           save_uvfits=False)
     print antennas
     radial_vals = np.arange(bin_centers[0], bin_centers[-1], .1)
