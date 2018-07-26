@@ -96,7 +96,7 @@ def create_hex_array(side_length, antenna_spacing, output_path,
         outfile_writer = csv.writer(csv_outfile)
         outfile_writer.writerow(['Antenna Number', 'E-W Location (m)',
                                  'N-S Location (m)', 'Altitude (m)'])
-        for i in range(len(antenna_nums)):
+        for i in range(antennas):
             outfile_writer.writerow(
                 [i]+list(antenna_locs_ENU[i, :])
             )
@@ -320,6 +320,7 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
     UV.set_uvws_from_antenna_positions(
         allow_phasing=True, orig_phase_frame='gcrs', output_phase_frame='icrs'
     )
+    UV.phase_center_frame = 'icrs'
 
     print 'Saving uvfits to {}'.format(save_filename)
     UV.write_uvfits(save_filename, spoof_nonessential=True)
