@@ -105,10 +105,9 @@ def create_hex_array(side_length, antenna_spacing, output_path,
     return antennas, radial_hist, bin_centers
 
 
-def create_random_array(side_length, antenna_spacing, output_path):
+def create_random_array(side_length, antenna_spacing, output_path,
+                        plot_array=True, save_uvfits=True):
 
-    save_uvfits = True
-    plot_array = True
     array_numbers = [1]
     number_of_arrays = len(array_numbers)
 
@@ -202,12 +201,12 @@ def create_hera_array(side_length, antenna_spacing, output_path,
 
     antenna_spacing = float(antenna_spacing)
 
-    a1 = np.array([antenna_spacing, antenna_spacing*np.sqrt(3)])
-    a2 = np.array([antenna_spacing, -antenna_spacing*np.sqrt(3)])
+    a1 = np.array([antenna_spacing/2., antenna_spacing*np.sqrt(3)/2.])
+    a2 = np.array([antenna_spacing/2., -antenna_spacing*np.sqrt(3)/2.])
     a3 = -a1-a2
-    d0 = np.array([antenna_spacing*4./3., 0])
-    d1 = np.array([-antenna_spacing*2./3., antenna_spacing*2./3.*np.sqrt(3)])
-    d2 = np.array([-antenna_spacing*2./3., -antenna_spacing*2./3.*np.sqrt(3)])
+    d0 = np.array([antenna_spacing*2./3., 0])
+    d1 = np.array([-antenna_spacing/3., antenna_spacing*2./3.*np.sqrt(3)])
+    d2 = np.array([-antenna_spacing/3., -antenna_spacing*2./3.*np.sqrt(3)])
     pos = []
 
     n = 0
@@ -226,7 +225,7 @@ def create_hera_array(side_length, antenna_spacing, output_path,
             pos.append(d2+ii*a2+jj*a3)
             #pos[n, :] = d2+ii*a2+jj*a3
             n += 1
-
+            
     antennas = len(pos)
     pos = np.array(pos)
 
@@ -328,5 +327,4 @@ def create_uvfits(antenna_xlocs, antenna_ylocs, save_filename):
 
 if __name__ == '__main__':
     output_path = '/home/ubuntu'
-    create_random_array(11, 15., output_path)
-
+    create_hera_array(11, 15., output_path)
