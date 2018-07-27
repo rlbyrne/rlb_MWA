@@ -205,8 +205,8 @@ def create_hera_array(side_length, antenna_spacing, output_path,
     a2 = np.array([antenna_spacing/2., -antenna_spacing*np.sqrt(3)/2.])
     a3 = -a1-a2
     d0 = np.array([antenna_spacing*2./3., 0])
-    d1 = np.array([-antenna_spacing/3., antenna_spacing*2./3.*np.sqrt(3)])
-    d2 = np.array([-antenna_spacing/3., -antenna_spacing*2./3.*np.sqrt(3)])
+    d1 = np.array([-antenna_spacing/3., antenna_spacing/3.*np.sqrt(3)])
+    d2 = np.array([-antenna_spacing/3., -antenna_spacing/3.*np.sqrt(3)])
     pos = []
 
     n = 0
@@ -225,7 +225,7 @@ def create_hera_array(side_length, antenna_spacing, output_path,
             pos.append(d2+ii*a2+jj*a3)
             #pos[n, :] = d2+ii*a2+jj*a3
             n += 1
-            
+
     antennas = len(pos)
     pos = np.array(pos)
 
