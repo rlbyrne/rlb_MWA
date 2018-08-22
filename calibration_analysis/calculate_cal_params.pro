@@ -1,19 +1,23 @@
 pro calculate_cal_params
 
   run_path = '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_Jun2018'
-  ;obsids = ['hex_array_sim_10m','hex_array_sim_15m','hex_array_sim_20m', $
-  ;  'random1_array_sim_10m','random1_array_sim_15m','random1_array_sim_20m', $
-  ;  'random2_array_sim_10m','random2_array_sim_15m','random2_array_sim_20m', $
-  ;  'random3_array_sim_10m','random3_array_sim_15m','random3_array_sim_20m']
-  obsids = ['random1_array_sim_331','hex_array_sim_331','split_hex_array_sim_331']
+  ;obsids = ['hex_array_sim_331','split_hex_array_sim_331','random1_array_sim_331']
+  ;obsids = obsids[0]
+  obsids = ['hex_array_sim_331','split_hex_array_sim_331',$
+    'random1_array_sim_331','random2_array_sim_331','random3_array_sim_331','random4_array_sim_331',$
+    'random5_array_sim_331','random6_array_sim_331','random7_array_sim_331','random8_array_sim_331',$
+    'random9_array_sim_331','random10_array_sim_331']
   output_path = '/Users/rubybyrne/array_simulation_331/cal_params_plots'
-  create_cal_files = 1
+  create_cal_files = 0
   cal_file_save_path = '/Users/rubybyrne/array_simulation_331/cal_files'
   
   ;obsids = ['random1_array_sim_15m']  ; for debugging
+  array_colors = ['blue', 'purple', 'dark green']
   
   for obs_index = 0,n_elements(obsids)-1 do begin
     obsid = obsids[obs_index]
+    if obs_index le n_elements(array_colors)-1 then array_color=array_colors[obs_index] else array_color=array_colors[-1]
+    plot_resolution = 600
     cal_file = run_path+'/calibration/'+obsid+'_cal.sav'
     ;obs_file = run_path+'/metadata/'+obsid+'_obs.sav'  ; Obs structure has the wrong antenna locations
     cal = getvar_savefile(cal_file, 'cal', /compatibility_mode)
@@ -24,7 +28,7 @@ pro calculate_cal_params
       if pol eq 0 then pol_name = 'XX' else pol_name='YY'
      
       legend_loc = [.3,.2]
-      ft_legend_loc = [.3,.2]
+      ft_legend_loc = [.2,.35]
       ft_x_range = [3e-3,1e-1]
       kpar_conversion_factor = 16500.
       
@@ -35,65 +39,73 @@ pro calculate_cal_params
         ant_pos[fix(csv_data.field1[ant_ind]), 0] = double(csv_data.field2[ant_ind])
         ant_pos[fix(csv_data.field1[ant_ind]), 1] = double(csv_data.field3[ant_ind])
       endfor
-      
-  ;    This would work if FHD output the correct antenna locations    
-  ;    obs_struct = getvar_savefile(obs_file, 'obs', /compatibility_mode)
-  ;    ant_info = *obs_struct.meta_data
-  ;    ant_pos = make_array(n_elements(ant_info)/2, 2, /float, value=0.)
-  ;    for ant_ind=0, n_elements(ant_info)-1 do begin
-  ;      if ant_info[ant_ind].pol eq 'X' then begin  ; use x pol positions only
-  ;        ant_pos[ant_info[ant_ind].antenna, 0] = ant_info[ant_ind].north
-  ;        ant_pos[ant_info[ant_ind].antenna, 1] = ant_info[ant_ind].east
-  ;      endif
-  ;    endfor
    
       max_bl_len = cal.max_cal_baseline
               
-      ; Plot average gain amplitude
       gains = make_array((size(*cal.gain[0]))[1], (size(*cal.gain[0]))[2], /complex, value=0.)
       gains[*,*] = (*cal.gain[pol]) + (*cal.gain_residual[pol])
       gains_amp = abs(gains)
       mean_amp = mean(gains_amp, dimension=2, /nan)  ;average over antennas
       mean_amp_dev = mean_amp-1.
       freq = cal.freq/1.e6
-  ;    cgWindow_SetDefs, IM_WIDTH=600
-  ;    cgplot, freq, mean_amp, PSym=16, symsize=.5, aspect=.8, xtitle='Frequency (MHz)', $
-  ;      ytitle='Average Gain Amp.', title='Average Gain Amplitude Errors', xrange=[min(freq), max(freq)], yrange=[1-.022,1.01], $
-  ;      output=output_path+'/'+obsid+'_cal_amp_errors_'+pol_name+'.png', charsize=1.
-        
-      ; Plot average gain amplitude with per-antenna gain amplitudes
-      cgps_open, output_path+'/'+obsid+'_cal_ant_amp_errors_'+pol_name+'.png'
-      cgplot, [freq[0], freq[-1]], [1,1], PSym=-0, symsize=.5, color='black', aspect=.8, xtitle='Frequency (MHz)', $
-        ytitle='Gain Amplitude', title='Overall Gain Amplitude A',$
-        xrange=[min(freq), max(freq)], yrange=[.96,1.03], charsize=1., /nodata
+      
+      if obs_index eq 0 and pol eq 0 then begin
+        mean_amp_all_obs = make_array(n_elements(mean_amp), 2, n_elements(obsids), /complex, value=complex(0.,0.))
+        freq_reference = freq
+      endif
+      mean_amp_all_obs[*, pol, obs_index] = mean_amp
+      
+      ; Plot average amplitude with per-antenna solutions
+      cgps_open, output_path+'/'+obsid+'_cal_ant_amp_errors_'+pol_name+'.png', XSIZE = 7, YSIZE = 7
+      cgplot, freq, mean_amp, linestyle=0, thick=4, color=array_color, aspect=.8, xtitle='Frequency (MHz)', $
+        ytitle='Gain Amplitude', title='Average Gain Amplitude',$
+        xrange=[min(freq), max(freq)], yrange=[.976,1.016], charsize=1., /nodata
       for antenna = 0, (size(gains_amp))[2]-1 do begin
         cgplot, freq, gains_amp[*, antenna], linestyle=0, thick=1, color='gray', /overplot
       endfor
-      cgplot, freq, mean_amp, linestyle=0, thick=2, color='blue', /overplot
-      cgplot, [freq[0], freq[-1]], [1,1], linestyle=2, color='black', thick=1, /overplot, $
-        aspect=.8, xtitle='Frequency (MHz)', $
-        ytitle='Gain Amplitude', title='Overall Gain Amplitude A',$
-        xrange=[min(freq), max(freq)], yrange=[.96,1.03], charsize=1.
-      cglegend, title=['A (Overall Gain Amplitude): Var. '+strtrim(variance(mean_amp), 1), 'Per-Antenna Gain Amplitudes: Avg. Var. '+strtrim(mean(variance(gains_amp, dimension=1)), 1)], $
-        psym=-0, color=['blue','gray'], length=0.03, /center_sym, location=legend_loc, charsize=1.
-      cgps_close, /png, /delete_ps
-          
-      ; Plot Fourier Transform of average gain amplitude with per-antenna gain amplitudes
-      cgps_open, output_path+'/'+obsid+'_cal_ant_amp_errors_'+pol_name+'_ft.png'
-      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1,1e12], linestyle=2, color='black', thick=1, $
+      cgplot, freq, mean_amp, linestyle=0, thick=4, color=array_color, /overplot
+      cgplot, [freq[0], freq[-1]], [1,1], linestyle=0, color='black', thick=1, /overplot
+      cglegend, title=['Average Gain Amplitude', 'Per-Antenna Gain Amplitudes'], $
+        psym=-0, color=[array_color,'gray'], thick=4, length=0.03, /center_sym, location=legend_loc, charsize=1.
+      cgps_close, /png, /delete_ps, density=plot_resolution
+      
+      average_gain_var = strtrim(variance(mean_amp), 1)
+      average_per_antenna_gain_var = strtrim(mean(variance(gains_amp, dimension=1)), 1)
+      
+      ; Plot average amplitude ft with per_antenna_solutions
+      cgps_open, output_path+'/'+obsid+'_cal_ant_amp_errors_'+pol_name+'_ft.png', XSIZE = 7, YSIZE = 7
+      fourier, y_time=mean_amp_ft, time=x_axis_ft, y_freq=mean_amp, frequencies=freq*1.e6, /inverse
+      cgplot, x_axis_ft*kpar_conversion_factor, abs(mean_amp_ft)^2, linestyle=0, thick=4, color=array_color, $
         aspect=.8, xtitle='Calibration Delay (h/Mpc)', $
-        ytitle='Gain Amplitude Power', title='Overall Gain Amplitude A - Power Spectrum', $
-        xrange=ft_x_range, yrange=[1,1e12], charsize=1., /xlog, /ylog, /nodata
+        ytitle='Gain Amplitude Power', title='Average Gain Amplitude - Power Spectrum', $
+        xrange=ft_x_range, yrange=[1,1e10], charsize=1., /xlog, /ylog, /nodata
       for antenna = 0, (size(gains_amp))[2]-1 do begin
         fourier, y_time=gains_amp_ft, time=x_axis_ft, y_freq=gains_amp[*, antenna], frequencies=freq*1.e6, /inverse
         cgplot, x_axis_ft*kpar_conversion_factor, abs(gains_amp_ft)^2., linestyle=0, thick=1, color='gray', /overplot, /xlog, /ylog
       endfor
+      cgplot, x_axis_ft*kpar_conversion_factor, abs(mean_amp_ft)^2, linestyle=0, thick=4, color=array_color, /xlog, /ylog, /overplot
+      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1,1e10], linestyle=0, color=array_color, thick=1, /overplot, /xlog, /ylog
+      cglegend, title=['Average Gain Amplitude', 'Per-Antenna Gain Amplitudes'], psym=-0, thick=4, color=[array_color,'gray'], length=0.03, /center_sym, location=ft_legend_loc, charsize=1.
+      cgps_close, /png, /delete_ps, density=plot_resolution
+      
+      ; Plot average amplitude
+      cgps_open, output_path+'/'+obsid+'_cal_amp_errors_'+pol_name+'.png', XSIZE = 7, YSIZE = 7
+      cgplot, freq, mean_amp, linestyle=0, thick=4, color=array_color, aspect=.8, xtitle='Frequency (MHz)', $
+        ytitle='Gain Amplitude', title='Average Gain Amplitude',$
+        xrange=[min(freq), max(freq)], yrange=[.992,1.001], charsize=1.
+      cgplot, [freq[0], freq[-1]], [1,1], linestyle=0, color='black', thick=1, /overplot
+      cgps_close, /png, /delete_ps, density=plot_resolution
+      
+      ; Plot average amplitude fourier transform
+      cgps_open, output_path+'/'+obsid+'_cal_amp_errors_'+pol_name+'_ft.png', XSIZE = 7, YSIZE = 7
       fourier, y_time=mean_amp_ft, time=x_axis_ft, y_freq=mean_amp, frequencies=freq*1.e6, /inverse
-      cgplot, x_axis_ft*kpar_conversion_factor, abs(mean_amp_ft)^2, linestyle=0, thick=2, color='blue', /overplot, /xlog, /ylog
-      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1,1e12], linestyle=2, color='black', thick=1, /overplot, /xlog, /ylog
-      cglegend, title=['A (Overall Gain Amplitude)', 'Per-Antenna Gain Amplitudes'], psym=-0, color=['blue','gray'], length=0.03, /center_sym, location=ft_legend_loc, charsize=1.
-      cgps_close, /png, /delete_ps
-                  
+      cgplot, x_axis_ft*kpar_conversion_factor, abs(mean_amp_ft)^2, linestyle=0, thick=4, color=array_color, $
+        aspect=.8, xtitle='Calibration Delay (h/Mpc)', $
+        ytitle='Gain Amplitude Power', title='Average Gain Amplitude - Power Spectrum', $
+        xrange=ft_x_range, yrange=[1e2,1e8], charsize=1., /xlog, /ylog
+      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1,1e8], linestyle=2, color=array_color, thick=1, /overplot, /xlog, /ylog
+      cgps_close, /png, /delete_ps, density=plot_resolution
+      
       gains_phase = atan(gains,/phase)
       weights = make_array((size(gains_phase))[2], 2, /float, value=1.)  ; use equal weighting for now
       fit_mat = make_array(3, 3, /float, value=0.)  ; initialize array
@@ -187,28 +199,30 @@ pro calculate_cal_params
 ;      cgps_close, /png, /delete_ps
     
       ; Plot the x and y components of the gain phase gradient
-      cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'.png'
-      cgplot, freq, fit_params[*,1], linestyle=0, thick=2, color='red', aspect=.8, xtitle='Frequency (MHz)', $
-        ytitle='Gain Phase Gradient (1/m)', title='Gain Phase Gradient Parameters $\Delta$x and $\Delta$y', xrange=[min(freq), max(freq)], yrange=[-1e-4,1e-4], charsize=1.
-      cgplot, freq, fit_params[*,2], linestyle=0, thick=2, color='blue', /overplot
-      cglegend, title=['$\Delta$x (Gain Phase East-West Gradient)', '$\Delta$y (Gain Phase North-South Gradient)'], linestyle=0, thick=2, color=['red','blue'], length=0.03, /center_sym, location=[.4, legend_loc[1]], charsize=1.
-      cgps_close, /png, /delete_ps
+      cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'.png', XSIZE = 7, YSIZE = 7
+      cgplot, freq, fit_params[*,1], linestyle=2, thick=4, color=array_color, aspect=.8, xtitle='Frequency (MHz)', $
+        ytitle='Gain Phase Gradient (1/m)', title='Gain Phase Gradient Parameters', xrange=[min(freq), max(freq)], yrange=[-7e-5,7e-5], charsize=1.
+      cgplot, freq, fit_params[*,2], linestyle=1, thick=4, color=array_color, /overplot
+      cgplot, [freq[0], freq[-1]], [0,0], linestyle=0, color='black', thick=1, /overplot
+      ;cglegend, title=['Gain Phase E-W Gradient', 'Gain Phase N-S Gradient'], linestyle=[2,1], thick=4, color=[array_color,array_color], length=0.03, /center_sym, location=[.4, legend_loc[1]], charsize=1.
+      cgps_close, /png, /delete_ps, density=plot_resolution
       
       ; Plot Fourier Transform of the x and y components of the gain phase gradient
-      cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'_ft.png'
+      cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'_ft.png', XSIZE = 7, YSIZE = 7
       fourier, y_time=gains_phase_grad_x_ft, time=x_axis_ft, y_freq=fit_params[*,1], frequencies=freq*1.e6, /inverse
-      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1e-4,1e6], PSym=-0, symsize=.5, color='black', aspect=.8, xtitle='Calibration Delay (h/Mpc)', $
-        ytitle='Gain Phase Gradient Power', title='Gain Phase Gradient Parameters $\Delta$x and $\Delta$y - Power Spectrum', linestyle=2,$
-        xrange=ft_x_range, yrange=[1e-4,1e6], charsize=1., /xlog, /ylog, /nodata
-      cgplot, x_axis_ft*kpar_conversion_factor, abs(gains_phase_grad_x_ft)^2, linestyle=0, thick=2, color='red', /overplot, /xlog, /ylog
+      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1e-5,1e5], PSym=-0, symsize=.5, color='black', aspect=.8, xtitle='Calibration Delay (h/Mpc)', $
+        ytitle='Gain Phase Gradient Power', title='Gain Phase Gradient Parameters - Power Spectrum', linestyle=2,$
+        xrange=ft_x_range, yrange=[1e-3,1e5], charsize=1., /xlog, /ylog, /nodata
+      cgplot, x_axis_ft*kpar_conversion_factor, abs(gains_phase_grad_x_ft)^2, linestyle=2, thick=4, color=array_color, /overplot, /xlog, /ylog
       fourier, y_time=gains_phase_grad_y_ft, time=x_axis_ft, y_freq=fit_params[*,2], frequencies=freq*1.e6, /inverse
-      cgplot, x_axis_ft*kpar_conversion_factor, abs(gains_phase_grad_y_ft)^2, linestyle=0, thick=2, color='blue', /overplot, /xlog, /ylog
-      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1e-4,1e6], linestyle=2, thick=1, color='black', /overplot
-      cglegend, title=['$\Delta$x (Gain Phase East-West Gradient)', '$\Delta$y (Gain Phase North-South Gradient)'], linestyle=0, thick=2, color=['red','blue'], length=0.03, /center_sym, location=ft_legend_loc, charsize=1.
-      cgps_close, /png, /delete_ps
+      cgplot, x_axis_ft*kpar_conversion_factor, abs(gains_phase_grad_y_ft)^2, linestyle=1, thick=4, color=array_color, /overplot, /xlog, /ylog
+      cgplot, [max_bl_len/3.e8*kpar_conversion_factor, max_bl_len/3.e8*kpar_conversion_factor], [1e-5,1e5], linestyle=0, thick=1, color=array_color, /overplot
+      cglegend, title=['Gain Phase E-W Gradient', 'Gain Phase N-S Gradient'], linestyle=[2,1], thick=4, $
+        color=[array_color,array_color], length=0.03, /center_sym, location=ft_legend_loc, charsize=1., /box, background='white'
+      cgps_close, /png, /delete_ps, density=plot_resolution
       
       for antenna = 0, (size(gains_phase))[2]-1 do begin
-        phases = fit_params[*,1]*ant_pos[antenna,0]+fit_params[*,2]*ant_pos[antenna,1]  ; include phase terms only
+        phases = fit_params[*,1]*ant_pos[antenna,0]+fit_params[*,2]*ant_pos[antenna,1]  ; include phase gradient terms only
         abs_cal_solutions[*,antenna,pol] = complex(mean_amp*cos(phases), mean_amp*sin(phases))
       endfor
       amp_cal_solutions[*, pol] = complex(mean_amp, 0.)
@@ -235,5 +249,27 @@ pro calculate_cal_params
     endif
             
   endfor  
+  
+  for pol = 0,1 do begin
+
+    if pol eq 0 then pol_name = 'XX' else pol_name='YY'
+     
+    cgps_open, output_path+'/all_obs_cal_amp_errors_'+pol_name+'.png', XSIZE = 7, YSIZE = 7
+    cgplot, freq_reference, reform(mean_amp_all_obs[*, pol, 0]), linestyle=0, thick=4, color=array_color, aspect=.8, xtitle='Frequency (MHz)', $
+      ytitle='Gain Amplitude', title='Average Gain Amplitude',$
+      xrange=[min(freq_reference), max(freq_reference)], yrange=[.992,1.001], charsize=1., /nodata
+    cgplot, freq_reference,  reform(mean_amp_all_obs[*, pol, 0]), linestyle=0, thick=4, color='blue', /overplot
+    cgplot, freq_reference,  reform(mean_amp_all_obs[*, pol, 0]), linestyle=0, thick=4, color='blue', /overplot
+    for obs_index = 0,n_elements(obsids)-1 do begin
+      if obs_index le n_elements(array_colors)-1 then array_color=array_colors[obs_index] else array_color=array_colors[-1]
+      if obs_index le 2 then thick=4 else thick=1
+      cgplot, freq_reference,  reform(mean_amp_all_obs[*, pol, obs_index]), linestyle=0, thick=thick, color=array_color, /overplot
+    endfor
+    cgplot, [freq_reference[0], freq_reference[-1]], [1,1], linestyle=0, color='black', thick=1, /overplot
+    cglegend, title=['Hex Array', 'Split Hex Array', 'Random Array'], $
+      psym=-0, color=array_colors, thick=4, length=0.03, /center_sym, location=legend_loc, charsize=1.
+    cgps_close, /png, /delete_ps, density=plot_resolution
+    
+  endfor
 
 end
