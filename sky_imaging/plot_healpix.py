@@ -16,6 +16,14 @@ sys.path.append('/Users/ruby/EoR/rlb_MWA/diffuse_survey_coverage_visualization')
 import surveyview
 
 
+def plot_healpix_fhd_output(data_filename, save_filename, freq_index):
+
+    print 'Loading data...'
+    model, nside, nest = healpix_utils.load_fhd_output_map(data_filename, cube='model', freq_index=freq_index)
+    print 'Plotting...'
+    plot_filled_pixels(model, nside, nest, save_filename, 'Frequency={} MHz'.format(167+freq_index*.16), coords='equitorial')
+
+
 def healpix_converter(data_filename):
     data_array = radcos_fio.data()
     # file pixels may be organized as ring or nest. Currently on nest
@@ -318,12 +326,16 @@ def plot_nearest_data():
     plot_filled_pixels(use_data, nside, nest, '/Users/ruby/Desktop/nearest_data_test.png')
 
 
-def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
+def plot_filled_pixels(data, nside, nest, save_filename, title, coords='equitorial'):
 
-    ra_min = -25
-    ra_max = 25
-    dec_min = -45
-    dec_max = -5
+    #ra_min = -25
+    #ra_max = 25
+    #dec_min = -45
+    #dec_max = -5
+    ra_min = -5
+    ra_max = 5
+    dec_min = -32
+    dec_max = -22
 
     # Only calculate pixel boundaries for pixels within the plot region
     # Only bother if data is in equitorial coordinates
@@ -356,8 +368,8 @@ def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
     #collection.set_norm(LogNorm())  # set the color bar to a log scale
-    #collection.set_clim(vmin=-.03, vmax=.03)  # set the colorbar min and max
-    collection.set_clim(vmin=-.00001, vmax=.00001)  # set the colorbar min and max
+    collection.set_clim(vmin=0, vmax=4e5)  # set the colorbar min and max
+    #collection.set_clim(vmin=-.00001, vmax=.00001)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
 
     fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
@@ -395,8 +407,9 @@ def plot_filled_pixels(data, nside, nest, save_filename, coords='equitorial'):
     plt.axis('equal')
     ax.set_facecolor('gray')  # make plot background gray
     plt.axis([ra_max, ra_min, dec_min, dec_max])
+    plt.title(title)
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
-    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270)  # label colorbar
+    cbar.ax.set_ylabel('Flux Density (un-normalized)', rotation=270, labelpad=15)  # label colorbar
 
     plt.savefig(save_filename, format='png', dpi=500)
 
@@ -440,4 +453,5 @@ def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
 
 
 if __name__ == '__main__':
-    plot_healpix_file('/Users/ruby/EoR/full_pol_branch_ps_testing/workflow_3_100jy/stokes_I_sim_bright_fullpol_4pol_uniform_Residual_U_HEALPix.fits', '/Users/ruby/EoR/full_pol_branch_ps_testing/workflow_3_100jy/sim_fullpol_bright_4pol_Residual_U.png')
+    for i in range(0, 192, 20):
+        plot_healpix_fhd_output('/Users/ruby/EoR/1061316296_even_cubeXX.sav', '/Users/ruby/EoR/single_source_sims/freq{}.png'.format(i), i)

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from astropy.io import fits
+import scipy.io
 import numpy as np
 import healpy as hp
 import sys
@@ -130,6 +131,35 @@ def load_global_map(data_filename):
         if signal_vals[i] != hp.pixelfunc.UNSEEN:  # Implicit indexing
             data_point = HealpixPixel(i, signal_vals[i])
             pixel_data.append(data_point)
+
+    return pixel_data, nside, nest
+
+
+def load_fhd_output_map(data_filename, cube='model', freq_index=0):
+
+    if cube != 'model' and cube != 'data' and cube != 'variance' and cube != 'weights':
+        print 'ERROR: Invalid cube option.'
+        print 'Cube must be "model", "dirty", "variance", or "weights". Exiting.'
+    if cube == 'model':
+        cube_name = 'model_cube'
+    if cube == 'dirty':
+        cube_name = 'dirty_cube'
+    if cube == 'variance':
+        cube_name = 'variance_cube'
+    if cube == 'weights':
+        cube_name = 'weights_cube'
+
+    nest = False
+
+    data = scipy.io.readsav(data_filename)
+    cube_data = data[cube_name][freq_index]
+    nside = int(data['nside'])
+    hpx_inds = [int(val) for val in data['hpx_inds']]
+
+    pixel_data = []
+    for i in range(len(cube_data)):
+        data_point = HealpixPixel(hpx_inds[i], cube_data[i])
+        pixel_data.append(data_point)
 
     return pixel_data, nside, nest
 
