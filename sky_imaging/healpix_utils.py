@@ -8,73 +8,229 @@ import sys
 import math
 
 
-class HealpixPixel:
+class HealpixMap:
 
-    def __init__(self, pixelnum, signal):
-        self.pixelnum = int(pixelnum)
-        self.signal = float(signal)
-
-    def get_ra_dec(self, nside, nest, coords='equitorial', ra_cut=270):
-        if coords == 'galactic':
-            theta_gal, phi_gal = hp.pixelfunc.pix2ang(nside, self.pixelnum,
-                                                      nest=nest)
-            rot = hp.rotator.Rotator(coord=['G', 'C'])
-            theta_eq, phi_eq = rot(theta_gal, phi_gal)
-            ra = phi_eq*180/math.pi
-            dec = 90. - theta_eq*180/math.pi
-        elif coords == 'equitorial':
-            ra, dec = hp.pixelfunc.pix2ang(nside, self.pixelnum, nest=nest,
-                                           lonlat=True)
+    def __init__(self, signal_arr, pix_arr, nside, nest=False,
+                 coords='equitorial'):
+        if pix_arr == []:
+            print 'No pixel values supplied. Assuming implicit ordering.'
         else:
-            print 'ERROR: Coordinates must be galactic or equitorial.'
+            if len(signal_arr) != len(pix_arr):
+                print 'ERROR: Pixel index and data lengths do not match. Exiting.'
+                sys.exit(1)
+        if nest == 'nested' or nest == 'nest' or nest is True:
+            nest = True
+        elif nest == 'ring' or nest is False:
+            nest = False
+        else:
+            print 'ERROR: Invalid nest parameter. Exiting.'
             sys.exit(1)
+        self.signal_arr = signal_arr
+        self.pix_arr = pix_arr
+        self.nside = nside
+        self.nest = nest
+        self.coords = coords
 
-        if ra > ra_cut:
-            self.ra = ra - 360.
-        elif ra < ra_cut-360.:
-            self.ra = ra + 360.
+    def get_ra_dec(self, ra_cut=270):
+        ra_arr = []
+        dec_arr = []
+        rot = hp.rotator.Rotator(coord=['G', 'C'])
+        for pixel in self.pix_arr:
+            if self.coords == 'galactic':
+                theta_gal, phi_gal = hp.pixelfunc.pix2ang(
+                    self.nside, pixel, nest=self.nest
+                    )
+                theta_eq, phi_eq = rot(theta_gal, phi_gal)
+                ra = phi_eq*180/math.pi
+                dec = 90.-theta_eq*180/math.pi
+            elif self.coords == 'equitorial':
+                ra, dec = hp.pixelfunc.pix2ang(
+                    self.nside, pixel, nest=self.nest, lonlat=True
+                    )
+            else:
+                print 'ERROR: Coordinates must be galactic or equitorial.'
+                sys.exit(1)
+            if ra > ra_cut:
+                ra -= 360.
+            elif ra < ra_cut-360.:
+                ra += 360.
+            ra_arr.append(ra)
+            dec_arr.append(dec)
+        self.ra_arr = ra_arr
+        self.dec_arr = dec_arr
+
+    def get_pixel_corners(self, ra_cut=270):
+        pix_corner_ras_arr = []
+        pix_corner_decs_arr = []
+        rot = hp.rotator.Rotator(coord=['G', 'C'])
+        for for pixel in self.pix_arr:
+            corner_coords = hp.boundaries(self.nside, pixel, step=1,
+                                          nest=nest)
+            if self.coords == 'galactic':
+                thetas_gal, phis_gal = hp.pixelfunc.vec2ang(
+                    np.transpose(corner_coords), lonlat=False)
+                ras = [0]*len(thetas_gal)
+                decs = [0]*len(thetas_gal)
+                for corner in range(len(thetas_gal)):
+                    theta_eq, phi_eq = rot(thetas_gal[corner],
+                                           phis_gal[corner])
+                    ras[corner] = phi_eq*180/math.pi
+                    decs[corner] = 90. - theta_eq*180/math.pi
+            elif self.coords == 'equitorial':
+                ras, decs = hp.pixelfunc.vec2ang(np.transpose(corner_coords),
+                                                 lonlat=True)
+            else:
+                print 'ERROR: Coordinates must be galactic or equitorial.'
+                sys.exit(1)
+            if np.mean(ras) > ra_cut:
+                ras = [ra-360. for ra in ras]
+            elif np.mean(ras) < ra_cut-360.:
+                ras = [ra+360. for ra in ras]
+            # Cluster pixel corners that are separated by the branch cut
+            for i in range(1, len(ras)):
+                if abs(ras[i]-ras[0]-360.) < abs(ras[i]-ras[0]):
+                    ras[i] -= 360.
+                elif abs(ras[i]-ras[0]+360.) < abs(ras[i]-ras[0]):
+                    ras[i] += 360.
+            pix_corner_ras_arr.append(ras)
+            pix_corner_decs_arr.append(decs)
+        self.pix_corner_ras_arr = pix_corner_ras_arr
+        self.pix_corner_decs_arr = pix_corner_decs_arr
+
+    def explicit_to_implicit_ordering(self):
+        signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside_in**2
+        for i in range(len(self.signal_arr)):
+            signal_vals_implicit[self.pix_arr[i]] = self.signal_arr[i]
+        self.signal_arr = signal_vals_implicit
+        self.pix_arr = []
+
+    def implicit_to_explicit_ordering(self):
+        use_inds = [ind for ind in range(len(self.signal_arr))
+                    if self.signal_arr[ind] != hp.pixelfunc.UNSEEN]
+        if self.pix_arr == []:
+            self.pix_arr = (list(range(len(self.signal_arr))))[use_inds]
         else:
-            self.ra = ra
-        self.dec = dec
+            self.pix_arr = self.pix_arr[use_inds]
+        self.singal_arr = self.signal_arr[use_inds]
 
-    def get_pixel_corners(self, nside, nest, coords='equitorial', ra_cut=270):
-        corner_coords = hp.boundaries(nside, self.pixelnum, step=1,
-                                      nest=nest)
-        if coords == 'galactic':
-            thetas_gal, phis_gal = hp.pixelfunc.vec2ang(
-                np.transpose(corner_coords), lonlat=False)
-            rot = hp.rotator.Rotator(coord=['G', 'C'])
-            ras = [0]*len(thetas_gal)
-            decs = [0]*len(thetas_gal)
-            for corner in range(len(thetas_gal)):
-                theta_eq, phi_eq = rot(thetas_gal[corner], phis_gal[corner])
-                ras[corner] = phi_eq*180/math.pi
-                decs[corner] = 90. - theta_eq*180/math.pi
-        elif coords == 'equitorial':
-            ras, decs = hp.pixelfunc.vec2ang(np.transpose(corner_coords),
-                                             lonlat=True)
+    def reorder_nest_to_ring(self):
+        if self.nest:
+            self.explicit_to_implicit_ordering()
+            self.signal_arr = hp.pixelfunc.reorder(filtered_map, n2r=True)
+            self.nest = False
+            self.implicit_to_explicit_ordering()
+
+    def reorder_ring_to_nest(self):
+        if not self.nest:
+            self.explicit_to_implicit_ordering()
+            self.signal_arr = hp.pixelfunc.reorder(filtered_map, r2n=True)
+            self.nest = True
+            self.implicit_to_explicit_ordering()
+
+    def resample(self, nside):
+        if self.nest:
+            ordering = 'nested'
         else:
-            print 'ERROR: Coordinates must be galactic or equitorial.'
-            sys.exit(1)
+            ordering = 'ring'
+        self.explicit_to_implicit_ordering()
+        self.signal_arr = hp.pixelfunc.ud_grade(
+            np.array(self.signal_arr), nside, pess=True, order_in=ordering
+            )
+        self.nside = nside
+        self.implicit_to_explicit_ordering()
 
-        # Cluster pixel corners that are separated by the branch cut
-        for i in range(1, len(ras)):
-            if abs(ras[i]-ras[0]-360.) < abs(ras[i]-ras[0]):
-                ras[i] -= 360.
-            elif abs(ras[i]-ras[0]+360.) < abs(ras[i]-ras[0]):
-                ras[i] += 360.
+    def get_alm(self, lmax=None):
+        self.explicit_to_implicit_ordering()
+        if self.nest:
+            signal_vals = hp.pixelfunc.reorder(self.signal_arr, n2r=True)
+        else:
+            signal_vals = self.signal_arr
+        alm = hp.sphtfunc.map2alm(signal_vals_implicit, lmax=lmax)
+        alm = np.copy(alm)
+        lmax = hp.sphtfunc.Alm.getlmax(len(alm))
+        l, m = hp.sphtfunc.Alm.getlm(lmax)
+        lm = np.zeros([len(alm), 2])
+        lm[:, 0] = l
+        lm[:, 1] = m
+        self.alm = spherical_harmonics_amp
+        self.lm = spherical_harmonics_lm
 
-        if np.mean(ras) > ra_cut:
-            ras = [ra-360. for ra in ras]
-        elif np.mean(ras) < ra_cut-360.:
-            ras = [ra+360. for ra in ras]
+    def filter_map(self, lmin=None, lmax=None, filter_width=0):
+        # This function borrows from code by Miguel Morales
+        if lmax is not None:
+            alm_limit = int(math.ceil(lmax + filter_width/2.))
+        else:
+            alm_limit = None
+        self.get_alm(lmax=alm_limit)
+        alm = self.spherical_harmonics_amp
+        lm = self.spherical_harmonics_lm
+        # Define tukey windowing function
+        window_fn = np.ones(int(max(lm[:, 0])+1))
+        if lmin is not None:
+            for i in range(int(math.ceil(lmin-filter_width/2.))):
+                window_fn[i] = 0
+            for i in range(int(math.ceil(lmin-filter_width/2.)),
+                           int(math.floor(lmin+filter_width/2.))+1
+                           ):
+                window_fn[i] = (
+                    -math.cos((i-lmin+filter_width/2.)*math.pi/filter_width)+1
+                    )/2.
+        if lmax is not None:
+            for i in range(int(math.ceil(lmax-filter_width/2.)),
+                           int(math.floor(lmax+filter_width/2.))+1
+                           ):
+                window_fn[i] = (
+                    math.cos((i-lmax+filter_width/2.)*math.pi/filter_width)+1
+                    )/2.
+            for i in range(int(math.floor(lmax+filter_width/2.))+1,
+                           len(window_fn)
+                           ):
+                window_fn[i] = 0
+        # Apply windowing function
+        for i in range(len(window_fn)):
+            alm[np.where(lm[:, 0] == i)] = alm[
+                np.where(lm[:, 0] == i)
+                ]*window_fn[i]
+        filtered_map = hp.sphtfunc.alm2map(alm, self.nside)
+        self.signal_arr = filtered_map
+        self.pix_arr = []
+        # If input was nested ordering, convert to nested
+        if self.nest:
+            self.nest = False
+            self.reorder_ring_to_nest()
+            filtered_map = hp.pixelfunc.reorder(filtered_map, r2n=True)
+        else:
+            self.implicit_to_explicit_ordering()
 
-        self.pix_corner_ras = ras
-        self.pix_corner_decs = decs
+    def write_data_to_fits(self, save_filename):
+        signal_column = fits.Column(
+            name='SIGNAL',
+            array=np.array(self.signal_arr),
+            format='1E'
+            )
+        pixelnum_column = fits.Column(
+            name='PIXEL',
+            array=np.array(self.pix_arr),
+            format='1J'
+            )
+        header = fits.Header()  # initialize header object
+        header['nside'] = self.nside
+        if self.nest:
+            header['ordering'] = 'nested'
+        else:
+            header['ordering'] = 'ring'
+        header['indxschm'] = 'explicit'
+        hdu_0 = fits.PrimaryHDU()
+        hdu_1 = fits.BinTableHDU.from_columns(
+            [signal_column, pixelnum_column],
+            header=header
+            )
+        hdu_list = fits.HDUList([hdu_0, hdu_1])
+        hdu_list.writeto(save_filename)
 
 
 def load_map(data_filename):
-    # Load a HEALPix map formatted with FHD conventions
+    # Load a HEALPix map formatted with FHD image conventions
 
     contents = fits.open(data_filename)
     nside = int(contents[1].header['nside'])
@@ -94,16 +250,10 @@ def load_map(data_filename):
         print 'Ordering must be "ring" or "nested". Exiting.'
         sys.exit(1)
 
-    if len(pixel_vals) != len(signal_vals):
-        print 'ERROR: Pixel index and data lengths do not match. Exiting.'
-        sys.exit(1)
-
-    pixel_data = []
-    for i in range(len(pixel_vals)):
-        data_point = HealpixPixel(pixel_vals[i], signal_vals[i])
-        pixel_data.append(data_point)
-
-    return pixel_data, nside, nest
+    healpix_map = HealpixMap(
+        signal_vals, pixel_vals, nside, nest=nest, coords='equitorial'
+        )
+    return healpix_map
 
 
 def load_global_map(data_filename):
@@ -125,17 +275,15 @@ def load_global_map(data_filename):
         sys.exit(1)
 
     signal_vals = data.field('TEMPERATURE')
-
-    pixel_data = []
-    for i in range(len(signal_vals)):
-        if signal_vals[i] != hp.pixelfunc.UNSEEN:  # Implicit indexing
-            data_point = HealpixPixel(i, signal_vals[i])
-            pixel_data.append(data_point)
-
-    return pixel_data, nside, nest
+    healpix_map = HealpixMap(
+        signal_vals, [], nside, nest=nest, coords='galactic'
+        )
+    healpix_map.implicit_to_explicit_ordering()
+    return healpix_map
 
 
 def load_fhd_output_map(data_filename, cube='model', freq_index=0):
+    # Load a HEALPix map formatted with FHD-for-eppsilon conventions
 
     if cube != 'model' and cube != 'data' and cube != 'variance' and cube != 'weights':
         print 'ERROR: Invalid cube option.'
@@ -149,148 +297,136 @@ def load_fhd_output_map(data_filename, cube='model', freq_index=0):
     if cube == 'weights':
         cube_name = 'weights_cube'
 
-    nest = False
-
     data = scipy.io.readsav(data_filename)
     cube_data = data[cube_name][freq_index]
     nside = int(data['nside'])
     hpx_inds = [int(val) for val in data['hpx_inds']]
-
-    pixel_data = []
-    for i in range(len(cube_data)):
-        data_point = HealpixPixel(hpx_inds[i], cube_data[i])
-        pixel_data.append(data_point)
-
-    return pixel_data, nside, nest
-
-
-def healpix_downsample(data, nside_in, nside_out, nest):
-
-    if nest:
-        ordering = 'nested'
-    else:
-        ordering = 'ring'
-
-    # Convert data to implicit indexing
-    signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside_in**2
-    for i in range(len(data)):
-        signal_vals_implicit[data[i].pixelnum] = data[i].signal
-
-    downsampled_map = hp.pixelfunc.ud_grade(
-        np.array(signal_vals_implicit), nside_out, pess=True,
-        order_in=ordering)
-
-    data_out = []
-    for i in range(len(downsampled_map)):
-        if downsampled_map[i] != hp.pixelfunc.UNSEEN:
-            data_point = HealpixPixel(i, downsampled_map[i])
-            data_out.append(data_point)
-
-    return data_out
-
-
-def write_data_to_fits(data, nside, nest, save_filename):
-
-    signal_column = fits.Column(
-        name='SIGNAL',
-        array=np.array([data_point.signal for data_point in data]),
-        format='1E'
+    healpix_map = HealpixMap(
+        cube_data, hpx_inds, nside, nest=False, coords='equitorial'
         )
-    pixelnum_column = fits.Column(
-        name='PIXEL',
-        array=np.array([data_point.pixelnum for data_point in data]),
-        format='1J'
-        )
-    header = fits.Header()  # initialize header object
-    header['nside'] = nside
-    if nest:
-        header['ordering'] = 'nested'
+    return healpix_map
+
+
+def difference_healpix_maps(map1, map2):
+
+    if map1.nside != map2.nside:
+        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        sys.exit(1)
+    if map1.nest != map2.nest:
+        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        if map1.nest:
+            map1.reorder_nest_to_ring()
+        else:
+            map2.reorder_nest_to_ring()
+    if map1.pix_arr == map2.pix_arr:
+        data_diff = list(np.array(map1.signal_arr) - np.array(map2.signal_arr))
+        diff_map = HealpixMap(
+            data_diff, map1.pix_arr, map1.nside, nest=map1.nest
+            )
     else:
-        header['ordering'] = 'ring'
-    header['indxschm'] = 'explicit'
-
-    hdu_0 = fits.PrimaryHDU()
-    hdu_1 = fits.BinTableHDU.from_columns(
-        [signal_column, pixelnum_column],
-        header=header
-        )
-    hdu_list = fits.HDUList([hdu_0, hdu_1])
-    hdu_list.writeto(save_filename)
-
-
-def get_alm(data, nside, nest, lmax=None):
-
-    # Convert data to implicit indexing
-    signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside**2
-    for i in range(len(data)):
-        signal_vals_implicit[data[i].pixelnum] = data[i].signal
-
-    # Convert to ring ordering if nested (map2alm doesn't support nested)
-    if nest:
-        signal_vals_implicit = hp.pixelfunc.reorder(
-            signal_vals_implicit, n2r=True)
-
-    alm = hp.sphtfunc.map2alm(signal_vals_implicit, lmax=lmax)
-    alm = np.copy(alm)
-    lmax = hp.sphtfunc.Alm.getlmax(len(alm))
-    l, m = hp.sphtfunc.Alm.getlm(lmax)
-    lm = np.zeros([len(alm), 2])
-    lm[:, 0] = l
-    lm[:, 1] = m
-
-    return alm, lm
+        pixelnum_use = list(set(map1.pix_arr).intersection(map2.pix_arr))
+        data_diff = [
+            map1.signal_arr[map1.pix_arr.index(pixelnum)]
+            - map2.signal_arr[map2.pix_arr.index(pixelnum)]
+            for pixelnum in pixelnum_use
+            ]
+        diff_map = HealpixMap(
+            data_diff, pixelnum_use, map1.nside, nest=map1.nest
+            )
+    return diff_map
 
 
-def filter_map(data, nside, nest, lmin=None, lmax=None, filter_width=0):
-    # This function borrows from code by Miguel Morales
+def multiply_healpix_maps(map1, map2):
 
-    if lmax is not None:
-        alm_limit = int(math.ceil(lmax + filter_width/2.))
+    if map1.nside != map2.nside:
+        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        sys.exit(1)
+    if map1.nest != map2.nest:
+        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        if map1.nest:
+            map1.reorder_nest_to_ring()
+        else:
+            map2.reorder_nest_to_ring()
+    if map1.pix_arr == map2.pix_arr:
+        data_prod = list(np.array(map1.signal_arr) * np.array(map2.signal_arr))
+        prod_map = HealpixMap(
+            data_prod, map1.pix_arr, map1.nside, nest=map1.nest
+            )
     else:
-        alm_limit = None
+        pixelnum_use = list(set(map1.pix_arr).intersection(map2.pix_arr))
+        data_prod = [
+            map1.signal_arr[map1.pix_arr.index(pixelnum)]
+            * map2.signal_arr[map2.pix_arr.index(pixelnum)]
+            for pixelnum in pixelnum_use
+            ]
+        prod_map = HealpixMap(
+            data_prod, pixelnum_use, map1.nside, nest=map1.nest
+            )
+    return prod_map
 
-    alm, lm = get_alm(data, nside, nest, lmax=alm_limit)
 
-    # Define tukey windowing function
-    window_fn = np.ones(int(max(lm[:, 0])+1))
-    if lmin is not None:
-        for i in range(int(math.ceil(lmin-filter_width/2.))):
-            window_fn[i] = 0
-        for i in range(int(math.ceil(lmin-filter_width/2.)),
-                       int(math.floor(lmin+filter_width/2.))+1
-                       ):
-            window_fn[i] = (
-                -math.cos((i-lmin+filter_width/2.)*math.pi/filter_width)+1
-                )/2.
-    if lmax is not None:
-        for i in range(int(math.ceil(lmax-filter_width/2.)),
-                       int(math.floor(lmax+filter_width/2.))+1
-                       ):
-            window_fn[i] = (
-                math.cos((i-lmax+filter_width/2.)*math.pi/filter_width)+1
-                )/2.
-        for i in range(int(math.floor(lmax+filter_width/2.))+1,
-                       len(window_fn)
-                       ):
-            window_fn[i] = 0
+def divide_healpix_maps(map1, map2):
 
-    # Apply windowing function
-    for i in range(len(window_fn)):
-        alm[np.where(lm[:, 0] == i)] = alm[
-                                           np.where(lm[:, 0] == i)
-                                           ]*window_fn[i]
+    if map1.nside != map2.nside:
+        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        sys.exit(1)
+    if map1.nest != map2.nest:
+        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        if map1.nest:
+            map1.reorder_nest_to_ring()
+        else:
+            map2.reorder_nest_to_ring()
+    if map1.pix_arr == map2.pix_arr:
+        data_div = list(np.array(map1.signal_arr) / np.array(map2.signal_arr))
+        div_map = HealpixMap(
+            data_div, map1.pix_arr, map1.nside, nest=map1.nest
+            )
+    else:
+        pixelnum_use = list(set(map1.pix_arr).intersection(map2.pix_arr))
+        data_div = [
+            map1.signal_arr[map1.pix_arr.index(pixelnum)]
+            / map2.signal_arr[map2.pix_arr.index(pixelnum)]
+            for pixelnum in pixelnum_use
+            ]
+        div_map = HealpixMap(
+            data_div, pixelnum_use, map1.nside, nest=map1.nest
+            )
+    return div_map
 
-    filtered_map = hp.sphtfunc.alm2map(alm, nside)
 
-    # If input was nested ordering, convert to nested
-    if nest:
-        filtered_map = hp.pixelfunc.reorder(filtered_map, r2n=True)
+def average_healpix_maps(maps_arr):
 
-    # Convert to explicit indexing
-    output_data = []
-    for i in range(len(filtered_map)):
-        if filtered_map[i] != hp.pixelfunc.UNSEEN:
-            data_point = HealpixPixel(i, filtered_map[i])
-            output_data.append(data_point)
+    nside = maps_arr[0].nside
+    nest = maps_arr[0].nest
+    for map in maps_arr:
+        if map.nside != nside:
+            print 'ERROR: Healpix map nsides do not match. Exiting.'
+            sys.exit(1)
+        if map.nest != nest:
+            print 'ERROR: Healpix map orderings do not match. Exiting.'
+            sys.exit(1)
+    pixelnum_use = list(set(
+        [pixelnum for map in maps_arr for pixelnum in map.pix_arr]
+        ))
+    pixel_vals = [[] for i in range(len(pixelnum_use))]
+    for map in maps_arr:
+        for i, pixelnum in enumerate(pixelnum_use):
+            if pixelnum in map.pix_arr:
+                pixel_vals[i].append(
+                    map.signal_arr[map.pix_arr.index(pixelnum)]
+                    )
 
-    return output_data
+    ave_map = HealpixMap(
+        [np.average(signal_vals) for signal_vals in pixel_vals], pixelnum_use,
+        nside, nest=nest
+        )
+    var_map = HealpixMap(
+        [np.var(signal_vals) for signal_vals in pixel_vals], pixelnum_use,
+        nside, nest=nest
+        )
+    nsamples_map = HealpixMap(
+        [len(signal_vals) for signal_vals in pixel_vals], pixelnum_use,
+        nside, nest=nest
+        )
+
+    return ave_map, var_map, nsamples_map
