@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# Obsolete script
+# Replaced with plot_healpix_map.py
+
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 import healpy as hp
@@ -19,9 +22,23 @@ import surveyview
 def plot_healpix_fhd_output(data_filename, save_filename, freq_index):
 
     print 'Loading data...'
-    model, nside, nest = healpix_utils.load_fhd_output_map(data_filename, cube='model', freq_index=freq_index)
+    model, nside, nest = healpix_utils.load_fhd_output_map(
+        data_filename, cube='model', freq_index=freq_index
+        )
+    weights, weights_nside, weights_nest = healpix_utils.load_fhd_output_map(
+        data_filename, cube='weights', freq_index=freq_index
+        )
+    if nside != weights_nside or nest != weights_nest:
+        print 'ERROR: Data and weights nside or nesting do not match.'
+        print 'Exiting.'
+        sys.exit()
+    model_norm = healpix_utils.multiply_healpix_maps(
+        model, weights, nside, nest
+        )
     print 'Plotting...'
-    plot_filled_pixels(model, nside, nest, save_filename, 'Frequency={} MHz'.format(167+freq_index*.16), coords='equitorial')
+    plot_filled_pixels(model_norm, nside, nest, save_filename,
+                       'Frequency={} MHz'.format(167+freq_index*.16),
+                       coords='equitorial')
 
 
 def healpix_converter(data_filename):
@@ -368,7 +385,7 @@ def plot_filled_pixels(data, nside, nest, save_filename, title, coords='equitori
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
     #collection.set_norm(LogNorm())  # set the color bar to a log scale
-    collection.set_clim(vmin=0, vmax=4e5)  # set the colorbar min and max
+    #collection.set_clim(vmin=0, vmax=1e4)  # set the colorbar min and max
     #collection.set_clim(vmin=-.00001, vmax=.00001)  # set the colorbar min and max
     collection.set_edgecolor('face')  # make the face and edge colors match
 
@@ -453,5 +470,7 @@ def plot_grid_interp(data, nside, nest, save_filename, coords='equitorial'):
 
 
 if __name__ == '__main__':
-    for i in range(0, 192, 20):
-        plot_healpix_fhd_output('/Users/ruby/EoR/1061316296_even_cubeXX.sav', '/Users/ruby/EoR/single_source_sims/freq{}.png'.format(i), i)
+#    for i in range(0, 192, 20):
+#        plot_healpix_fhd_output('/Users/ruby/EoR/1061316296_even_cubeXX.sav', '/Users/ruby/EoR/single_source_sims/freq{}.png'.format(i), i)
+
+    plot_healpix_fhd_output('/Users/ruby/EoR/1061316296_even_cubeXX.sav', '/Users/ruby/EoR/single_source_sims/test_diff3.png'.format(0), 0)
