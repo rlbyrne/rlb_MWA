@@ -1,6 +1,9 @@
+; Script to convert AO-formatted catalogs to FHD formats
+; Written by Ruby Byrne, 12/18
+
 pro catalog_reformat_ao_to_fhd
 
-    filepath = '/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/Fornax_A_only_01.txt'
+    filepath = '/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/CenA_01_spec_index.txt'
 
     flux_struct={flux,xx:0.,yy:0.,xy:Complex(0.),yx:Complex(0.),I:0.,Q:0.,U:0.,V:0.}
     shape_struct={shape,x:0.,y:0.,angle:0.} ;gets used if keyword gaussian_source_models is set
@@ -141,6 +144,6 @@ pro catalog_reformat_ao_to_fhd
     endfor
     
     catalog = source_struct
-    save, catalog, filename='/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/Fornax_A_gaussian_model.sav'
+    save, catalog, filename='/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/CenA_gaussian_model.sav'
 
 end
