@@ -1,6 +1,6 @@
 pro catalog_reformat_ao_to_fhd
 
-    filepath = '/nfs/eor-00/h1/rbyrne/MWA/IDL_code/anoko/mwa-reduce/models/model-PicA-88comp.txt'
+    filepath = '/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/Fornax_A_only_01.txt'
 
     flux_struct={flux,xx:0.,yy:0.,xy:Complex(0.),yx:Complex(0.),I:0.,Q:0.,U:0.,V:0.}
     shape_struct={shape,x:0.,y:0.,angle:0.} ;gets used if keyword gaussian_source_models is set
@@ -35,7 +35,7 @@ pro catalog_reformat_ao_to_fhd
         source_comp_start_lines = []
         for comp=0,n_elements(component_start_lines)-1 do begin
             if component_start_lines[comp] gt source_start and component_start_lines[comp] lt source_end then source_comp_start_lines = [source_comp_start_lines,component_start_lines[comp]]
-        endif
+        endfor
         if n_elements(source_comp_start_lines) eq 0 then use_source_comp_start_lines = [source_start] else use_source_comp_start_lines = source_comp_start_lines
 
         comp_struct=Replicate(struct_base,n_elements(use_source_comp_start_lines)>1)
@@ -57,11 +57,10 @@ pro catalog_reformat_ao_to_fhd
 
             if n_elements(shape) eq 1 then begin
                 shape_params = strsplit(shape, /extract)
-                comp_struct[comp].shape.x=float(shape_params[1])
-                comp_struct[comp].shape.y=float(shape_params[2])
-                comp_struct[comp].shape.angle=float(shape_params[3])
+                comp_struct[comp].shape.x=double(shape_params[1])
+                comp_struct[comp].shape.y=double(shape_params[2])
+                comp_struct[comp].shape.angle=double(shape_params[3])
             endif else begin
-                if n_elements(shape) eq 0 then print, 'WARNING: No shape parameter provided.'
                 if n_elements(shape) gt 1 then begin
                     print, 'ERROR: Ambiguous shape parameters provided.'
                     return
@@ -70,12 +69,18 @@ pro catalog_reformat_ao_to_fhd
 
             if n_elements(position) eq 1 then begin
                 pos_params = strsplit(position, /extract)
-                ra = float((strsplit(pos_params[1], 'h', /extract))[0])*(360./24.) + float(((strsplit(strsplit(pos_params[1], 'h', /extract))[1]), 'm', /extract)[0])*(360./24./60.) + float(
-                (strsplit(((strsplit(strsplit(pos_params[1], 'h', /extract))[1]), 'm', /extract)[1], 's', /extract))[0]
-                )*(360./24./3600.)
-                dec = float((strsplit(pos_params[2], 'd', /extract))[0]) + float(((strsplit(strsplit(pos_params[2], 'd', /extract))[1]), 'm', /extract)[0])/60. + float(
-                (strsplit(((strsplit(strsplit(pos_params[2], 'd', /extract))[1]), 'm', /extract)[1], 's', /extract))[0]
-                )/3600.
+                ra_hours = fix((strsplit(pos_params[1], 'h', /extract))[0])
+                ra_minutes = fix((strsplit((strsplit(pos_params[1], 'h', /extract))[1], 'm', /extract))[0])
+                ra_seconds = float((strsplit((strsplit(pos_params[1], 'm', /extract))[1], 's', /extract))[0])
+                ra = ra_hours*15. + ra_minutes*(.25) + ra_seconds*(.05/12.)
+                dec_degrees = fix((strsplit(pos_params[2], 'd', /extract))[0])
+                dec_minutes = fix((strsplit((strsplit(pos_params[2], 'd', /extract))[1], 'm', /extract))[0])
+                dec_seconds = float((strsplit((strsplit(pos_params[2], 'm', /extract))[1], 's', /extract))[0])
+                if dec_degrees lt 0 then begin
+                  dec_minutes = -dec_minutes
+                  dec_seconds = -dec_seconds
+                endif
+                dec = dec_degrees + dec_minutes/60. + dec_seconds/3600.
                 comp_struct[comp].ra = ra
                 comp_struct[comp].dec = dec
             endif else begin
@@ -102,7 +107,7 @@ pro catalog_reformat_ao_to_fhd
 
             if n_elements(fluxdensity) eq 1 then begin
                 flux_params = strsplit(fluxdensity, /extract)
-                comp_struct[comp].flux.I=float(flux_params[2])
+                comp_struct[comp].flux.I=double(flux_params[2])
             endif else begin
                 if n_elements(fluxdensity) eq 0 then begin
                     print, 'ERROR: No flux density parameter provided.'
@@ -118,7 +123,7 @@ pro catalog_reformat_ao_to_fhd
         endfor
 
         if n_elements(comp_struct) eq 1 then source_struct[source]=comp_struct[0] else begin
-            souce_struct[source].extend = comp_struct
+            source_struct[source].extend = ptr_new(comp_struct)
             flux_total=0.
             weighted_ra = 0.
             weighted_dec = 0.
@@ -131,8 +136,11 @@ pro catalog_reformat_ao_to_fhd
             source_struct[source].dec = weighted_dec/flux_total
             source_struct[source].flux.I = flux_total
         endelse
-
+        
     ; End iterate over sources
     endfor
+    
+    catalog = source_struct
+    save, catalog, filename='/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/Fornax_A_gaussian_model.sav'
 
 end
