@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# Obsolete script
+# Replaced with healpix_utils.py and plot_healpix_map.py
+
 from mpl_toolkits.basemap import Basemap
 import numpy as np
 import healpy as hp

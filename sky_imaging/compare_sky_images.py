@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # Obsolete script
-# Replaced with healpix_utils.ppy and plot_healpix_map.py
+# Replaced with healpix_utils.py and plot_healpix_map.py
 
 import sys
 import numpy as np
