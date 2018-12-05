@@ -1,5 +1,8 @@
 #!/usr/bin/python
 
+# OBSOLETE CODE
+# Replaced with catalog_reformat_ao_to_fhd.pro 12/18
+
 #Script that parses the AO-compatible GLEAM extended source models.
 #Consider instead using the IDL script ao_model_adder.pro.
 
@@ -11,7 +14,7 @@ def read_model(name):
 	datafile = open(filepath, 'r')
 	file_contents = datafile.readlines()
 	datafile.close()
-	
+
 	source_start_lines = []
 	component_start_lines = []
 	for i, line in enumerate(file_contents):
@@ -21,7 +24,7 @@ def read_model(name):
 			component_start_lines.append(i)
 	source_start_lines.append(len(file_contents))
 	component_start_lines.append(len(file_contents))
-	
+
 	source_models = []
 	for i in range(len(source_start_lines)-1):
 		if file_contents[source_start_lines[i]+1].find('name') != -1:
@@ -57,12 +60,12 @@ def read_model(name):
 				comp = {'type': type_name, 'ra_deg': ra_deg, 'dec_deg': dec_deg, 'freq_MHz': freq_MHz, \
 					'flux_I_Jy': flux_I_Jy, 'flux_Q_Jy': flux_Q_Jy, 'flux_U_Jy': flux_U_Jy, 'flux_V_Jy': flux_V_Jy}
 				components.append(comp)
-				
+
 		source = {'name': source_name, 'components': components}
 		source_models.append(source)
-		
+
 	return source_models
-		
+
 def convert_to_deg(pos):
 
 	#find data type:
@@ -79,7 +82,7 @@ def convert_to_deg(pos):
 	if hours == degrees:
 		print "ERROR: RA/Dec data type is unclear."
 		sys.exit(1)
-		
+
 	minutes, sec = minsec.split('m')
 	hd = float(hd)
 	minutes = float(minutes)
