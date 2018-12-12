@@ -12,8 +12,6 @@ from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
 import healpix_utils
 from scipy.interpolate import griddata
-sys.path.append('/Users/ruby/EoR/rlb_MWA/diffuse_survey_coverage_visualization')
-import surveyview
 
 
 def plot_filled_pixels(
