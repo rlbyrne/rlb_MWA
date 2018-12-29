@@ -6,13 +6,15 @@ import healpy as hp
 import sys
 import math
 import matplotlib.pyplot as plt
+import scipy.io
+from scipy.interpolate import griddata
 
 
 class ImageFromFits:
 
     def __init__(self, signal_arr, ra_axis=None, dec_axis=None,
                  ra_range=None, dec_range=None):
-        n_ra_vals, n_dec_vals = np.shape(signal_arr)
+        n_dec_vals, n_ra_vals = np.shape(signal_arr)
         if ra_axis is not None:
             ra_axis = list(ra_axis)
             if len(ra_axis) != n_ra_vals:
@@ -27,12 +29,14 @@ class ImageFromFits:
             if len(ra_range) != 2:
                 print 'ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.'
                 sys.exit(1)
-            ra_axis = np.linspace(ra_range[0], ra_range[1], n_ra_vals)
+            ra_axis = list(np.linspace(ra_range[0], ra_range[1], n_ra_vals))
         if dec_axis is None and dec_range is not None:
             if len(dec_range) != 2:
                 print 'ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.'
                 sys.exit(1)
-            dec_axis = np.linspace(dec_range[0], dec_range[1], n_dec_vals)
+            dec_axis = list(
+                np.linspace(dec_range[0], dec_range[1], n_dec_vals)
+            )
         self.signal_arr = signal_arr
         self.ra_axis = ra_axis
         self.dec_axis = dec_axis
@@ -54,9 +58,11 @@ class ImageFromFits:
             use_dec_inds[0]:use_dec_inds[-1]+1,
             use_ra_inds[0]:use_ra_inds[-1]+1
         ]
-        self.ra_axis = np.linspace(ra_range[0], ra_range[1], len(use_ra_inds))
-        self.dec_axis = np.linspace(
-            dec_range[0], dec_range[1], len(use_dec_inds)
+        self.ra_axis = list(
+            np.linspace(ra_range[0], ra_range[1], len(use_ra_inds))
+        )
+        self.dec_axis = list(
+            np.linspace(dec_range[0], dec_range[1], len(use_dec_inds))
         )
 
 
@@ -93,6 +99,68 @@ def load_image(data_filename):
     return fits_image
 
 
+def load_gaussian_source_model_as_image(
+    catalog_path, source_ind=0, resolution=.01, ra_range=None, dec_range=None,
+    reference_image=None
+):
+
+    # If reference image is supplied, use the same ra and dec locations
+    if reference_image is not None:
+        ra_axis = reference_image.ra_axis
+        dec_axis = reference_image.dec_axis
+        grid_ra = np.tile(np.array(ra_axis), (len(dec_axis), 1))
+        grid_dec = np.tile(np.array([dec_axis]).T, (1, len(ra_axis)))
+        ra_range = [min(ra_axis), max(ra_axis)]
+        dec_range = [min(dec_axis), max(dec_axis)]
+    else:
+        if ra_range is None:
+            ra_range = [50, 51.25]
+        if dec_range is None:
+            dec_range = [-37.8, -36.7]
+
+        grid_dec, grid_ra = np.mgrid[
+            dec_range[0]:dec_range[1]:resolution,
+            ra_range[0]:ra_range[1]:resolution
+            ]
+
+    plot_signal = np.zeros_like(grid_dec)
+
+    source = scipy.io.readsav(catalog_path)['catalog'][source_ind]
+    source_ra = source['ra']
+    source_dec = source['dec']
+    components = source['extend']
+    if len(components) == 0:
+        print 'WARNING: Source is not extended.'
+
+    total_flux = 0.
+    for comp in components:
+        comp_ra = comp['ra']
+        comp_dec = comp['dec']
+        comp_flux = comp['flux']['I'][0]
+        total_flux += comp_flux
+        comp_size_x = comp['shape']['x'][0]/(7200.*np.sqrt(2*np.log(2.)))
+        comp_size_y = comp['shape']['y'][0]/(7200.*np.sqrt(2*np.log(2.)))
+        comp_size_angle = comp['shape']['angle'][0]
+
+        if comp_size_x == 0:
+            comp_size_x = resolution
+        if comp_size_y == 0:
+            comp_size_y = resolution
+
+        for i in range(np.shape(grid_dec)[0]):
+            for j in range(np.shape(grid_dec)[1]):
+                pixel_val = (
+                    comp_flux/(7200*np.pi*comp_size_x*comp_size_y)
+                    * np.exp(-(grid_ra[i, j]-comp_ra)**2./(2*comp_size_x**2.))
+                    * np.exp(-(grid_dec[i, j]-comp_dec)**2./(2*comp_size_y**2.))
+                )
+                plot_signal[i, j] += pixel_val
+
+    print total_flux
+    image = ImageFromFits(plot_signal, ra_range=ra_range, dec_range=dec_range)
+    return image
+
+
 def difference_images(image1, image2):
 
     if image1.ra_axis == image2.ra_axis and image1.dec_axis == image2.dec_axis:
@@ -102,11 +170,10 @@ def difference_images(image1, image2):
             )
     else:
         print 'WARNING: Image axes do not match. Interpolating image2 to image1 axes.'
-        image2_signal_array_interp = griddata(
+        image2_signal_array_interp = griddata(  # This doesn't work
             (image2.ra_axis, image2.dec_axis),
             image2.signal_arr,
-            (image1.ra_axis, image1.dec_axis),
-            method='linear'
+            (image1.ra_axis, image1.dec_axis)
             )
         data_diff = ImageFromFits(
             np.subtract(image1.signal_arr, image2_signal_array_interp),
@@ -148,9 +215,10 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    #image_dirty = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/1130776864_uniform_Dirty_XX.fits')
-    #image_model = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/1130776864_uniform_Model_XX.fits')
-    #residual = difference_images(image_dirty, image_model)
-    #plot_fits_image(residual, ra_range=[50, 52], dec_range=[-38, -36.5], save_filename='/Users/ruby/EoR/gaussian_model_debugging_Dec18/residual.png')
-    image = load_image('/Users/ruby/Downloads/1130776864_uniform_Model_XX.fits')
-    plot_fits_image(image, ra_range=[50, 52], dec_range=[-38, -36.5])
+    output_model = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/gaussian_model/1130776864_uniform_Model_XX.fits')
+    output_model.limit_data_range(ra_range=[50., 51.5], dec_range=[-37.6, -36.8])
+    catalog_model = load_gaussian_source_model_as_image('/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/FornaxA_gaussian_model.sav', reference_image=output_model)
+    difference = difference_images(catalog_model, output_model)
+    print np.sum(output_model.signal_arr)
+    print np.sum(catalog_model.signal_arr)
+    plot_fits_image(difference, colorbar_range=[-5, 5], save_filename='/Users/ruby/Desktop/catalog_minus_fhd.png')
