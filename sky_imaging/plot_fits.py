@@ -103,6 +103,7 @@ def load_gaussian_source_model_as_image(
     catalog_path, source_ind=0, resolution=.01, ra_range=None, dec_range=None,
     reference_image=None
 ):
+    # THE NORMALIZATION IS WRONG!!! DON'T USE THIS FUNCTION!
 
     # If reference image is supplied, use the same ra and dec locations
     if reference_image is not None:
@@ -150,13 +151,12 @@ def load_gaussian_source_model_as_image(
         for i in range(np.shape(grid_dec)[0]):
             for j in range(np.shape(grid_dec)[1]):
                 pixel_val = (
-                    comp_flux/(7200*np.pi*comp_size_x*comp_size_y)
+                    comp_flux*np.pi/(2.*(180.)**2.*comp_size_x*comp_size_y)
                     * np.exp(-(grid_ra[i, j]-comp_ra)**2./(2*comp_size_x**2.))
                     * np.exp(-(grid_dec[i, j]-comp_dec)**2./(2*comp_size_y**2.))
                 )
                 plot_signal[i, j] += pixel_val
 
-    print total_flux
     image = ImageFromFits(plot_signal, ra_range=ra_range, dec_range=dec_range)
     return image
 
@@ -210,15 +210,16 @@ def plot_fits_image(
     if save_filename == '':
         plt.show()
     else:
+        print 'Saving figure to {}'.format(save_filename)
         plt.savefig(save_filename, format='png', dpi=500)
 
 
 if __name__ == '__main__':
 
     output_model = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/gaussian_model/1130776864_uniform_Model_XX.fits')
+    output_dirty = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/gaussian_model/1130776864_uniform_Dirty_XX.fits')
     output_model.limit_data_range(ra_range=[50., 51.5], dec_range=[-37.6, -36.8])
+    output_dirty.limit_data_range(ra_range=[50., 51.5], dec_range=[-37.6, -36.8])
     catalog_model = load_gaussian_source_model_as_image('/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/FornaxA_gaussian_model.sav', reference_image=output_model)
     difference = difference_images(catalog_model, output_model)
-    print np.sum(output_model.signal_arr)
-    print np.sum(catalog_model.signal_arr)
     plot_fits_image(difference, colorbar_range=[-5, 5], save_filename='/Users/ruby/Desktop/catalog_minus_fhd.png')
