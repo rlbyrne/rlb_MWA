@@ -75,6 +75,10 @@ pro catalog_reformat_ao_to_fhd
                 ra_hours = fix((strsplit(pos_params[1], 'h', /extract))[0])
                 ra_minutes = fix((strsplit((strsplit(pos_params[1], 'h', /extract))[1], 'm', /extract))[0])
                 ra_seconds = float((strsplit((strsplit(pos_params[1], 'm', /extract))[1], 's', /extract))[0])
+                if ra_hours lt 0 then begin
+                  ra_minutes = -ra_minutes
+                  ra_seconds = -ra_seconds
+                endif
                 ra = ra_hours*15. + ra_minutes*(.25) + ra_seconds*(.05/12.)
                 dec_degrees = fix((strsplit(pos_params[2], 'd', /extract))[0])
                 dec_minutes = fix((strsplit((strsplit(pos_params[2], 'd', /extract))[1], 'm', /extract))[0])
