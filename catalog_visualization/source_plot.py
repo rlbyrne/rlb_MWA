@@ -12,6 +12,142 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
+def plot_catalog(
+    catalog_path, save_filename, flux_plot_max=None, title='',
+    ra_range=None, dec_range=None, ra_cut_val=220, label_sources=False,
+    label_gleam_supplement_sources=False
+):
+
+    catalog = scipy.io.readsav(catalog_path)['catalog']
+
+    source_ras = []
+    source_decs = []
+    source_fluxes = []
+    for source in catalog:
+        ra = source['ra']
+        if ra > ra_cut_val:
+            ra -= 360.
+        if ra < ra_cut_val-360.:
+            ra += 360.
+        source_ras.append(ra)
+        source_decs.append(source['dec'])
+        source_fluxes.append(source['flux']['I'][0])
+
+    if flux_plot_max is None:
+        flux_plot_max = max(source_fluxes)
+    source_markersizes = []
+    markersize_range = [.02, 3.]
+    for flux in source_fluxes:
+        if flux >= flux_plot_max:
+            flux = flux_plot_max
+        source_markersizes.append(
+            flux/flux_plot_max*(markersize_range[1] - markersize_range[0])
+            + markersize_range[0]
+        )
+
+    if ra_range is None:
+        ra_min = min(source_ras)
+        ra_max = max(source_ras)
+        ra_range = [
+            ra_min-(ra_max-ra_min)/10., ra_max+(ra_max-ra_min)/10.
+        ]
+    if dec_range is None:
+        dec_min = min(source_decs)
+        dec_max = max(source_decs)
+        dec_range = [
+            dec_min-(dec_max-dec_min)/10., dec_max+(dec_max-dec_min)/10.
+        ]
+
+    plt.figure()
+    ax = plt.gca()
+    plt.scatter(
+        source_ras, source_decs, s=source_markersizes, facecolors='blue',
+        edgecolors='none'
+        )
+
+    if label_sources:
+        source_names = [
+            'Crab', 'PicA', 'HydA', 'CenA',
+            'HerA', 'VirA', 'CygA', 'CasA',
+            '3C161', '3C353', '3C409',
+            '3C444', 'CasA', 'ForA', 'HerA',
+            'NGC0253', 'PicA', 'VirA',
+            'PKS0349-27', 'PKS0442-28', 'PKS2153-69', 'PKS2331-41',
+            'PKS2356-61', 'PKSJ0130-2610'
+        ]
+        named_source_ras = [
+            83.6331, 79.9572, 139.524, 201.365,
+            252.784, 187.706, 299.868, 350.858,
+            96.7921, 260.117, 303.615,
+            333.607, 350.866, 50.6738, 252.793,
+            11.8991, 79.9541, 187.706,
+            57.8988, 71.1571, 329.275, 353.609,
+            359.768, 22.6158
+        ]
+        named_source_decs = [
+            22.0145, -45.7788, -12.0956, -43.0192,
+            4.9925, 12.3911, 40.7339, 58.8,
+            -5.88472, -0.979722, 23.5814,
+            -17.0267, 58.8117, -37.2083, 4.99806,
+            -25.2886, -45.7649, 12.3786,
+            -27.7431, -28.1653, -69.6900, -41.4233,
+            -60.9164, -26.1656
+        ]
+        for ind, ra in enumerate(named_source_ras):
+            if ra > ra_cut_val:
+                named_source_ras[ind] = ra-360.
+            if ra < ra_cut_val-360.:
+                named_source_ras[ind] = ra+360.
+        plt.scatter(
+            named_source_ras, named_source_decs, marker='o',
+            s=markersize_range[1], facecolors='none', edgecolors='red',
+            linewidth=.1
+        )
+        for i, name in enumerate(source_names):
+            plt.annotate(
+                name, (named_source_ras[i], named_source_decs[i]),
+                fontsize=3.
+            )
+
+    if label_gleam_supplement_sources:
+        source_names = [
+            'PicA', 'HydA', 'CenA', 'HerA', 'VirA', 'CasA', '3C161',
+            '3C409', 'ForA'
+        ]
+        named_source_ras = [
+            79.9572, 139.524, 201.365, 252.784, 187.706, 350.858, 96.7921, 303.615, 50.6738
+        ]
+        named_source_decs = [
+            -45.7788, -12.0956, -43.0192, 4.9925, 12.3911, 58.8, -5.88472,
+            23.5814, -37.2083
+        ]
+        for ind, ra in enumerate(named_source_ras):
+            if ra > ra_cut_val:
+                named_source_ras[ind] = ra-360.
+            if ra < ra_cut_val-360.:
+                named_source_ras[ind] = ra+360.
+        plt.scatter(
+            named_source_ras, named_source_decs, marker='o',
+            s=markersize_range[1], facecolors='none', edgecolors='red',
+            linewidth=.1
+        )
+        for i, name in enumerate(source_names):
+            plt.annotate(
+                name, (named_source_ras[i], named_source_decs[i]),
+                fontsize=3.
+            )
+
+    plt.xlim(ra_range[1], ra_range[0])
+    plt.ylim(dec_range[0], dec_range[1])
+    plt.xlabel('RA (deg)')
+    plt.ylabel('Dec (deg)')
+    plt.title(title)
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_facecolor('white')
+    print 'Saving plot to {}'.format(save_filename)
+    plt.savefig(save_filename, format='png', dpi=500)
+
+
 def plot_extended_source_components(
     catalog_path, save_filename, source_ind=0, flux_plot_max=None, title='',
     ra_range=None, dec_range=None
@@ -138,9 +274,7 @@ def plot_gaussian_source_model(
 
 
 if __name__ == '__main__':
-    plot_gaussian_source_model(
-        '/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/FornaxA_gaussian_model.sav',
-        '/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/FornaxA_gaussian_model_plot.png',
-        title = 'Fornax A Model from RTS',
-        resolution=.001
+
+    plot_catalog(
+        '/Users/ruby/EoR/FHD/catalog_data/GLEAM_v2_plus_rlb2019.sav', '/Users/ruby/EoR/catalog_visualization/GLEAM_v2_plus_with_lables.png', title='', label_gleam_supplement_sources=True, dec_range=[-90, 90], flux_plot_max=100.
     )
