@@ -7,8 +7,8 @@ pro grid_gaussian_source_model
   
   catalog_path = '/Users/ruby/EoR/source_models_for_supplementing_GLEAM/CenA_gaussian_model.sav'
   source_index = 0
-  grid_resolution = 0.01 ;Resolution of the gridded model in degrees
-  flux_cut = 0.01
+  grid_resolution = 0.02 ;Resolution of the gridded model in degrees
+  flux_cut = 0.03
   template_catalog_path = '/Users/ruby/EoR/source_models_for_supplementing_GLEAM/FornaxA_from_FHD.sav'
   
   catalog = getvar_savefile(catalog_path, 'catalog')
@@ -83,6 +83,7 @@ pro grid_gaussian_source_model
   template_catalog.extend = ptr_new(output_components)
   
   catalog = template_catalog
+  print, 'Saving catalog to /Users/ruby/EoR/source_models_for_supplementing_GLEAM/CenA_gridded_model_'+strtrim(n_comps,1)+'comp.sav'
   save, catalog, filename = '/Users/ruby/EoR/source_models_for_supplementing_GLEAM/CenA_gridded_model_'+strtrim(n_comps,1)+'comp.sav'
 
 end
