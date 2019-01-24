@@ -8,14 +8,16 @@ from pyuvdata import uvutils
 
 def write_out_antenna_locs():
 
-    uvfits_path = '/Users/rubybyrne/array_simulation'
-    save_path = '/Users/rubybyrne/array_simulation'
+    #uvfits_path = '/Users/rubybyrne/array_simulation'
+    uvfits_path = '/Users/Shared/uvfits/4.1'
+    save_path = '/Users/rubybyrne'
 
     obsids = ['hex_array_sim_10m','hex_array_sim_15m','hex_array_sim_20m',
         'random1_array_sim_10m','random1_array_sim_15m','random1_array_sim_20m',
         'random2_array_sim_10m','random2_array_sim_15m','random2_array_sim_20m',
         'random3_array_sim_10m','random3_array_sim_15m','random3_array_sim_20m'
     ]
+    obsids = ['1061316296']
 
     for obsid in obsids:
 

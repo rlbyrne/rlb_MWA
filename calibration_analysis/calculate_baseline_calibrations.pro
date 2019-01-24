@@ -147,6 +147,34 @@ pro calculate_baseline_calibrations
     color=['blue','red','orange'], length=0.03, /center_sym, location=[.3,.9], charsize=.8, /box, background='white'
   cgps_close, /png, /delete_ps, density=plot_resolution
   
+  cgps_open, output_path+'/'+obsid+'_baseline_type_gain_amp_'+pol_name+'.png'
+  cgplot, freq, mean_amp^2., linestyle=0, thick=4, color='blue', aspect=.8, xtitle='Frequency (MHz)', $
+    ytitle='Gain Amplitude', $
+    xrange=[min(freq), max(freq)], yrange=[.97,1.016], charsize=1., /nodata
+  cgplot, freq, mean(abs((gains[*,baseline_ant1])[*,where(which_baseline eq 1)]), dimension=2)*mean(abs((gains[*,baseline_ant2])[*,where(which_baseline eq 1)]), dimension=2), linestyle=0, thick=1, color='blue', /overplot
+  cgplot, freq, mean(abs((gains[*,baseline_ant1])[*,where(which_baseline eq 2)]), dimension=2)*mean(abs((gains[*,baseline_ant2])[*,where(which_baseline eq 2)]), dimension=2), linestyle=0, thick=1, color='red', /overplot
+  cgplot, freq, mean(abs((gains[*,baseline_ant1])[*,where(which_baseline eq 3)]), dimension=2)*mean(abs((gains[*,baseline_ant2])[*,where(which_baseline eq 3)]), dimension=2), linestyle=0, thick=1, color='orange', /overplot
+  cgplot, freq, mean_amp^2., linestyle=0, thick=1, color='black', /overplot
+  cgplot, [freq[0], freq[-1]], [1,1], linestyle=0, color='grey', thick=1, /overplot
+  cglegend, title=['(-7.5m,13m) baselines', '(7.5m,13m) baselines', '(15m,0m) baselines', 'all baselines'],$
+    linestyle=[0,0,0,0], thick=1, $
+    color=['blue','red','orange', 'black'], length=0.03, /center_sym, location=[.3,.9], charsize=.8, /box, background='white'
+  cgps_close, /png, /delete_ps, density=plot_resolution
+
+  ;PLot the per-baseline gain phases for traditional cal and absolute cal
+  ;  cgps_open, output_path+'/'+obsid+'_baseline_gain_phase_'+pol_name+'.png', XSIZE = 5, YSIZE = 4
+  ;  cgplot, freq, mean_amp^2., linestyle=0, thick=4, color='blue', aspect=.8, xtitle='Frequency (MHz)', $
+  ;    ytitle='Gain Amplitude', $
+  ;    xrange=[min(freq), max(freq)], yrange=[-.05,.05], charsize=1., /nodata
+  ;  for bl = 0, n_elements(baseline_x)-1 do begin
+  ;    cgplot, freq, atan(baseline_gains[*, bl], /phase), linestyle=0, thick=1, color='blue', /overplot
+  ;  endfor
+  ;  for bl = 0, n_elements(baseline_x)-1 do begin
+  ;    cgplot, freq, atan(baseline_gains_abs[*, bl], /phase), linestyle=0, thick=1, color='black', /overplot
+  ;  endfor
+  ;  cgplot, [freq[0], freq[-1]], [0,0], linestyle=0, color='grey', thick=1, /overplot
+  ;  cgps_close, /png, /delete_ps, density=plot_resolution
+  
   ;Plot the average per-baseline gain amplitudes for each baseline type for traditional cal - absolute cal
 ;  cgps_open, output_path+'/'+obsid+'_baseline_type_gain_amp_diff_'+pol_name+'.png', XSIZE = 5, YSIZE = 4
 ;  cgplot, freq, mean_amp^2., linestyle=0, thick=4, color='blue', aspect=.8, xtitle='Frequency (MHz)', $
