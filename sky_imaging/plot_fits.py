@@ -185,7 +185,8 @@ def difference_images(image1, image2):
 def plot_fits_image(
     fits_image, save_filename='', title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/sr)'
+    colorbar_label='Flux Density (Jy/sr)', plot_grid=True,
+    xlabel='RA (deg.)', ylabel='Dec. (deg.)'
 ):
 
     if ra_range is not None or dec_range is not None:
@@ -202,11 +203,15 @@ def plot_fits_image(
         vmin=colorbar_range[0], vmax=colorbar_range[1], aspect='auto'
     )
     plt.axis('equal')
-    ax.set_facecolor('gray')  # make plot background gray
-    plt.grid(which='both', zorder=10, lw=0.5)
+    #ax.set_facecolor('gray')  # make plot background gray
+    ax.set_facecolor('black')
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    if plot_grid:
+        plt.grid(which='both', zorder=10, lw=0.5)
     cbar = plt.colorbar()
     # Label colorbar:
-    cbar.ax.set_ylabel('Flux Density (Jy/sr)', rotation=270, labelpad=15)
+    cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
     if save_filename == '':
         plt.show()
     else:
@@ -216,10 +221,8 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    output_model = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/gaussian_model/1130776864_uniform_Model_XX.fits')
-    output_dirty = load_image('/Users/ruby/EoR/gaussian_model_debugging_Dec18/gaussian_model/1130776864_uniform_Dirty_XX.fits')
-    output_model.limit_data_range(ra_range=[50., 51.5], dec_range=[-37.6, -36.8])
-    output_dirty.limit_data_range(ra_range=[50., 51.5], dec_range=[-37.6, -36.8])
-    catalog_model = load_gaussian_source_model_as_image('/Users/ruby/EoR/extended_source_models_from_Ben_Fall2018/FornaxA_gaussian_model.sav', reference_image=output_model)
-    difference = difference_images(catalog_model, output_model)
-    plot_fits_image(difference, colorbar_range=[-5, 5], save_filename='/Users/ruby/Desktop/catalog_minus_fhd.png')
+    weights = load_image('/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_Jun2018/output_data/random1_array_sim_331_UV_weights_XX.fits')
+    plot_fits_image(weights, colorbar_range=[0, 1e-5],
+        xlabel='U (wavelengths)', ylabel='V (wavelengths)', colorbar_label='Weight (Jy/beam)',
+        plot_grid=False, ra_range=[-210,210], dec_range=[-210,210],
+        save_filename='/Users/rubybyrne/weights_plots_for_cal_paper/random1_array.png')
