@@ -484,10 +484,10 @@ def combine_maps_nearest_data(
         if len(use_maps) > 0:
             vec = hp.pix2vec(nside, pix, nest=nest)
             distances = [(vec-obs_vec)**2. for obs_vec in obs_centers]
-        signal_arr.append(healpix_maps[
-            use_maps_inds[np.argmin(distances)]
-        ].signal_arr[pix_arr.index(pix)])
-        pix_arr.append(pix)
+            signal_arr.append(healpix_maps[
+                use_maps_inds[np.argmin(distances)]
+            ].signal_arr[pix_arr.index(pix)])
+            pix_arr.append(pix)
 
     combined_map = HealpixMap(
         signal_arr, pix_arr, nside, nest=nest, coords=coords
