@@ -499,8 +499,8 @@ def combine_maps_nearest_data(
         for map_ind in range(len(healpix_maps)):
             dist = (
                 (vec[0]-obs_centers[map_ind][0])**2.
-                +(vec[1]-obs_centers[map_ind][1])**2.
-                +(vec[2]-obs_centers[map_ind][2])**2.
+                + (vec[1]-obs_centers[map_ind][1])**2.
+                + (vec[2]-obs_centers[map_ind][2])**2.
             )
             distances.append(dist)
         map_indices = np.argsort(distances)
