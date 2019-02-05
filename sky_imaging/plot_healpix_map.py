@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from mpl_toolkits.basemap import Basemap
 import numpy as np
 import healpy as hp
 import sys
@@ -24,7 +23,7 @@ def plot_filled_pixels(
         print 'WARNING: No map coordinate scheme supplied.'
         print 'Assuming equitorial coordinates.'
         coords = 'equitorial'
-    elif:
+    else:
         coords = map.coords
 
     # Fast way to limit the plot region
@@ -80,6 +79,22 @@ def plot_filled_pixels(
         patches.append(polygon)
     colors = use_map.signal_arr
 
+    # Establish axis ranges
+    if len(ra_range) != 2:
+        all_ras = [
+            use_map.pix_corner_ras_arr[ind][poly_ind]
+            for ind in range(len(use_map.pix_corner_ras_arr))
+            for poly_ind in range(4)
+        ]
+        ra_range = [min(all_ras), max(all_ras)]
+    if len(dec_range) != 2:
+        all_decs = [
+            use_map.pix_corner_decs_arr[ind][poly_ind]
+            for ind in range(len(use_map.pix_corner_decs_arr))
+            for poly_ind in range(4)
+        ]
+        dec_range = [min(all_decs), max(all_decs)]
+
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
     collection.set_edgecolor('face')  # make the face and edge colors match
@@ -87,6 +102,8 @@ def plot_filled_pixels(
         collection.set_norm(LogNorm())
     if len(colorbar_range) == 2:  # set the colorbar min and max
         collection.set_clim(vmin=colorbar_range[0], vmax=colorbar_range[1])
+    else:
+        collection.set_clim(vmin=min(colors), vmax=max(colors))
 
     fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
     ax.add_collection(collection)  # plot data
@@ -100,6 +117,7 @@ def plot_filled_pixels(
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
     # label colorbar
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
+    print 'Saving plot to {}'.format(save_filename)
     plt.savefig(save_filename, format='png', dpi=500)
 
 
@@ -141,9 +159,17 @@ def plot_grid_interp(
     plt.grid(which='both', zorder=10, lw=0.5)
     cbar = plt.colorbar(extend='max')
     cbar.ax.set_ylabel(colorbar_label, rotation=270)  # label colorbar
+    print 'Saving plot to {}'.format(save_filename)
     plt.savefig(save_filename, format='png', dpi=500)
 
 
 if __name__ == '__main__':
 
-    plot_healpix_fhd_output('/Users/ruby/EoR/1061316296_even_cubeXX.sav', '/Users/ruby/EoR/single_source_sims/test_diff3.png'.format(0), 0)
+    map = healpix_utils.combine_maps_nearest_data(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019',
+        nside=512
+    )
+    plot_filled_pixels(
+        map,
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/test_combined_plot.png'
+    )

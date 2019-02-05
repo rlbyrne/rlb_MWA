@@ -6,6 +6,7 @@ import numpy as np
 import healpy as hp
 import sys
 import math
+import os
 
 
 class HealpixMap:
@@ -63,9 +64,9 @@ class HealpixMap:
         pix_corner_ras_arr = []
         pix_corner_decs_arr = []
         rot = hp.rotator.Rotator(coord=['G', 'C'])
-        for for pixel in self.pix_arr:
+        for pixel in self.pix_arr:
             corner_coords = hp.boundaries(self.nside, pixel, step=1,
-                                          nest=nest)
+                                          nest=self.nest)
             if self.coords == 'galactic':
                 thetas_gal, phis_gal = hp.pixelfunc.vec2ang(
                     np.transpose(corner_coords), lonlat=False)
@@ -98,7 +99,7 @@ class HealpixMap:
         self.pix_corner_decs_arr = pix_corner_decs_arr
 
     def explicit_to_implicit_ordering(self):
-        signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*nside_in**2
+        signal_vals_implicit = [hp.pixelfunc.UNSEEN]*12*self.nside**2
         for i in range(len(self.signal_arr)):
             signal_vals_implicit[self.pix_arr[i]] = self.signal_arr[i]
         self.signal_arr = signal_vals_implicit
@@ -108,10 +109,10 @@ class HealpixMap:
         use_inds = [ind for ind in range(len(self.signal_arr))
                     if self.signal_arr[ind] != hp.pixelfunc.UNSEEN]
         if self.pix_arr == []:
-            self.pix_arr = (list(range(len(self.signal_arr))))[use_inds]
+            self.pix_arr = use_inds
         else:
-            self.pix_arr = self.pix_arr[use_inds]
-        self.singal_arr = self.signal_arr[use_inds]
+            self.pix_arr = [self.pix_arr[ind] for ind in use_inds]
+        self.signal_arr = [self.signal_arr[ind] for ind in use_inds]
 
     def reorder_nest_to_ring(self):
         if self.nest:
@@ -128,6 +129,7 @@ class HealpixMap:
             self.implicit_to_explicit_ordering()
 
     def resample(self, nside):
+        print 'Resampling map: nside {} to {}'.format(self.nside, nside)
         if self.nest:
             ordering = 'nested'
         else:
@@ -232,6 +234,7 @@ class HealpixMap:
 def load_map(data_filename):
     # Load a HEALPix map formatted with FHD image conventions
 
+    print 'Loading HEALPix map {}'.format(data_filename)
     contents = fits.open(data_filename)
     nside = int(contents[1].header['nside'])
     ordering = contents[1].header['ordering']
@@ -436,6 +439,9 @@ def combine_maps_nearest_data(
     fhd_run_path, obs_list_file=None, nside=None, cube_name='Residual_I'
 ):
 
+    if fhd_run_path[-1] == '/':
+        fhd_run_path = fhd_run_path[:-1]
+
     if obs_list_file is None:  # use all obs in the data directory
         data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
         data_files = [
@@ -450,9 +456,12 @@ def combine_maps_nearest_data(
         # remove duplicates
         obs_list = list(set(obs_list))
 
+    print 'Combining {} observations'.format(len(obs_list))
+
     healpix_maps = []
+    all_pixels = []
     for obsid in obs_list:
-        map = healpix_utils.load_map('{}/{}_uniform_{}_HEALPix.fits'.format(
+        map = load_map('{}/output_data/{}_uniform_{}_HEALPix.fits'.format(
             fhd_run_path, obsid, cube_name
         ))
         if nside is not None:
@@ -463,13 +472,14 @@ def combine_maps_nearest_data(
                 map.resample(nside)
         healpix_maps.append(map)
         nside = map.nside  # use the nside of the first obs
+        all_pixels.extend(map.pix_arr)
 
-    npixels = 12*nside**2
+    all_pixels = list(set(all_pixels))  # remove duplicates
     if len(set([map.nest for map in healpix_maps])) > 1:
         print 'ERROR: Nest conventions do not match. Exiting.'
         sys.exit(1)
     nest = healpix_maps[0].nest
-    coords = heaplix_maps[0].coords
+    coords = healpix_maps[0].coords
 
     obs_centers = []
     for obsid in obs_list:
@@ -477,24 +487,30 @@ def combine_maps_nearest_data(
             '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
         )['obs']
         obs_vec = hp.pixelfunc.ang2vec(
-            obs_struct['obsra'], obs_struct['obsdec'], lonlat=True
+            float(obs_struct['obsra']), float(obs_struct['obsdec']), lonlat=True
         )
         obs_centers.append(obs_vec)
 
     signal_arr = []
     pix_arr = []
-    for pix in range(npixels):
-        use_maps_inds = [
-            ind for ind in range(len(healpix_maps))
-            if pix in healpix_maps[ind].pix_arr
-        ]
-        if len(use_maps) > 0:
-            vec = hp.pix2vec(nside, pix, nest=nest)
-            distances = [(vec-obs_vec)**2. for obs_vec in obs_centers]
-            signal_arr.append(healpix_maps[
-                use_maps_inds[np.argmin(distances)]
-            ].signal_arr[pix_arr.index(pix)])
-            pix_arr.append(pix)
+    for pix in all_pixels:
+        vec = hp.pix2vec(nside, pix, nest=nest)
+        distances = []
+        for map_ind in range(len(healpix_maps)):
+            dist = (
+                (vec[0]-obs_centers[map_ind][0])**2.
+                +(vec[1]-obs_centers[map_ind][1])**2.
+                +(vec[2]-obs_centers[map_ind][2])**2.
+            )
+            distances.append(dist)
+        map_indices = np.argsort(distances)
+        use_map = 0
+        while pix not in healpix_maps[map_indices[use_map]].pix_arr:
+            use_map += 1
+        signal_arr.append(healpix_maps[map_indices[use_map]].signal_arr[
+            (healpix_maps[map_indices[use_map]].pix_arr).index(pix)
+        ])
+        pix_arr.append(pix)
 
     combined_map = HealpixMap(
         signal_arr, pix_arr, nside, nest=nest, coords=coords
