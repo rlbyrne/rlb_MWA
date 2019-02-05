@@ -430,3 +430,67 @@ def average_healpix_maps(maps_arr):
         )
 
     return ave_map, var_map, nsamples_map
+
+
+def combine_maps_nearest_data(
+    fhd_run_path, obs_list_file=None, nside=None, cube_name='Residual_I'
+):
+
+    if obs_list_file is not None:
+        obs_list = open(obs_list_file, 'r').readlines()
+        # strip newline characters
+        obs_list = [obs.strip() for obs in obs_list]
+        # remove duplicates
+        obs_list = list(set(obs_list))
+
+    healpix_maps = []
+    for obsid in obs_list:
+        map = healpix_utils.load_map('{}/{}_uniform_{}_HEALPix.fits'.format(
+            fhd_run_path, obsid, cube_name
+        ))
+        if nside is not None:
+            if map.nside != nside:
+                print 'Resampling map for obsid {}: nside {} to {}'.format(
+                    obsid, map.nside, nside
+                )
+                map.resample(nside)
+        healpix_maps.append(map)
+        nside = map.nside  # use the nside of the first obs
+
+    npixels = 12*nside**2
+    if len(set([map.nest for map in healpix_maps])) > 1:
+        print 'ERROR: Nest conventions do not match. Exiting.'
+        sys.exit(1)
+    nest = healpix_maps[0].nest
+    coords = heaplix_maps[0].coords
+
+    obs_centers = []
+    for obsid in obs_list:
+        obs_struct = scipy.io.readsav(
+            '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+        )['obs']
+        obs_vec = hp.pixelfunc.ang2vec(
+            obs_struct['obsra'], obs_struct['obsdec'], lonlat=True
+        )
+        obs_centers.append(obs_vec)
+
+    signal_arr = []
+    pix_arr = []
+    for pix in range(npixels):
+        use_maps_inds = [
+            ind for ind in range(len(healpix_maps))
+            if pix in healpix_maps[ind].pix_arr
+        ]
+        if len(use_maps) > 0:
+            vec = hp.pix2vec(nside, pix, nest=nest)
+            distances = [(vec-obs_vec)**2. for obs_vec in obs_centers]
+        signal_arr.append(healpix_maps[
+            use_maps_inds[np.argmin(distances)]
+        ].signal_arr[pix_arr.index(pix)])
+        pix_arr.append(pix)
+
+    combined_map = HealpixMap(
+        signal_arr, pix_arr, nside, nest=nest, coords=coords
+    )
+
+    return combined_map
