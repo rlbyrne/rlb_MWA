@@ -436,7 +436,14 @@ def combine_maps_nearest_data(
     fhd_run_path, obs_list_file=None, nside=None, cube_name='Residual_I'
 ):
 
-    if obs_list_file is not None:
+    if obs_list_file is None:  # use all obs in the data directory
+        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+        data_files = [
+            file for file in data_files
+            if '_uniform_{}_HEALPix.fits'.format(cube_name) in file
+        ]
+        obs_list = [file[0:10] for file in data_files]
+    else:  # use the obs file list
         obs_list = open(obs_list_file, 'r').readlines()
         # strip newline characters
         obs_list = [obs.strip() for obs in obs_list]
