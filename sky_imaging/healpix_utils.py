@@ -288,7 +288,10 @@ def load_global_map(data_filename):
 def load_fhd_output_map(data_filename, cube='model', freq_index=0):
     # Load a HEALPix map formatted with FHD-for-eppsilon conventions
 
-    if cube != 'model' and cube != 'data' and cube != 'variance' and cube != 'weights':
+    if (
+        cube != 'model' and cube != 'data'
+        and cube != 'variance' and cube != 'weights'
+    ):
         print 'ERROR: Invalid cube option.'
         print 'Cube must be "model", "dirty", "variance", or "weights". Exiting.'
     if cube == 'model':
@@ -487,7 +490,8 @@ def combine_maps_nearest_data(
             '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
         )['obs']
         obs_vec = hp.pixelfunc.ang2vec(
-            float(obs_struct['obsra']), float(obs_struct['obsdec']), lonlat=True
+            float(obs_struct['obsra']), float(obs_struct['obsdec']),
+            lonlat=True
         )
         obs_centers.append(obs_vec)
 
@@ -499,8 +503,8 @@ def combine_maps_nearest_data(
         for map_ind in range(len(healpix_maps)):
             dist = (
                 (vec[0]-obs_centers[map_ind][0])**2.
-                +(vec[1]-obs_centers[map_ind][1])**2.
-                +(vec[2]-obs_centers[map_ind][2])**2.
+                + (vec[1]-obs_centers[map_ind][1])**2.
+                + (vec[2]-obs_centers[map_ind][2])**2.
             )
             distances.append(dist)
         map_indices = np.argsort(distances)
