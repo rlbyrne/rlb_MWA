@@ -1,11 +1,6 @@
-pro pol_leakage_calc
-
-  plot = 1
-  make_catalog = 0
-  write_fit_params = 0
-  create_decon_catalogs = 0
+pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=write_fit_params, create_decon_catalogs=create_decon_catalogs
   
-  fhd_path = '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019/'
   
   ; Find obsids where all files are present
   decon_filenames = file_search(fhd_path+'deconvolution/*')
@@ -40,11 +35,12 @@ pro pol_leakage_calc
   endfor
   obsids = cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(long(obsids_decon), long(obsids_residual_I)), long(obsids_residual_Q)), long(obsids_residual_U)), long(obsids_residual_V)), long(obsids_obsfile))
   obsids = strtrim(obsids[uniq(obsids, sort(obsids))],1)
-  ;obsids=['1130773024']
+  obsids = obsids[0]
   
   if keyword_set(create_decon_catalogs) then begin
     for obs_index=0, n_elements(obsids)-1 do begin
       obsid = obsids[obs_index]
+      print, 'Generating a catalog from deconvolution outputs, saving to '+fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
       generate_calibration_catalog, source_list=fhd_path+'deconvolution/'+obsid+'_fhd.sav', file_path=fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     endfor
   endif  
@@ -62,10 +58,11 @@ pro pol_leakage_calc
     fit_sources_number = 400
     fit_radius = 18  ; use only sources within this many degrees of the pointing center
     fit_radius_pixels = 380
-    ;source_size = 1.5  ; stddev of the Gaussian sources fit in pixels
-    source_size = 1.
+    source_size = 1.  ; stddev of the Gaussian sources fit in pixels
+    isolated_source_radius = .1  ; use only isolated sources, distance between sources is at least this in degrees
     output_path = fhd_path+'plots/'
     
+    ; grab sources and sort by apparent flux
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
     apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
@@ -85,11 +82,23 @@ pro pol_leakage_calc
         endif
       endif
     endfor
-    brightest_indices = (reverse(sort(apparent_fluxes)))
-    if fit_sources_number lt n_elements(brightest_indices) then brightest_indices = brightest_indices[0:fit_sources_number-1] else begin
+    brightest_indices = reverse(sort(apparent_fluxes))
+    
+    ; find only isolated sources
+    close_sources_indices = []
+    for source_ind_1 = 0, n_elements(brightest_indices)-2 do begin
+      for source_ind_2 = source_ind_1+1, n_elements(brightest_indices)-1 do begin
+        if (catalog[brightest_indices[source_ind_1]].RA-catalog[brightest_indices[source_ind_2]].RA)^2.+(catalog[brightest_indices[source_ind_1]].DEC-catalog[brightest_indices[source_ind_2]].DEC)^2. lt isolated_source_radius^2. then begin
+          close_sources_indices = [close_sources_indices, source_ind_1, source_ind_2]
+        endif
+      endfor
+    endfor
+    remove, close_sources_indices, brightest_indices
+    
+    if fit_sources_number lt n_elements(brightest_indices) then fit_sources = catalog[brightest_indices[0:fit_sources_number-1]] else begin
+      fit_sources = catalog[brightest_indices]
       fit_sources_number = n_elements(brightest_indices)
     endelse
-    fit_sources = catalog[brightest_indices]
     
     residual_I = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_I.fits', header)  ; assume all headers are the same
     residual_Q = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_Q.fits')
@@ -161,7 +170,8 @@ pro pol_leakage_calc
     
     if keyword_set(plot) then begin
       for pol = 0, 2 do begin
-        cgPS_Open, '/Users/rubybyrne/polarization_leakage/plots/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
+        print, 'Saving plot to '+'/Users/rubybyrne/polarization_leakage/plots_Feb2019/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
+        cgPS_Open, '/Users/rubybyrne/polarization_leakage/plots_Feb2019/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
         ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
         colorbar_extent = .3
         plot_range = [1024-400, 1024+400]
@@ -241,16 +251,17 @@ pro pol_leakage_calc
           endfor
         endif
       endfor
-      save, catalog, filename=output_path+obsid+'_decon_catalog_pol_leakage_corrected.sav'
+      print, 'Saving polarization leakage corrected catalog to '+'/Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/'+obsid+'_decon_catalog_pol_leakage_corrected.sav'
+      save, catalog, filename='/Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/'+obsid+'_decon_catalog_pol_leakage_corrected.sav'
     endif
     
     if keyword_set(write_fit_params) then begin
       line = obsid+','+strtrim(fit_params[0,0],2)+','+strtrim(fit_params[1,0],2)+','+strtrim(fit_params[2,0],2)+','+strtrim(fit_params[3,0],2)+','+strtrim(fit_params[4,0],2)+','+strtrim(fit_params[5,0],2) $
         +','+strtrim(fit_params[0,1],2)+','+strtrim(fit_params[1,1],2)+','+strtrim(fit_params[2,1],2)+','+strtrim(fit_params[3,1],2)+','+strtrim(fit_params[4,1],2)+','+strtrim(fit_params[5,1],2)
-      spawn, 'printf "'+line+'\n" >> '+output_path+'pol_leakage_fit_params.csv'
+      print, 'Saving fit parameters to /Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/pol_leakage_fit_params.csv'
+      spawn, 'printf "'+line+'\n" >> /Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/pol_leakage_fit_params.csv'
     endif
-  
+
   endfor
   
-  stop
 end
