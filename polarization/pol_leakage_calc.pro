@@ -65,6 +65,7 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     ; grab sources and sort by apparent flux
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
+    stop
     apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
 ;    for source_ind = 0, n_elements(catalog)-1 do begin
 ;      if catalog[source_ind].ra-obs.obsra gt 180. then catalog[source_ind].ra=catalog[source_ind].ra-360. 

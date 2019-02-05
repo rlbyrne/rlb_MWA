@@ -1,14 +1,32 @@
 pro ps_compare_cut_plots
 
   yrange = [1.e0, 1.e10]
-  datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
-    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
-    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__abs_errors_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
-    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__traditional_minus_perfect/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
-    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__traditional_minus_perfect/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
-    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__traditional_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave']
-  colors = ['blue', 'red', 'orange', 'blue', 'red', 'orange']
-  linestyles = [0,0,0,2,2,2]
+  ;datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__abs_errors_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__traditional_minus_perfect/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__traditional_minus_perfect/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__traditional_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave']
+  ;datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__abs_errors_minus_perfect/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__abs_errors_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__traditional_minus_perfect/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_1dkpower.idlsave']
+  ;datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_1061316296__traditional_minus_perfect/data/1d_binning/1061316296_cubeXX__even_odd_joint_averemove_swbh_res_xx_dencorr_1dkpower.idlsave']
+  ;datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__abs_errors_only_minus_perfect_nocut/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__abs_errors_only_minus_perfect_nocut/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__abs_errors_only_minus_perfect_nocut/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__traditional_minus_perfect_nocut/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__traditional_minus_perfect_nocut/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+  ;  '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__traditional_minus_perfect_nocut/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave']
+  datafiles = ['/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_hex_array_sim_331__traditional_minus_abs_nocut/data/1d_binning/hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_split_hex_array_sim_331__traditional_minus_abs_nocut/data/1d_binning/split_hex_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/ps_differences/fhd_rlb_array_sim_Barry_effect_random1_array_sim_331__traditional_minus_abs_nocut/data/1d_binning/random1_array_sim_331_cubeXX__even_odd_joint_bh_bh_averemove_swbh_res_xx_dencorr_no_horizon_wedge_1dkpower.idlsave']
+  ;colors = ['blue', 'red', 'orange', 'blue', 'red', 'orange']
+  colors = ['blue', 'red', 'orange']
+  ;colors = ['purple']
+  ;linestyles = [0,0,0,2]
+  ;linestyles = [0,0,0,2,2,2]
+  linestyles = [0,0,0]
   
   eor_file = '/Users/rubybyrne/FHD/catalog_data/eor_power_1d.idlsave'
   eor_k_centers = getvar_savefile(eor_file, 'k_centers')
@@ -25,7 +43,7 @@ pro ps_compare_cut_plots
     endelse
   endfor
       
-  cgps_open, '/Users/rubybyrne/array_simulation_331/1d_ps_plots/testplot.png'
+  cgps_open, '/Users/rubybyrne/array_simulation_331/1d_ps_plots/barry_effect_traditional_vs_abs_ps_full_window.png'
   cgplot, eor_plot_x, eor_plot_y, /xlog, /ylog, yrange=yrange, xrange=[7e-2, 7e-1], $
     linestyle=0, color='black', thick=4, $
     ytitle=textoidl('P_k (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k (!8h!X Mpc^{-1})')
@@ -43,10 +61,15 @@ pro ps_compare_cut_plots
     cgplot, plot_x, plot_y, /xlog, /ylog, $
       linestyle=linestyles[file_ind], color=colors[file_ind], thick=4, /overplot
   endfor
-  cglegend, title=['Hex. array, per ant. cal.', 'Offset hex. array, per ant. cal.', 'Random array, per ant. cal.',$
-    'Hex. array, errors in abs. cal. params.', 'Offset hex. array, errors in abs. cal. params.', 'Random array, errors in abs. cal. params.', 'Predicted EoR'], $
-    linestyle=[2,2,2,0,0,0,0], thick=4, $
+  ;cglegend, title=['Hex. array, errors in abs. cal. params.','Offset hex. array, errors in abs. cal. params.','Random array, errors in abs. cal. params.','Random array, per ant. cal.','Predicted EoR'], linestyle=[0,0,0,2,0], thick=4, color=[colors, 'black'], length=0.03, /center_sym, location=[.55,.9], charsize=.8, /box, background='white'
+  ;cglegend, title=['MWA sim, per-ant. cal.','Predicted EoR'], linestyle=[0,0], thick=4, color=[colors, 'black'], length=0.03, /center_sym, location=[.55,.9], charsize=.8, /box, background='white'
+  cglegend, title=['Hex. array, per ant. - abs. cal.', 'Offset hex. array, per ant. - abs. cal.', 'Random array, per ant. - abs. cal.', 'Predicted EoR'], $
+    linestyle=[0,0,0,0], thick=4, $
     color=[colors, 'black'], length=0.03, /center_sym, location=[.55,.9], charsize=.8, /box, background='white'
+  ;cglegend, title=['Hex. array, per ant. cal.', 'Offset hex. array, per ant. cal.', 'Random array, per ant. cal.',$
+  ;  'Hex. array, errors in abs. cal. params.', 'Offset hex. array, errors in abs. cal. params.', 'Random array, errors in abs. cal. params.', 'Predicted EoR'], $
+  ;  linestyle=[2,2,2,0,0,0,0], thick=4, $
+  ;  color=[colors, 'black'], length=0.03, /center_sym, location=[.55,.9], charsize=.8, /box, background='white'
   cgps_close, /png, /delete_ps, density=600
     
 
