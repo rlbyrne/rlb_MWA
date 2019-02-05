@@ -46,7 +46,7 @@ def plot_filled_pixels(
             map.signal_arr[map.pix_arr.index(pixel_val)]
             for pixel_val in use_pixels
             ]
-        use_map = HealpixMap(use_signal, use_pixels, map.nside, nest=map.nest,
+        use_map = healpix_utils.HealpixMap(use_signal, use_pixels, map.nside, nest=map.nest,
                              coords=coords)
     # Slow way to limit the plot region
     elif len(ra_range) == 2 or len(dec_range) == 2:
@@ -80,6 +80,7 @@ def plot_filled_pixels(
     colors = use_map.signal_arr
 
     # Establish axis ranges
+    # This part is buggy, fix it
     if len(ra_range) != 2:
         all_ras = [
             use_map.pix_corner_ras_arr[ind][poly_ind]
@@ -167,9 +168,13 @@ if __name__ == '__main__':
 
     map = healpix_utils.combine_maps_nearest_data(
         '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019',
-        nside=512
+        nside=512, cube_name='Residual_I'
+    )
+    map.write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_59obs_combined_nofilter.fits'
     )
     plot_filled_pixels(
         map,
-        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/test_combined_plot.png'
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_59obs_combined_plot.png',
+        ra_range = [-30,115], dec_range=[-55,5]
     )

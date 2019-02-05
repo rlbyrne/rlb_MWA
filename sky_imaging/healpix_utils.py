@@ -228,7 +228,8 @@ class HealpixMap:
             header=header
             )
         hdu_list = fits.HDUList([hdu_0, hdu_1])
-        hdu_list.writeto(save_filename)
+        print 'Saving data to {}'.format(save_filename)
+        hdu_list.writeto(save_filename, overwrite=True)
 
 
 def load_map(data_filename):
@@ -469,9 +470,6 @@ def combine_maps_nearest_data(
         ))
         if nside is not None:
             if map.nside != nside:
-                print 'Resampling map for obsid {}: nside {} to {}'.format(
-                    obsid, map.nside, nside
-                )
                 map.resample(nside)
         healpix_maps.append(map)
         nside = map.nside  # use the nside of the first obs
