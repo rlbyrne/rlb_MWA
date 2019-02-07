@@ -83,16 +83,18 @@ class HealpixMap:
             else:
                 print 'ERROR: Coordinates must be galactic or equitorial.'
                 sys.exit(1)
-            if np.mean(ras) > ra_cut:
-                ras = [ra-360. for ra in ras]
-            elif np.mean(ras) < ra_cut-360.:
-                ras = [ra+360. for ra in ras]
-            # Cluster pixel corners that are separated by the branch cut
-            for i in range(1, len(ras)):
-                if abs(ras[i]-ras[0]-360.) < abs(ras[i]-ras[0]):
-                    ras[i] -= 360.
-                elif abs(ras[i]-ras[0]+360.) < abs(ras[i]-ras[0]):
-                    ras[i] += 360.
+            # Correct for the branch cut
+            for ind, ra_val in enumerate(ras):
+                if ra_val > ra_cut:
+                    ras[ind] = ra_val-360.
+                if ra_val < ra_cut-360.:
+                    ras[ind] = ra_val+360.
+                # Cluster pixel corners that are separated by the branch cut
+                if ind > 0:
+                    if abs(ras[ind]-ras[0]-360.) < abs(ras[ind]-ras[0]):
+                        ras[ind] -= 360.
+                    elif abs(ras[ind]-ras[0]+360.) < abs(ras[ind]-ras[0]):
+                        ras[ind] += 360.
             pix_corner_ras_arr.append(ras)
             pix_corner_decs_arr.append(decs)
         self.pix_corner_ras_arr = pix_corner_ras_arr

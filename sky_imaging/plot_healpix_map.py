@@ -43,7 +43,7 @@ def plot_filled_pixels(
             )
         use_pixels = list(set(pixels_in_boundary) & set(map.pix_arr))
         use_signal = [
-            map.signal_arr[map.pix_arr.index(pixel_val)]
+            map.signal_arr[(list(map.pix_arr)).index(pixel_val)]
             for pixel_val in use_pixels
             ]
         use_map = healpix_utils.HealpixMap(use_signal, use_pixels, map.nside, nest=map.nest,
@@ -166,15 +166,17 @@ def plot_grid_interp(
 
 if __name__ == '__main__':
 
-    map = healpix_utils.combine_maps_nearest_data(
-        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019',
-        nside=512, cube_name='Residual_I'
-    )
-    map.write_data_to_fits(
-        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_59obs_combined_nofilter.fits'
-    )
+    #map = healpix_utils.combine_maps_nearest_data(
+    #    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019',
+    #    nside=512, cube_name='Residual_{}'.format(cube_name)
+    #)
+    #map.write_data_to_fits(
+    #    '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Stokes{}_60obs_combined_nofilter.fits'.format(cube_name)
+    #)
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_combined_nofilter.fits')
+    map.resample(128)
     plot_filled_pixels(
         map,
-        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_59obs_combined_plot.png',
-        ra_range = [-30,115], dec_range=[-55,5]
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_combined_plot.png',
+        ra_range = [-30, 135], dec_range=[-60, 5], colorbar_range=[-.02, .08]
     )
