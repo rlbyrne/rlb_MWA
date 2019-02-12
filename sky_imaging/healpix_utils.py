@@ -521,3 +521,104 @@ def combine_maps_nearest_data(
     )
 
     return combined_map
+
+
+def combine_maps_nearest_data_memory_efficient(
+    fhd_run_path, obs_list_file=None, nside=None, cube_names=['Residual_I']
+):
+
+    if fhd_run_path[-1] == '/':
+        fhd_run_path = fhd_run_path[:-1]
+
+    if obs_list_file is None:  # use all obs in the data directory
+        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+        data_files = [
+            file for file in data_files
+            if '_uniform_{}_HEALPix.fits'.format(cube_name) in file
+        ]
+        obs_list = [file[0:10] for file in data_files]
+    else:  # use the obs file list
+        obs_list = open(obs_list_file, 'r').readlines()
+        # strip newline characters
+        obs_list = [obs.strip() for obs in obs_list]
+        # remove duplicates
+        obs_list = list(set(obs_list))
+
+    print 'Combining {} observations'.format(len(obs_list))
+
+    obs_centers = []
+    for obsid in obs_list:
+        obs_struct = scipy.io.readsav(
+            '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+        )['obs']
+        obs_vec = hp.pixelfunc.ang2vec(
+            float(obs_struct['obsra']), float(obs_struct['obsdec']),
+            lonlat=True
+        )
+        obs_centers.append(obs_vec)
+
+    for obs_ind, obsid in enumerate(obs_list):
+        obs_maps = []
+        for cube in cube_names:
+            map = load_map('{}/output_data/{}_uniform_{}_HEALPix.fits'.format(
+                fhd_run_path, obsid, cube
+            ))
+            if nside is not None:
+                if map.nside != nside:
+                    map.resample(nside)
+            obs_maps.append(map)
+        nside = obs_maps[0].nside  # use nside of the first map of first obs
+        nest = obs_maps[0].nest
+        coords = obs_maps[0].coords
+
+        if obs_ind == 0:
+            pix_array = obs_maps[0].pix_arr
+            signal_array = [[]*len(cube_names)]
+            signal_array[0] = obs_maps[0].signal_arr
+            for cube_ind in range(1, len(cube_names)):
+                signal_array[cube_ind].extend([
+                    obs_maps[cube_ind].signal_arr[
+                        (obs_maps[cube_ind].pix_arr).index(pix)
+                    ] for pix in obs_maps[0].pix_arr
+                ])
+        else:
+            add_pixels = [
+                pix for pix in obs_maps[0].pix_arr if pix not in pix_array
+            ]
+            calculate_pixels = [
+                pix for pix in obs_maps[0].pix_arr if pix in pix_array
+            ]
+            # Add pixels that aren't already represented in the map
+            pix_arr.extend(add_pixels)
+            for cube_ind in range(len(cube_names)):
+                signal_array[cube_ind].extend([
+                    obs_maps[cube_ind].signal_arr[
+                        (obs_maps[cube_ind].pix_arr).index(pix)
+                    ] for pix in add_pixels
+                ])
+            # Calculate obs center distances for pixels represented in the map
+            for pix in calculate_pixels:
+                vec = hp.pix2vec(nside, pix, nest=nest)
+                distances = [
+                    (vec[0]-obs_centers[obs_ind][0])**2.
+                    + (vec[1]-obs_centers[obs_ind][1])**2.
+                    + (vec[2]-obs_centers[obs_ind][2])**2.
+                    for obs_ind in range(obs_ind+1)
+                ]
+                if distances.index(min(distances)) == obs_ind:
+                    pixel_index = pix_array.index(pix)
+                    for cube_ind in range(len(cube_names)):
+                        signal_array[cube_ind][
+                            pixel_index
+                        ] = obs_maps[cube_ind].signal_arr[
+                            (obs_maps[cube_ind].pix_arr).index(pix)
+                        ]
+
+    combined_maps = []
+    for cube_ind in range(len(cube_names)):
+        map = HealpixMap(
+            signal_array[cube_ind], pix_array, nside, nest=nest, coords=coords
+        )
+        combined_maps.append(map)
+
+    return combined_maps
