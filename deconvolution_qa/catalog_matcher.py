@@ -11,26 +11,32 @@ def match_catalogs_wrapper():
     fhd_run_path = '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018'
     ref_catalog_path = '/Users/rubybyrne/FHD/catalog_data/GLEAM_plus_rlb2017.sav'
     output_path = '/Users/rubybyrne/diffuse_survey_qa_plots'
-    obsid = '1130773024'
 
     # Find all obs files in the run path directory
     obs_file_list = os.listdir('{}/metadata/'.format(fhd_run_path))
     obs_file_list = [
-        filename.replace('{}/metadata/'.format(fhd_run_path), ''
-                         )[0:10] for filename in obs_file_list if filename.endswith('_obs.sav')
+        filename.replace(
+            '{}/metadata/'.format(fhd_run_path), ''
+        )[0:10] for filename in obs_file_list if filename.endswith('_obs.sav')
     ]
     obs_file_list = list(set(obs_file_list))
 
     # Find all deconvolution output files in the run path directory
-    decon_catalog_file_list = os.listdir('{}/deconvolution/'.format(fhd_run_path))
+    decon_catalog_file_list = os.listdir(
+        '{}/deconvolution/'.format(fhd_run_path)
+    )
     decon_catalog_file_list = [
-        filename.replace('{}/deconvolution/'.format(fhd_run_path), ''
-                         )[0:10] for filename in decon_catalog_file_list if filename.endswith('_fhd.sav')
+        filename.replace(
+            '{}/deconvolution/'.format(fhd_run_path), ''
+        )[0:10] for filename in decon_catalog_file_list
+        if filename.endswith('_fhd.sav')
     ]
     decon_catalog_file_list = list(set(decon_catalog_file_list))
 
     # Run all obsids that have both their obs files and deconvolution outputs
-    obsid_list = [obs for obs in obs_file_list if obs in decon_catalog_file_list]
+    obsid_list = [
+        obs for obs in obs_file_list if obs in decon_catalog_file_list
+    ]
 
     print 'Restoring GLEAM catalog'
     ref_catalog = scipy.io.readsav(ref_catalog_path)['catalog']
@@ -45,7 +51,7 @@ def match_catalogs_wrapper():
 def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
 
     search_radius = 12.  # match sources out to 12 degrees from pointing center
-    match_radius = .04  # a match is within .02 degrees of the source
+    match_radius = .04  # a match is within this many degrees of the source
 
     obs_sav = scipy.io.readsav(
         '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -65,7 +71,9 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                ) + (float(source['dec'])-obs_dec)**2. < search_radius**2.:
             decon_catalog_limited.append(source)
     # sort sources by flux
-    decon_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
+    decon_catalog_limited.sort(
+        key=lambda x: float(x['flux']['I']), reverse=True
+    )
     #decon_catalog_limited = decon_catalog_limited[0:100]  # for debugging
 
     # grab sources near the pointing center
@@ -109,8 +117,14 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
         len(ref_catalog_limited)-len(match_index_list)
         )/float(len(ref_catalog_limited))
 
-    matched_decon_catalog_fluxes = [source['flux']['I'] for i, source in enumerate(decon_catalog_limited) if match_index_list[i] != -1.]
-    matched_ref_catalog_fluxes = [ref_catalog_limited[int(ind)]['flux']['I'] for ind in match_index_list if int(ind) != -1]
+    matched_decon_catalog_fluxes = [
+        source['flux']['I'] for i, source in enumerate(decon_catalog_limited)
+        if match_index_list[i] != -1.
+    ]
+    matched_ref_catalog_fluxes = [
+        ref_catalog_limited[int(ind)]['flux']['I'] for ind in match_index_list
+        if int(ind) != -1
+    ]
 
     fit_param = sum(
         [(
@@ -121,21 +135,32 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
           matched_decon_catalog_fluxes[i]/matched_ref_catalog_fluxes[i]
           ) for i in range(len(matched_ref_catalog_fluxes))]
     )
-    goodness_of_fit = sum(
-        [(
-          matched_ref_catalog_fluxes[i]-matched_decon_catalog_fluxes[i]/fit_param
-          )**2/(matched_ref_catalog_fluxes[i]**2) for i in range(len(matched_ref_catalog_fluxes))]
-    )/len(matched_ref_catalog_fluxes)
+    goodness_of_fit = sum([
+        (matched_ref_catalog_fluxes[i]-matched_decon_catalog_fluxes[i]/fit_param)**2/(matched_ref_catalog_fluxes[i]**2)
+        for i in range(len(matched_ref_catalog_fluxes))
+    ])/len(matched_ref_catalog_fluxes)
 
     plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                       fit_param, goodness_of_fit, decon_catalog_match_ratio,
                       '{}/{}_flux_compare.png'.format(output_path, obsid))
 
     # Calculate and plot positional offsets
-    matched_decon_catalog_ras = [source['ra'] for i, source in enumerate(decon_catalog_limited) if match_index_list[i] != -1.]
-    matched_decon_catalog_decs = [source['dec'] for i, source in enumerate(decon_catalog_limited) if match_index_list[i] != -1.]
-    matched_ref_catalog_ras = [ref_catalog_limited[int(ind)]['ra'] for ind in match_index_list if int(ind) != -1]
-    matched_ref_catalog_decs = [ref_catalog_limited[int(ind)]['dec'] for ind in match_index_list if int(ind) != -1]
+    matched_decon_catalog_ras = [
+        source['ra'] for i, source in enumerate(decon_catalog_limited)
+        if match_index_list[i] != -1.
+    ]
+    matched_decon_catalog_decs = [
+        source['dec'] for i, source in enumerate(decon_catalog_limited)
+        if match_index_list[i] != -1.
+    ]
+    matched_ref_catalog_ras = [
+        ref_catalog_limited[int(ind)]['ra'] for ind in match_index_list
+        if int(ind) != -1
+    ]
+    matched_ref_catalog_decs = [
+        ref_catalog_limited[int(ind)]['dec'] for ind in match_index_list
+        if int(ind) != -1
+    ]
 
     ra_offsets = [(
         matched_decon_catalog_ras[i]-matched_ref_catalog_ras[i]
@@ -158,13 +183,45 @@ def plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                       saveloc):
     plt.figure()
     # plot the 1-to-1 line
-    plt.plot([min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]), max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])],
-    [min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]), max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])],
-        linestyle=':', linewidth=0.5, color='blue', label='1-to-1 line')
+    plt.plot(
+        [min([
+            min(matched_ref_catalog_fluxes),
+            min(matched_decon_catalog_fluxes)
+        ]), max([
+            max(matched_ref_catalog_fluxes),
+            max(matched_decon_catalog_fluxes)
+        ])],
+        [min([
+            min(matched_ref_catalog_fluxes),
+            min(matched_decon_catalog_fluxes)
+        ]), max([
+            max(matched_ref_catalog_fluxes),
+            max(matched_decon_catalog_fluxes)
+        ])],
+        linestyle=':', linewidth=0.5, color='blue', label='1-to-1 line'
+    )
     # plot the power law fit
-    plt.plot([min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]), max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])],
-    [fit_param*min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]), fit_param*max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])],
-        linestyle=':', linewidth=0.5, color='red', label='power law fit: A={:.3f}, X^2={:.2f}'.format(float(fit_param), float(goodness_of_fit)))
+    plt.plot(
+        [min([
+            min(matched_ref_catalog_fluxes),
+            min(matched_decon_catalog_fluxes)
+        ]), max([
+            max(matched_ref_catalog_fluxes),
+            max(matched_decon_catalog_fluxes)
+        ])],
+        [
+            fit_param*min([min(matched_ref_catalog_fluxes),
+            min(matched_decon_catalog_fluxes)]),
+            fit_param*max([max(matched_ref_catalog_fluxes),
+            max(matched_decon_catalog_fluxes)])
+        ],
+        linestyle=':',
+        linewidth=0.5,
+        color='red',
+        label='power law fit: A={:.3f}, X^2={:.2f}'.format(
+            float(fit_param), float(goodness_of_fit)
+        )
+    )
     plt.scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                 marker='o', s=1., color='black')
     plt.xscale('log')
@@ -174,11 +231,20 @@ def plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
     plt.title('Deconvolved Flux Density Agreement With GLEAM: '
               'Match Ratio {:.3f}'.format(decon_catalog_match_ratio))
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.axis([min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]),
-              max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)]),
-              min([min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)]),
-              max([max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)])
-              ])
+    plt.axis([
+        min([
+            min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)
+        ]),
+        max([
+            max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)
+        ]),
+        min([
+            min(matched_ref_catalog_fluxes), min(matched_decon_catalog_fluxes)
+        ]),
+        max([
+            max(matched_ref_catalog_fluxes), max(matched_decon_catalog_fluxes)
+        ])
+    ])
     plt.legend(loc='upper left')
     print 'Saving plot to {}'.format(saveloc)
     plt.savefig(saveloc, dpi=300)
@@ -232,12 +298,16 @@ def plot_flux_hist(ref_catalog_fluxes, decon_catalog_fluxes, saveloc):
 def plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius, saveloc):
     plt.figure()
     plt.grid(True, zorder=0)
-    plt.scatter(ra_offsets, dec_offsets, marker='o', s=1., color='black', zorder=10)
+    plt.scatter(
+        ra_offsets, dec_offsets, marker='o', s=1., color='black', zorder=10
+    )
     plt.xlabel('RA offset (arcmin)')
     plt.ylabel('Dec offset (arcmin)')
     plt.title('Source Positional Offsets, Deconvolved - GLEAM')
     plt.gca().set_aspect('equal', adjustable='box')
-    plt.axis([-match_radius*60., match_radius*60., -match_radius*60., match_radius*60.])
+    plt.axis([
+        -match_radius*60., match_radius*60., -match_radius*60., match_radius*60.
+    ])
     print 'Saving plot to {}'.format(saveloc)
     plt.savefig(saveloc, dpi=300)
     plt.close()
@@ -255,7 +325,8 @@ def plot_pos_offsets_vectors(matched_ref_catalog_ras, matched_ref_catalog_decs,
             matched_ref_catalog_ras[i] = matched_ref_catalog_ras[i]-360.
         elif matched_ref_catalog_ras[i]-obs_ra < -search_radius:
             matched_ref_catalog_ras[i] = matched_ref_catalog_ras[i]+360.
-    plt.quiver(matched_ref_catalog_ras, matched_ref_catalog_decs, ra_offsets, dec_offsets)
+    plt.quiver(matched_ref_catalog_ras, matched_ref_catalog_decs, ra_offsets,
+               dec_offsets)
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
     plt.title('Source Positional Offsets')
