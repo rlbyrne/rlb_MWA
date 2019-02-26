@@ -12,9 +12,10 @@ import os
 class HealpixMap:
 
     def __init__(self, signal_arr, pix_arr, nside, nest=False,
-                 coords='equitorial'):
+                 coords='equitorial', quiet=False):
         if len(pix_arr) == 0:
-            print 'No pixel values supplied. Assuming implicit ordering.'
+            if not quiet:
+                print 'No pixel values supplied. Assuming implicit ordering.'
         else:
             if len(signal_arr) != len(pix_arr):
                 print 'ERROR: Pixel index and data lengths do not match. Exiting.'
@@ -119,8 +120,9 @@ class HealpixMap:
             self.nest = True
             self.implicit_to_explicit_ordering()
 
-    def resample(self, nside):
-        print 'Resampling map: nside {} to {}'.format(self.nside, nside)
+    def resample(self, nside, quiet=False):
+        if not quiet:
+            print 'Resampling map: nside {} to {}'.format(self.nside, nside)
         if self.nest:
             ordering = 'nested'
         else:
@@ -435,7 +437,7 @@ def average_healpix_maps_simple(maps_arr):
 
 def average_healpix_maps(
     fhd_run_path, obs_list, obs_weights=None, nside=None,
-    cube_names=['Residual_I']
+    cube_names=['Residual_I'], apply_radial_weighting=False
 ):
 
     if obs_weights is None or len(obs_weights) == 0:
@@ -486,9 +488,7 @@ def average_healpix_maps(
                 signal_array = np.full(
                     (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
                 )
-                weights_array = np.full(
-                    (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
-                )
+                weights_array = np.full(12*nside**2, hp.pixelfunc.UNSEEN)
             else:
                 if map.nside != nside:
                     map.resample(nside)
@@ -504,35 +504,227 @@ def average_healpix_maps(
             maps.append(map)
 
         for pix in maps[0].pix_arr: # Use the first cube for the pixel list
+            if apply_radial_weighting:
+                obs_struct = scipy.io.readsav(
+                    '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+                )['obs']
+                obs_vec = hp.pixelfunc.ang2vec(
+                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                    lonlat=True
+                )
+                pix_vec = hp.pix2vec(nside, pix, nest=nest)
+                rad_weight = obs_radial_weighting_function(
+                    (pix_vec[0]-obs_vec[0])**2.
+                    + ( pix_vec[1]-obs_vec[1])**2.
+                    + (pix_vec[2]-obs_vec[2])**2.
+                )
+                use_weight = rad_weight*obs_weights[obs_ind]
+            else:
+                use_weight = obs_weights[obs_ind]
             if signal_array[0, pix] == hp.pixelfunc.UNSEEN:
                 for cube_ind in range(len(cube_names)):
-                    signal_array[cube_ind, pix] = weights_array[obs_ind]*maps[
+                    signal_array[cube_ind, pix] = use_weight*maps[
                         cube_ind
-                    ].signal_array[
+                    ].signal_arr[
                         np.where(maps[cube_ind].pix_arr == pix)
                     ]
-                    weights_array[cube_ind, pix] = weights_array[obs_ind]
+                    weights_array[pix] = use_weight
             else:
                 for cube_ind in range(len(cube_names)):
-                    signal_array[cube_ind, pix] += weights_array[obs_ind]*maps[
+                    signal_array[cube_ind, pix] += use_weight*maps[
                         cube_ind
-                    ].signal_array[
+                    ].signal_arr[
                         np.where(maps[cube_ind].pix_arr == pix)
                     ]
-                    weights_array[cube_ind, pix] += weights_array[obs_ind]
+                    weights_array[pix] += use_weight
 
-    weighted_ave_signal_array = signal_array/weights_array
+    weighted_ave_signal_array = signal_array/weights_array[None, :]
+    weighted_ave_signal_array[
+        :, np.where(weights_array == hp.pixelfunc.UNSEEN)
+    ] = hp.pixelfunc.UNSEEN
 
     averaged_maps = []
     for cube_ind in range(len(cube_names)):
         map = HealpixMap(
             weighted_ave_signal_array[cube_ind, :], [], nside, nest=nest,
-            coords=coords
+            coords=coords, quiet=True
         )
         map.implicit_to_explicit_ordering()
         averaged_maps.append(map)
 
-    return averaged_maps
+    weights_map = HealpixMap(
+        weights_array, [], nside, nest=nest, coords=coords, quiet=True
+    )
+    weights_map.implicit_to_explicit_ordering()
+
+    return averaged_maps, weights_map
+
+
+def calculate_variance_healpix_maps(
+    fhd_run_path, obs_list, saved_averaged_maps=None, obs_weights=None,
+    nside=None, cube_names=['Residual_I'], apply_radial_weighting=False
+):
+
+    if obs_weights is None or len(obs_weights) == 0:
+        print 'Observation weights not provided. Using equal weighting.'
+        obs_weights = np.array([1.]*len(obs_list))
+    else:
+        if len(obs_weights) != len(obs_list):
+            print 'ERROR: Invalid obs_weights. Exiting.'
+            sys.exit(1)
+        obs_weights = np.array(obs_weights)
+    if fhd_run_path[-1] == '/':
+        fhd_run_path = fhd_run_path[:-1]
+
+    data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+    exclude_obs_list = []
+    for obs in obs_list:
+        for cube in cube_names:
+            if '{}_uniform_{}_HEALPix.fits'.format(obs, cube) not in data_files:
+                print 'WARNING: File {}/output_data/{}_uniform_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
+                    fhd_run_path, obs, cube, obs
+                )
+                exclude_obs_list.append(obs)
+                continue
+    obs_weights = np.array([
+        obs_weights[ind] for ind in range(len(obs_weights))
+        if obs_list[ind] not in exclude_obs_list
+    ])
+    obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
+
+    if saved_averaged_maps is None:
+        averaged_maps, null = average_healpix_maps(
+            fhd_run_path, obs_list, obs_weights=obs_weights, nside=nside,
+            cube_names=cube_names, apply_radial_weighting=apply_radial_weighting
+        )
+    else:
+        if len(saved_averaged_maps) != len(cube_names):
+            print 'WARNING: Invalid saved_averaged_maps paths provided. Recalculating data average.'
+            averaged_maps, null = average_healpix_maps(
+                fhd_run_path, obs_list, obs_weights=obs_weights, nside=nside,
+                cube_names=cube_names,
+                apply_radial_weighting=apply_radial_weighting
+            )
+        else:
+            print 'Loading saved data averages.'
+            averaged_maps = []
+            for cube_ind in range(len(cube_names)):
+                map = load_map(saved_averaged_maps[cube_ind])
+                averaged_maps.append(map)
+    for cube_ind in range(len(cube_names)):
+        averaged_maps[cube_ind].explicit_to_implicit_ordering()
+
+    print 'Calculating variance for {} observations'.format(len(obs_list))
+
+    for obs_ind, obsid in enumerate(obs_list):
+        maps = []
+        for cube_ind, cube in enumerate(cube_names):
+            map = load_map('{}/output_data/{}_uniform_{}_HEALPix.fits'.format(
+                fhd_run_path, obsid, cube
+            ))
+            if obs_ind == 0 and cube_ind == 0:  # Use first map for conventions
+                if nside is None:
+                    nside = map.nside
+                    print 'nside is not specified. Using nside {}.'.format(nside)
+                else:
+                    if map.nside != nside:
+                        map.resample(nside)
+                nest = map.nest
+                coords = map.coords
+                # Initialize output arrays
+                var_array = np.full(
+                    (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
+                )
+                weights_array = np.full(12*nside**2, hp.pixelfunc.UNSEEN)
+                nsamples_array = np.full(12*nside**2, hp.pixelfunc.UNSEEN)
+            else:
+                if map.nside != nside:
+                    map.resample(nside)
+                if map.nest != nest:
+                    print 'Map nesting conventions do not match. Converting.'
+                    if nest:
+                        map.reorder_ring_to_nest()
+                    else:
+                        map.reorder_nest_to_ring()
+                if map.coords != coords:
+                    print 'ERROR: Map coordinates do not match. Exiting.'
+                    sys.exit(1)
+            maps.append(map)
+
+        for pix in maps[0].pix_arr: # Use the first cube for the pixel list
+            if apply_radial_weighting:
+                obs_struct = scipy.io.readsav(
+                    '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+                )['obs']
+                obs_vec = hp.pixelfunc.ang2vec(
+                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                    lonlat=True
+                )
+                pix_vec = hp.pix2vec(nside, pix, nest=nest)
+                rad_weight = obs_radial_weighting_function(
+                    (pix_vec[0]-obs_vec[0])**2.
+                    + ( pix_vec[1]-obs_vec[1])**2.
+                    + (pix_vec[2]-obs_vec[2])**2.
+                )
+                use_weight = rad_weight*obs_weights[obs_ind]
+            else:
+                use_weight = obs_weights[obs_ind]
+            if nsamples_array[pix] == hp.pixelfunc.UNSEEN:
+                for cube_ind in range(len(cube_names)):
+                    var_array[cube_ind, pix] = use_weight*(maps[cube_ind].signal_arr[
+                        np.where(maps[cube_ind].pix_arr == pix)
+                    ][0] - averaged_maps[cube_ind].signal_arr[pix])**2
+                    weights_array[pix] = use_weight
+                    nsamples_array[pix] = 1
+            else:
+                for cube_ind in range(len(cube_names)):
+                    var_array[cube_ind, pix] += use_weight*(maps[cube_ind].signal_arr[
+                        np.where(maps[cube_ind].pix_arr == pix)
+                    ] - averaged_maps[cube_ind].signal_arr[pix])**2
+                    weights_array[pix] += use_weight
+                    nsamples_array[pix] += 1
+
+    weighted_ave_var_array = var_array/weights_array[None, :]
+
+    weighted_ave_var_array[
+        :, np.where(weights_array == hp.pixelfunc.UNSEEN)
+    ] = hp.pixelfunc.UNSEEN
+    weighted_ave_var_array[
+        :, np.where(nsamples_array == 1)
+    ] = 0
+
+    variance_maps = []
+    for cube_ind in range(len(cube_names)):
+        map = HealpixMap(
+            weighted_ave_var_array[cube_ind, :], [], nside, nest=nest,
+            coords=coords, quiet=True
+        )
+        map.implicit_to_explicit_ordering()
+        variance_maps.append(map)
+        averaged_maps[cube_ind].implicit_to_explicit_ordering()
+
+    weights_map = HealpixMap(
+        weights_array, [], nside, nest=nest, coords=coords, quiet=True
+    )
+    weights_map.implicit_to_explicit_ordering()
+
+    nsamples_map = HealpixMap(
+        nsamples_array, [], nside, nest=nest, coords=coords, quiet=True
+    )
+    nsamples_map.implicit_to_explicit_ordering()
+
+    return variance_maps, averaged_maps, weights_map, nsamples_map
+
+
+def obs_radial_weighting_function(dist, max_dist=14., taper_width=4.):
+
+    if dist < max_dist-taper_width:
+        weight = 1.
+    elif dist > max_dist:
+        weight = 0.
+    else:
+        weight = 0.5*np.cos(np.pi*(dist+taper_width-max_dist)/taper_width)+0.5
+    return weight
 
 
 def combine_maps_nearest_data(
