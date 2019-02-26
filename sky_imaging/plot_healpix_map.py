@@ -104,7 +104,12 @@ def plot_filled_pixels(
     if len(colorbar_range) == 2:  # set the colorbar min and max
         collection.set_clim(vmin=colorbar_range[0], vmax=colorbar_range[1])
     else:
-        collection.set_clim(vmin=min(colors), vmax=max(colors))
+        signal_mean = np.mean(colors)
+        signal_std = np.std(colors)
+        collection.set_clim(
+            vmin=max([min(colors), signal_mean-5*signal_std]),
+            vmax=min([max(colors), signal_mean+5*signal_std])
+        )
 
     fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
     ax.add_collection(collection)  # plot data
@@ -166,17 +171,46 @@ def plot_grid_interp(
 
 if __name__ == '__main__':
 
-    #map = healpix_utils.combine_maps_nearest_data(
-    #    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019',
-    #    nside=512, cube_name='Residual_{}'.format(cube_name)
-    #)
-    #map.write_data_to_fits(
-    #    '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Stokes{}_60obs_combined_nofilter.fits'.format(cube_name)
-    #)
-    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_combined_nofilter.fits')
-    map.resample(128)
-    plot_filled_pixels(
-        map,
-        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_combined_plot.png',
-        ra_range = [-30, 135], dec_range=[-60, 5], colorbar_range=[-.02, .08]
+    combined_maps = healpix_utils.combine_maps_nearest_data(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
+        nside=256, cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_combined_60obs_closest.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_combined_60obs_closest.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_combined_60obs_closest.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_combined_60obs_closest.fits'
+    )
+
+    data_files = os.listdir('/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019/output_data/')
+    data_files = [
+        file for file in data_files
+        if '_uniform_Residual_I_HEALPix.fits' in file
+    ]
+    obs_list = [file[0:10] for file in data_files]
+    combined_maps, weights_map = healpix_utils.average_healpix_maps(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
+        obs_list, nside=256,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_combined_60obs_ave.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_combined_60obs_ave.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_combined_60obs_ave.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_combined_60obs_ave.fits'
+    )
+    weights_map.write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits'
     )
