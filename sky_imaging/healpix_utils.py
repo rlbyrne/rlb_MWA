@@ -49,8 +49,12 @@ class HealpixMap:
         else:
             print 'ERROR: Coordinates must be galactic or equitorial.'
             sys.exit(1)
-        ra_arr[np.where(ra_arr > ra_cut)] = ra_arr[np.where(ra_arr > ra_cut)] - 360.
-        ra_arr[np.where(ra_arr < ra_cut-360.)] = ra_arr[np.where(ra_arr > ra_cut)] + 360.
+        ra_arr[np.where(ra_arr > ra_cut)] = ra_arr[
+            np.where(ra_arr > ra_cut)
+        ] - 360.
+        ra_arr[np.where(ra_arr < ra_cut-360.)] = ra_arr[
+            np.where(ra_arr > ra_cut)
+        ] + 360.
         self.ra_arr = ra_arr
         self.dec_arr = dec_arr
 
@@ -503,7 +507,7 @@ def average_healpix_maps(
                     sys.exit(1)
             maps.append(map)
 
-        for pix in maps[0].pix_arr: # Use the first cube for the pixel list
+        for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
             if apply_radial_weighting:
                 obs_struct = scipy.io.readsav(
                     '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -515,7 +519,7 @@ def average_healpix_maps(
                 pix_vec = hp.pix2vec(nside, pix, nest=nest)
                 rad_weight = obs_radial_weighting_function(
                     (pix_vec[0]-obs_vec[0])**2.
-                    + ( pix_vec[1]-obs_vec[1])**2.
+                    + (pix_vec[1]-obs_vec[1])**2.
                     + (pix_vec[2]-obs_vec[2])**2.
                 )
                 use_weight = rad_weight*obs_weights[obs_ind]
@@ -595,7 +599,8 @@ def calculate_variance_healpix_maps(
     if saved_averaged_maps is None:
         averaged_maps, null = average_healpix_maps(
             fhd_run_path, obs_list, obs_weights=obs_weights, nside=nside,
-            cube_names=cube_names, apply_radial_weighting=apply_radial_weighting
+            cube_names=cube_names,
+            apply_radial_weighting=apply_radial_weighting
         )
     else:
         if len(saved_averaged_maps) != len(cube_names):
@@ -651,7 +656,7 @@ def calculate_variance_healpix_maps(
                     sys.exit(1)
             maps.append(map)
 
-        for pix in maps[0].pix_arr: # Use the first cube for the pixel list
+        for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
             if apply_radial_weighting:
                 obs_struct = scipy.io.readsav(
                     '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -663,7 +668,7 @@ def calculate_variance_healpix_maps(
                 pix_vec = hp.pix2vec(nside, pix, nest=nest)
                 rad_weight = obs_radial_weighting_function(
                     (pix_vec[0]-obs_vec[0])**2.
-                    + ( pix_vec[1]-obs_vec[1])**2.
+                    + (pix_vec[1]-obs_vec[1])**2.
                     + (pix_vec[2]-obs_vec[2])**2.
                 )
                 use_weight = rad_weight*obs_weights[obs_ind]
@@ -671,16 +676,20 @@ def calculate_variance_healpix_maps(
                 use_weight = obs_weights[obs_ind]
             if nsamples_array[pix] == hp.pixelfunc.UNSEEN:
                 for cube_ind in range(len(cube_names)):
-                    var_array[cube_ind, pix] = use_weight*(maps[cube_ind].signal_arr[
-                        np.where(maps[cube_ind].pix_arr == pix)
-                    ][0] - averaged_maps[cube_ind].signal_arr[pix])**2
+                    var_array[cube_ind, pix] = use_weight*(
+                        maps[cube_ind].signal_arr[
+                            np.where(maps[cube_ind].pix_arr == pix)
+                        ][0] - averaged_maps[cube_ind].signal_arr[pix]
+                    )**2
                     weights_array[pix] = use_weight
                     nsamples_array[pix] = 1
             else:
                 for cube_ind in range(len(cube_names)):
-                    var_array[cube_ind, pix] += use_weight*(maps[cube_ind].signal_arr[
-                        np.where(maps[cube_ind].pix_arr == pix)
-                    ] - averaged_maps[cube_ind].signal_arr[pix])**2
+                    var_array[cube_ind, pix] += use_weight*(
+                        maps[cube_ind].signal_arr[
+                            np.where(maps[cube_ind].pix_arr == pix)
+                        ] - averaged_maps[cube_ind].signal_arr[pix]
+                    )**2
                     weights_array[pix] += use_weight
                     nsamples_array[pix] += 1
 
@@ -732,8 +741,8 @@ def combine_maps_nearest_data(
 ):
     # This function loads a set of maps from an FHD output directory (or a list
     # of observations) and returns a combined map.
-    # Each pixel of the combined map is based on the closest observation to that
-    # pixel.
+    # Each pixel of the combined map is based on the closest observation to
+    # that pixel.
 
     if fhd_run_path[-1] == '/':
         fhd_run_path = fhd_run_path[:-1]
