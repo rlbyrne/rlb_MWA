@@ -793,7 +793,7 @@ def combine_maps_nearest_data(
                 signal_array = np.full(
                     (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
                 )
-                pixels_used = np.array([])
+                pixels_used = np.array([], dtype=int)
             else:
                 if map.nside != nside:
                     map.resample(nside)
@@ -815,6 +815,7 @@ def combine_maps_nearest_data(
         unique_pix = np.setdiff1d(
             maps[0].pix_arr, overlapping_pix, assume_unique=True
         )
+        pixels_used = np.append(pixels_used, unique_pix)
 
         for pix in overlapping_pix:
             vec = hp.pix2vec(nside, pix, nest=nest)
@@ -838,7 +839,8 @@ def combine_maps_nearest_data(
     combined_maps = []
     for cube_ind in range(len(cube_names)):
         map = HealpixMap(
-            signal_array[cube_ind, :], [], nside, nest=nest, coords=coords
+            signal_array[cube_ind, :], [], nside, nest=nest, coords=coords,
+            quiet=True
         )
         map.implicit_to_explicit_ordering()
         combined_maps.append(map)
