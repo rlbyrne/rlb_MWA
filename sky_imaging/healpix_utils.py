@@ -84,6 +84,15 @@ class HealpixMap:
                 ras_pix, decs_pix = hp.pixelfunc.vec2ang(
                     np.transpose(corner_coords[pixel]), lonlat=True
                 )
+                ras_pix[np.where(ras_pix > ra_cut)] = ras_pix[
+                    np.where(ras_pix > ra_cut)
+                ] - 360.
+                ras_pix[np.where(ras_pix < ra_cut-360.)] = ras_pix[
+                    np.where(ras_pix > ra_cut)
+                ] + 360.
+                ras_pix[np.where(ras_pix-np.amin(ras_pix) > 180.)] = ras_pix[
+                    np.where(ras_pix-np.amin(ras_pix) > 180.)
+                ] - 360.
                 ras.append(ras_pix)
                 decs.append(decs_pix)
             ras = np.array(ras)
@@ -91,16 +100,18 @@ class HealpixMap:
         else:
             print 'ERROR: Coordinates must be galactic or equitorial.'
             sys.exit(1)
-        ras[np.where(ras > ra_cut)] = ras[np.where(ras > ra_cut)] - 360.
-        ras[np.where(ras < ra_cut-360.)] = ras[np.where(ras > ra_cut)] + 360.
         self.pix_corner_ras_arr = ras
         self.pix_corner_decs_arr = decs
 
     def explicit_to_implicit_ordering(self):
-        signal_vals_implicit = np.full(12*self.nside**2, hp.pixelfunc.UNSEEN)
-        signal_vals_implicit[self.pix_arr] = self.signal_arr
-        self.signal_arr = signal_vals_implicit
-        self.pix_arr = np.empty(0)
+        if len(self.pix_arr) > 0:
+            signal_vals_implicit = np.full(12*self.nside**2, hp.pixelfunc.UNSEEN)
+            signal_vals_implicit[self.pix_arr] = self.signal_arr
+            self.signal_arr = signal_vals_implicit
+            self.pix_arr = np.empty(0, dtype=int)
+        elif len(self.signal_arr) != 12*self.nside**2:
+            print 'ERROR: Wrong number of pixels for implicit ordering. Exiting.'
+            sys.exit(1)
 
     def implicit_to_explicit_ordering(self):
         use_inds = np.where(self.signal_arr != hp.pixelfunc.UNSEEN)[0]
@@ -120,7 +131,7 @@ class HealpixMap:
     def reorder_ring_to_nest(self):
         if not self.nest:
             self.explicit_to_implicit_ordering()
-            self.signal_arr = hp.pixelfunc.reorder(filtered_map, r2n=True)
+            self.signal_arr = hp.pixelfunc.reorder(self.signal_arr, r2n=True)
             self.nest = True
             self.implicit_to_explicit_ordering()
 
@@ -144,18 +155,19 @@ class HealpixMap:
             signal_vals = hp.pixelfunc.reorder(self.signal_arr, n2r=True)
         else:
             signal_vals = self.signal_arr
-        alm = hp.sphtfunc.map2alm(signal_vals_implicit, lmax=lmax)
+        alm = hp.sphtfunc.map2alm(signal_vals, lmax=lmax)
         alm = np.copy(alm)
         lmax = hp.sphtfunc.Alm.getlmax(len(alm))
         l, m = hp.sphtfunc.Alm.getlm(lmax)
         lm = np.zeros([len(alm), 2])
         lm[:, 0] = l
         lm[:, 1] = m
-        self.alm = spherical_harmonics_amp
-        self.lm = spherical_harmonics_lm
+        self.spherical_harmonics_amp = alm
+        self.spherical_harmonics_lm = lm
 
     def filter_map(self, lmin=None, lmax=None, filter_width=0):
         # This function borrows from code by Miguel Morales
+        print self.coords
         if lmax is not None:
             alm_limit = int(math.ceil(lmax + filter_width/2.))
         else:
@@ -190,16 +202,18 @@ class HealpixMap:
             alm[np.where(lm[:, 0] == i)] = alm[
                 np.where(lm[:, 0] == i)
                 ]*window_fn[i]
-        filtered_map = hp.sphtfunc.alm2map(alm, self.nside)
-        self.signal_arr = filtered_map
-        self.pix_arr = []
+        filtered_map = HealpixMap(
+            hp.sphtfunc.alm2map(alm, self.nside), np.array([]),
+            nside=self.nside, nest=False, coords=self.coords
+        )
         # If input was nested ordering, convert to nested
         if self.nest:
-            self.nest = False
-            self.reorder_ring_to_nest()
-            filtered_map = hp.pixelfunc.reorder(filtered_map, r2n=True)
+            filtered_map.reorder_ring_to_nest()
         else:
-            self.implicit_to_explicit_ordering()
+            filtered_map.implicit_to_explicit_ordering()
+        filtered_map.implicit_to_explicit_ordering()
+        self.signal_arr = filtered_map.signal_arr
+        self.pix_arr = filtered_map.pix_arr
 
     def write_data_to_fits(self, save_filename):
         signal_column = fits.Column(
@@ -806,6 +820,7 @@ def combine_maps_nearest_data(
                 if map.coords != coords:
                     print 'ERROR: Map coordinates do not match. Exiting.'
                     sys.exit(1)
+            map.filter_map(lmin=None, lmax=10, filter_width=2)
             maps.append(map)
 
         # Use the first cube for the pixel list (assume cube pixels match)

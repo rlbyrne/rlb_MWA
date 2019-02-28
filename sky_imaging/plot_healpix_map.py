@@ -3,6 +3,7 @@
 import numpy as np
 import healpy as hp
 import sys
+import os
 import matplotlib
 #matplotlib.use('Agg')  # use this if you don't have display access
 import matplotlib.pyplot as plt
@@ -26,46 +27,22 @@ def plot_filled_pixels(
     else:
         coords = map.coords
 
-    # Fast way to limit the plot region
-    if len(ra_range) == 2 and len(dec_range) == 2 and coords == 'equitorial':
-        tile_bounds_radec = [
-                             [ra_range[0], dec_range[0]],
-                             [ra_range[0], dec_range[1]],
-                             [ra_range[1], dec_range[1]],
-                             [ra_range[1], dec_range[0]]
-                             ]
-        tile_bounds_vec = np.array(
-            [hp.pixelfunc.ang2vec(corner[0], corner[1], lonlat=True) for
-                corner in tile_bounds_radec]
-            )
-        pixels_in_boundary = hp.query_polygon(
-            map.nside, tile_bounds_vec, nest=map.nest
-            )
-        use_pixels = list(set(pixels_in_boundary) & set(map.pix_arr))
-        use_signal = [
-            map.signal_arr[(list(map.pix_arr)).index(pixel_val)]
-            for pixel_val in use_pixels
-            ]
-        use_map = healpix_utils.HealpixMap(use_signal, use_pixels, map.nside, nest=map.nest,
-                             coords=coords)
-    # Slow way to limit the plot region
-    elif len(ra_range) == 2 or len(dec_range) == 2:
+    if len(ra_range) == 2 or len(dec_range) == 2:
         map.get_ra_dec(ra_cut=ra_cut)
         if len(ra_range) != 2:
-            ra_range = [min(map.ra_arr), max(map.ra_arr)]
+            ra_range = [np.amin(map.ra_arr), np.amax(map.ra_arr)]
+        else:
+            ra_range = [np.amin(ra_range), np.amax(ra_range)]
         if len(dec_range) != 2:
-            dec_range = [min(map.dec_arr), max(map.dec_arr)]
-        use_pixels = [
-            map.pix_arr[ind] for ind in range(len(map.pix_arr))
-            if ra_range[0] <= map.ra_arr[ind] <= ra_range[1]
-            and dec_range[0] <= map.dec_arr[ind] <= dec_range[1]
-            ]
-        use_signal = [
-            map.signal_arr[map.pix_arr.index(pixel_val)]
-            for pixel_val in use_pixels
-            ]
-        use_map = HealpixMap(use_signal, use_pixels, map.nside, nest=map.nest,
-                             coords=coords)
+            dec_range = [np.amin(map.dec_arr), np.amax(map.dec_arr)]
+        use_indices = np.arange(len(map.signal_arr))[
+            (map.ra_arr>ra_range[0]) & (map.ra_arr<ra_range[1])
+            & (map.dec_arr>dec_range[0]) & (map.dec_arr<dec_range[1])
+        ]
+        use_map = healpix_utils.HealpixMap(
+            map.signal_arr[use_indices], map.pix_arr[use_indices], map.nside,
+            nest=map.nest, coords=coords
+        )
     else:
         use_map = map
 
@@ -80,7 +57,6 @@ def plot_filled_pixels(
     colors = use_map.signal_arr
 
     # Establish axis ranges
-    # This part is buggy, fix it
     if len(ra_range) != 2:
         all_ras = [
             use_map.pix_corner_ras_arr[ind][poly_ind]
@@ -124,7 +100,7 @@ def plot_filled_pixels(
     # label colorbar
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
     print 'Saving plot to {}'.format(save_filename)
-    plt.savefig(save_filename, format='png', dpi=500)
+    plt.savefig(save_filename, format='png', dpi=300)
 
 
 def plot_grid_interp(
@@ -169,7 +145,7 @@ def plot_grid_interp(
     plt.savefig(save_filename, format='png', dpi=500)
 
 
-if __name__ == '__main__':
+def combine_maps_Feb26():
 
     combined_maps = healpix_utils.combine_maps_nearest_data(
         '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
@@ -214,3 +190,60 @@ if __name__ == '__main__':
     weights_map.write_data_to_fits(
         '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits'
     )
+
+
+def combine_maps_Feb27():
+
+    data_files = os.listdir('/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019/output_data/')
+    data_files = [
+        file for file in data_files
+        if '_uniform_Residual_I_HEALPix.fits' in file
+    ]
+    obs_list = [file[0:10] for file in data_files]
+    variance_maps, averaged_maps, weights_map, nsamples_map = healpix_utils.calculate_variance_healpix_maps(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
+        obs_list,
+        saved_averaged_maps=[
+            '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_combined_60obs_ave.fits',
+            '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_combined_60obs_ave.fits',
+            '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_combined_60obs_ave.fits',
+            '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_combined_60obs_ave.fits'
+        ],
+        obs_weights=None, nside=256,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+        apply_radial_weighting=False
+    )
+
+    variance_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_combined_60obs_variance.fits'
+    )
+    variance_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_combined_60obs_variance.fits'
+    )
+    variance_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_combined_60obs_variance.fits'
+    )
+    variance_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_combined_60obs_variance.fits'
+    )
+
+
+def combine_maps_Feb27_with_filtering():
+
+    map = healpix_utils.load_map('/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019/output_data/1130773144_uniform_Residual_I_HEALPix.fits')
+    map.resample(8)
+    map.filter_map(lmin=None, lmax=10, filter_width=2)
+    plot_filled_pixels(
+        map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/filteringtest.png', ra_range = [0,55], dec_range=[-50,0]
+    )
+
+
+if __name__ == '__main__':
+
+    combine_maps_Feb27_with_filtering()
+
+    #map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits')
+    #plot_filled_pixels(
+    #    map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.png',
+    #    colorbar_label='Number of Observations'
+    #)
