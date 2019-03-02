@@ -17,7 +17,7 @@ from scipy.interpolate import griddata
 def plot_filled_pixels(
     map, save_filename, title='', ra_range=[], dec_range=[],
     colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/sr)',
-    ra_cut=270.
+    ra_cut=None
 ):
 
     if map.coords == '':
@@ -27,14 +27,20 @@ def plot_filled_pixels(
     else:
         coords = map.coords
 
+    # Set branch cut location
+    if ra_cut is None:
+        if len(ra_range) == 2:
+            ra_cut = (ra_range[1]+ra_range[0])/2.+180.
+        else:
+            ra_cut = 270.
+
+    # Limit pixel calculation when axis ranges are set
     if len(ra_range) == 2 or len(dec_range) == 2:
         map.get_ra_dec(ra_cut=ra_cut)
         if len(ra_range) != 2:
-            ra_range = [np.amin(map.ra_arr), np.amax(map.ra_arr)]
-        else:
-            ra_range = [np.amin(ra_range), np.amax(ra_range)]
+            ra_range = [np.min(map.ra_arr), np.max(map.ra_arr)]
         if len(dec_range) != 2:
-            dec_range = [np.amin(map.dec_arr), np.amax(map.dec_arr)]
+            dec_range = [np.min(map.dec_arr), np.max(map.dec_arr)]
         use_indices = np.arange(len(map.signal_arr))[
             (map.ra_arr>ra_range[0]) & (map.ra_arr<ra_range[1])
             & (map.dec_arr>dec_range[0]) & (map.dec_arr<dec_range[1])
@@ -58,19 +64,15 @@ def plot_filled_pixels(
 
     # Establish axis ranges
     if len(ra_range) != 2:
-        all_ras = [
-            use_map.pix_corner_ras_arr[ind][poly_ind]
-            for ind in range(len(use_map.pix_corner_ras_arr))
-            for poly_ind in range(4)
+        ra_range = [
+            np.amin(use_map.pix_corner_ras_arr),
+            np.amax(use_map.pix_corner_ras_arr)
         ]
-        ra_range = [min(all_ras), max(all_ras)]
     if len(dec_range) != 2:
-        all_decs = [
-            use_map.pix_corner_decs_arr[ind][poly_ind]
-            for ind in range(len(use_map.pix_corner_decs_arr))
-            for poly_ind in range(4)
+        dec_range = [
+            np.amin(use_map.pix_corner_decs_arr),
+            np.amax(use_map.pix_corner_decs_arr)
         ]
-        dec_range = [min(all_decs), max(all_decs)]
 
     collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
@@ -234,7 +236,7 @@ def combine_maps_Feb27_with_filtering():
     map.resample(8)
     map.filter_map(lmin=None, lmax=10, filter_width=2)
     plot_filled_pixels(
-        map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/filteringtest.png', ra_range = [0,55], dec_range=[-50,0]
+        map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/filteringtest.png'
     )
 
 

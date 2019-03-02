@@ -53,7 +53,7 @@ class HealpixMap:
             np.where(ra_arr > ra_cut)
         ] - 360.
         ra_arr[np.where(ra_arr < ra_cut-360.)] = ra_arr[
-            np.where(ra_arr > ra_cut)
+            np.where(ra_arr < ra_cut-360.)
         ] + 360.
         self.ra_arr = ra_arr
         self.dec_arr = dec_arr
@@ -164,10 +164,12 @@ class HealpixMap:
         lm[:, 1] = m
         self.spherical_harmonics_amp = alm
         self.spherical_harmonics_lm = lm
+        self.implicit_to_explicit_ordering()
 
-    def filter_map(self, lmin=None, lmax=None, filter_width=0):
+    def filter_map(
+        self, lmin=None, lmax=None, filter_width=0, return_full_map=False
+    ):
         # This function borrows from code by Miguel Morales
-        print self.coords
         if lmax is not None:
             alm_limit = int(math.ceil(lmax + filter_width/2.))
         else:
@@ -204,16 +206,20 @@ class HealpixMap:
                 ]*window_fn[i]
         filtered_map = HealpixMap(
             hp.sphtfunc.alm2map(alm, self.nside), np.array([]),
-            nside=self.nside, nest=False, coords=self.coords
+            nside=self.nside, nest=False, coords=self.coords, quiet=True
         )
         # If input was nested ordering, convert to nested
         if self.nest:
             filtered_map.reorder_ring_to_nest()
+        # Use only pixels from the initial map if return_full_map is unset
+        if not return_full_map:
+            filtered_map.explicit_to_implicit_ordering()
+            for pix_ind, pixel in enumerate(self.pix_arr):
+                self.signal_arr[pix_ind] = filtered_map.signal_arr[pixel]
         else:
             filtered_map.implicit_to_explicit_ordering()
-        filtered_map.implicit_to_explicit_ordering()
-        self.signal_arr = filtered_map.signal_arr
-        self.pix_arr = filtered_map.pix_arr
+            self.signal_arr = filtered_map.signal_arr
+            self.pix_arr = filtered_map.pix_arr
 
     def write_data_to_fits(self, save_filename):
         signal_column = fits.Column(
