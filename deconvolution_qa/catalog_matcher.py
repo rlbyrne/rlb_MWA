@@ -6,11 +6,10 @@ import numpy as np
 import os
 
 
-def match_catalogs_wrapper():
-
-    fhd_run_path = '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018'
-    ref_catalog_path = '/Users/rubybyrne/FHD/catalog_data/GLEAM_plus_rlb2017.sav'
-    output_path = '/Users/rubybyrne/diffuse_survey_qa_plots'
+def match_catalogs_wrapper(
+    fhd_run_path, output_path,
+    ref_catalog_path='/Users/rubybyrne/FHD/catalog_data/GLEAM_v2_plus_rlb2019.sav'
+):
 
     # Find all obs files in the run path directory
     obs_file_list = os.listdir('{}/metadata/'.format(fhd_run_path))
@@ -52,6 +51,7 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
 
     search_radius = 12.  # match sources out to 12 degrees from pointing center
     match_radius = .04  # a match is within this many degrees of the source
+    flux_percent_tolerance = .25  # a match is within this flux tolerance
 
     obs_sav = scipy.io.readsav(
         '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -94,24 +94,28 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
 
     ref_catalog_ras = [float(source['ra']) for source in ref_catalog_limited]
     ref_catalog_decs = [float(source['dec']) for source in ref_catalog_limited]
+    ref_catalog_fluxes = [float(source['flux']['I'])
+                          for source in ref_catalog_limited]
 
     # match sources
-    match_index_list = [-1.]*len(decon_catalog_limited)
+    match_index_list = np.array([np.nan]*len(decon_catalog_limited))
     ref_catalog_indices = list(range(len(ref_catalog_limited)))
     for i, decon_source in enumerate(decon_catalog_limited):
         ra = float(decon_source['ra'])
         dec = float(decon_source['dec'])
+        flux = float(decon_source['flux']['I'])
         for ref_index in ref_catalog_indices:
             if ((ref_catalog_ras[ref_index]-ra)**2.
                 + (ref_catalog_decs[ref_index]-dec)**2.
                 < match_radius**2.
+                and abs(ref_catalog_fluxes[ref_index]-flux) < flux_percent_tolerance*flux
             ):
                 match_index_list[i] = ref_index
                 ref_catalog_indices.remove(ref_index)
                 break
 
     match_index_list = np.asarray(match_index_list)
-    unmatched_indices = np.where(match_index_list == -1.)[0]
+    unmatched_indices = np.where(np.isnan(match_index_list))[0]
     decon_catalog_match_ratio = 1.-float(len(unmatched_indices))/float(len(match_index_list))
     ref_catalog_match_ratio = float(
         len(ref_catalog_limited)-len(match_index_list)
@@ -119,11 +123,10 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
 
     matched_decon_catalog_fluxes = [
         source['flux']['I'] for i, source in enumerate(decon_catalog_limited)
-        if match_index_list[i] != -1.
+        if not np.isnan(match_index_list[i])
     ]
     matched_ref_catalog_fluxes = [
-        ref_catalog_limited[int(ind)]['flux']['I'] for ind in match_index_list
-        if int(ind) != -1
+        ref_catalog_fluxes for ind in match_index_list if not np.isnan(ind)
     ]
 
     fit_param = sum(
@@ -178,9 +181,11 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
     )
 
 
-def plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
-                      fit_param, goodness_of_fit, decon_catalog_match_ratio,
-                      saveloc):
+def plot_flux_scatter(
+    matched_ref_catalog_fluxes, matched_decon_catalog_fluxes, fit_param,
+    goodness_of_fit, decon_catalog_match_ratio, saveloc
+):
+
     plt.figure()
     # plot the 1-to-1 line
     plt.plot(
@@ -296,6 +301,7 @@ def plot_flux_hist(ref_catalog_fluxes, decon_catalog_fluxes, saveloc):
 
 
 def plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius, saveloc):
+
     plt.figure()
     plt.grid(True, zorder=0)
     plt.scatter(
@@ -313,11 +319,11 @@ def plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius, saveloc):
     plt.close()
 
 
-def plot_pos_offsets_vectors(matched_ref_catalog_ras, matched_ref_catalog_decs,
-                             ra_offsets, dec_offsets,
-                             obs_ra, obs_dec,
-                             match_radius, search_radius,
-                             saveloc):
+def plot_pos_offsets_vectors(
+    matched_ref_catalog_ras, matched_ref_catalog_decs, ra_offsets, dec_offsets,
+    obs_ra, obs_dec, match_radius, search_radius, saveloc
+):
+
     arrow_scale_factor = .5
     plt.figure()
     for i in range(len(ra_offsets)):
@@ -338,5 +344,53 @@ def plot_pos_offsets_vectors(matched_ref_catalog_ras, matched_ref_catalog_decs,
     plt.close()
 
 
+def write_params_to_csv(
+    filepath, param_name, obs_list, param_vals, overwrite=False
+):
+
+    # Get header
+    file = open(filepath, 'r')
+    header = file.readline().strip().split(',')
+    file.close()
+    params_old = np.genfromtxt(filepath, delimiter=',', skip_header=1)
+
+    if param_name in header:
+        params = params_old
+    else:
+        params = np.full(
+            (np.shape(params_old)[0], np.shape(params_old)[1]+1), np.nan
+        )
+        params[
+            0:np.shape(params_old)[0], 0:np.shape(params_old)[1]
+        ] = params_old
+        header.append(param_name)
+
+    obs_list_old = list(params[:, header.index('obsid')])
+    for obs_ind, obsid in enumerate(obs_list):
+        if obsid in obs_list_old:
+            if overwrite or params[
+                obs_list_old.index(obsid), header.index(param_name)
+            ] is np.nan:
+                params[
+                    obs_list_old.index(obsid), header.index(param_name)
+                ] = param_vals[obs_ind]
+        else:
+            params_new = np.full(
+                (np.shape(params)[0]+1, np.shape(params)[1]), np.nan
+            )
+            params_new[0:np.shape(params)[0], 0:np.shape(params)[1]] = params
+            params_new[-1, header.index('obsid')] = obsid
+            params_new[-1, header.index(param_name)] = param_vals[obs_ind]
+            params = params_new
+
+    np.savetxt(filepath, params, delimiter=',', header=','.join(header), comments='')
+
+
 if __name__=='__main__':
-    match_catalogs_wrapper()
+    #match_catalogs_wrapper(
+    #    '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018',
+    #    '/Users/rubybyrne/diffuse_survey_qa_plots'
+    #)
+    write_params_to_csv(
+        '/Users/rubybyrne/diffuse_survey_qa/test_params.csv',
+        'testparam', [1131556544, 1130783824], [100, 1], overwrite=True)
