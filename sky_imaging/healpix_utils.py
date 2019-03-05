@@ -525,6 +525,7 @@ def average_healpix_maps(
                 if map.coords != coords:
                     print 'ERROR: Map coordinates do not match. Exiting.'
                     sys.exit(1)
+            map.filter_map(lmin=10, lmax=100, filter_width=5)
             maps.append(map)
 
         for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
@@ -826,7 +827,7 @@ def combine_maps_nearest_data(
                 if map.coords != coords:
                     print 'ERROR: Map coordinates do not match. Exiting.'
                     sys.exit(1)
-            map.filter_map(lmin=None, lmax=10, filter_width=2)
+            map.filter_map(lmin=10, lmax=100, filter_width=5)
             maps.append(map)
 
         # Use the first cube for the pixel list (assume cube pixels match)
