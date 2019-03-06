@@ -74,7 +74,6 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
     decon_catalog_limited.sort(
         key=lambda x: float(x['flux']['I']), reverse=True
     )
-    #decon_catalog_limited = decon_catalog_limited[0:100]  # for debugging
 
     # grab sources near the pointing center
     ref_catalog_limited = []
@@ -98,7 +97,8 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                           for source in ref_catalog_limited]
 
     # match sources
-    match_index_list = np.array([np.nan]*len(decon_catalog_limited))
+    ref_match_index_list = []
+    decon_match_index_list = []
     ref_catalog_indices = list(range(len(ref_catalog_limited)))
     for i, decon_source in enumerate(decon_catalog_limited):
         ra = float(decon_source['ra'])
@@ -110,38 +110,30 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                 < match_radius**2.
                 and abs(ref_catalog_fluxes[ref_index]-flux) < flux_percent_tolerance*flux
             ):
-                match_index_list[i] = ref_index
+                ref_match_index_list.append(ref_index)
+                decon_match_index_list.append(i)
                 ref_catalog_indices.remove(ref_index)
                 break
+    ref_match_index_list = np.array(ref_match_index_list)
+    decon_match_index_list = np.array(decon_match_index_list)
 
-    match_index_list = np.asarray(match_index_list)
-    unmatched_indices = np.where(np.isnan(match_index_list))[0]
-    decon_catalog_match_ratio = 1.-float(len(unmatched_indices))/float(len(match_index_list))
+    n_unmatched = len(decon_catalog_limited) - len(ref_match_index_list)
+    decon_catalog_match_ratio = 1.-float(n_unmatched)/float(len(ref_match_index_list))
     ref_catalog_match_ratio = float(
-        len(ref_catalog_limited)-len(match_index_list)
+        len(ref_catalog_limited)-len(ref_match_index_list)
         )/float(len(ref_catalog_limited))
 
-    matched_decon_catalog_fluxes = [
-        source['flux']['I'] for i, source in enumerate(decon_catalog_limited)
-        if not np.isnan(match_index_list[i])
-    ]
-    matched_ref_catalog_fluxes = [
-        ref_catalog_fluxes for ind in match_index_list if not np.isnan(ind)
-    ]
+    matched_decon_catalog_fluxes = np.array(decon_catalog_limited[
+        decon_match_index_list
+    ]['flux']['I'])
+    matched_ref_catalog_fluxes = np.array(ref_catalog_fluxes[ref_match_index_list])
 
-    fit_param = sum(
-        [(
-          matched_decon_catalog_fluxes[i]/matched_ref_catalog_fluxes[i]
-          )**2 for i in range(len(matched_ref_catalog_fluxes))]
-    )/sum(
-        [(
-          matched_decon_catalog_fluxes[i]/matched_ref_catalog_fluxes[i]
-          ) for i in range(len(matched_ref_catalog_fluxes))]
-    )
-    goodness_of_fit = sum([
-        (matched_ref_catalog_fluxes[i]-matched_decon_catalog_fluxes[i]/fit_param)**2/(matched_ref_catalog_fluxes[i]**2)
-        for i in range(len(matched_ref_catalog_fluxes))
-    ])/len(matched_ref_catalog_fluxes)
+    fit_param = np.sum(
+        (matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)**2
+    )/np.sum(matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)
+    goodness_of_fit = np.sum((
+            matched_ref_catalog_fluxes-(matched_decon_catalog_fluxes/fit_param)
+    )**2/matched_ref_catalog_fluxes**2)/len(matched_ref_catalog_fluxes)
 
     plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                       fit_param, goodness_of_fit, decon_catalog_match_ratio,
@@ -189,36 +181,36 @@ def plot_flux_scatter(
     plt.figure()
     # plot the 1-to-1 line
     plt.plot(
-        [min([
-            min(matched_ref_catalog_fluxes),
-            min(matched_decon_catalog_fluxes)
-        ]), max([
-            max(matched_ref_catalog_fluxes),
-            max(matched_decon_catalog_fluxes)
+        [np.min([
+            np.min(matched_ref_catalog_fluxes),
+            np.min(matched_decon_catalog_fluxes)
+        ]), np.max([
+            np.max(matched_ref_catalog_fluxes),
+            np.max(matched_decon_catalog_fluxes)
         ])],
-        [min([
-            min(matched_ref_catalog_fluxes),
-            min(matched_decon_catalog_fluxes)
-        ]), max([
-            max(matched_ref_catalog_fluxes),
-            max(matched_decon_catalog_fluxes)
+        [np.min([
+            np.min(matched_ref_catalog_fluxes),
+            np.min(matched_decon_catalog_fluxes)
+        ]), np.max([
+            np.max(matched_ref_catalog_fluxes),
+            np.max(matched_decon_catalog_fluxes)
         ])],
         linestyle=':', linewidth=0.5, color='blue', label='1-to-1 line'
     )
     # plot the power law fit
     plt.plot(
-        [min([
-            min(matched_ref_catalog_fluxes),
-            min(matched_decon_catalog_fluxes)
-        ]), max([
-            max(matched_ref_catalog_fluxes),
-            max(matched_decon_catalog_fluxes)
+        [np.min([
+            np.min(matched_ref_catalog_fluxes),
+            np.min(matched_decon_catalog_fluxes)
+        ]), np.max([
+            np.max(matched_ref_catalog_fluxes),
+            np.max(matched_decon_catalog_fluxes)
         ])],
         [
-            fit_param*min([min(matched_ref_catalog_fluxes),
-            min(matched_decon_catalog_fluxes)]),
-            fit_param*max([max(matched_ref_catalog_fluxes),
-            max(matched_decon_catalog_fluxes)])
+            fit_param*np.min([np.min(matched_ref_catalog_fluxes),
+            np.min(matched_decon_catalog_fluxes)]),
+            fit_param*np.max([np.max(matched_ref_catalog_fluxes),
+            np.max(matched_decon_catalog_fluxes)])
         ],
         linestyle=':',
         linewidth=0.5,
@@ -227,6 +219,8 @@ def plot_flux_scatter(
             float(fit_param), float(goodness_of_fit)
         )
     )
+    print np.shape(matched_ref_catalog_fluxes)
+    print np.shape(matched_decon_catalog_fluxes)
     plt.scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                 marker='o', s=1., color='black')
     plt.xscale('log')
@@ -258,17 +252,23 @@ def plot_flux_scatter(
 
 def plot_flux_hist(ref_catalog_fluxes, decon_catalog_fluxes, saveloc):
 
+    # get rid of zeros and negatives to allow for log scaling
+    ref_catalog_fluxes = np.array(ref_catalog_fluxes)
+    ref_catalog_fluxes = ref_catalog_fluxes[np.where(ref_catalog_fluxes>0)[0]]
+    decon_catalog_fluxes = np.array(decon_catalog_fluxes)
+    decon_catalog_fluxes = decon_catalog_fluxes[np.where(decon_catalog_fluxes>0)[0]]
+
     # get bin edges
     null, bin_edges = np.histogram(
-        [np.log(val) for val in ref_catalog_fluxes+decon_catalog_fluxes],
+        np.log(np.append(ref_catalog_fluxes, decon_catalog_fluxes)),
         bins='auto'
     )
     # histogram data
     ref_hist, bin_edges = np.histogram(
-        [np.log(val) for val in ref_catalog_fluxes], bins=bin_edges
+        np.log(ref_catalog_fluxes), bins=bin_edges
     )
     decon_hist, bin_edges = np.histogram(
-        [np.log(val) for val in decon_catalog_fluxes], bins=bin_edges
+        np.log(decon_catalog_fluxes), bins=bin_edges
     )
     bin_edges = [np.exp(val) for val in bin_edges]
     xvals = [bin_edges[0]]
@@ -344,53 +344,11 @@ def plot_pos_offsets_vectors(
     plt.close()
 
 
-def write_params_to_csv(
-    filepath, param_name, obs_list, param_vals, overwrite=False
-):
-
-    # Get header
-    file = open(filepath, 'r')
-    header = file.readline().strip().split(',')
-    file.close()
-    params_old = np.genfromtxt(filepath, delimiter=',', skip_header=1)
-
-    if param_name in header:
-        params = params_old
-    else:
-        params = np.full(
-            (np.shape(params_old)[0], np.shape(params_old)[1]+1), np.nan
-        )
-        params[
-            0:np.shape(params_old)[0], 0:np.shape(params_old)[1]
-        ] = params_old
-        header.append(param_name)
-
-    obs_list_old = list(params[:, header.index('obsid')])
-    for obs_ind, obsid in enumerate(obs_list):
-        if obsid in obs_list_old:
-            if overwrite or params[
-                obs_list_old.index(obsid), header.index(param_name)
-            ] is np.nan:
-                params[
-                    obs_list_old.index(obsid), header.index(param_name)
-                ] = param_vals[obs_ind]
-        else:
-            params_new = np.full(
-                (np.shape(params)[0]+1, np.shape(params)[1]), np.nan
-            )
-            params_new[0:np.shape(params)[0], 0:np.shape(params)[1]] = params
-            params_new[-1, header.index('obsid')] = obsid
-            params_new[-1, header.index(param_name)] = param_vals[obs_ind]
-            params = params_new
-
-    np.savetxt(filepath, params, delimiter=',', header=','.join(header), comments='')
-
-
 if __name__=='__main__':
-    #match_catalogs_wrapper(
-    #    '/Users/rubybyrne/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2018',
-    #    '/Users/rubybyrne/diffuse_survey_qa_plots'
-    #)
-    write_params_to_csv(
-        '/Users/rubybyrne/diffuse_survey_qa/test_params.csv',
-        'testparam', [1131556544, 1130783824], [100, 1], overwrite=True)
+    match_catalogs_wrapper(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
+        '/Users/rubybyrne/diffuse_survey_qa/4pol_decon_Feb2019'
+    )
+    #write_params_to_csv(
+    #    '/Users/rubybyrne/diffuse_survey_qa/test_params.csv',
+    #    'testparam', [1131556544, 1130783824], [100, 1], overwrite=True)
