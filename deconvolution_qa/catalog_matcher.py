@@ -114,8 +114,8 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                 decon_match_index_list.append(i)
                 ref_catalog_indices.remove(ref_index)
                 break
-    ref_match_index_list = np.array(ref_match_index_list)
-    decon_match_index_list = np.array(decon_match_index_list)
+    ref_match_index_list = np.array(ref_match_index_list, dtype=int)
+    decon_match_index_list = np.array(decon_match_index_list, dtype=int)
 
     n_unmatched = len(decon_catalog_limited) - len(ref_match_index_list)
     decon_catalog_match_ratio = 1.-float(n_unmatched)/float(len(ref_match_index_list))
@@ -123,10 +123,12 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
         len(ref_catalog_limited)-len(ref_match_index_list)
         )/float(len(ref_catalog_limited))
 
-    matched_decon_catalog_fluxes = np.array(decon_catalog_limited[
-        decon_match_index_list
-    ]['flux']['I'])
-    matched_ref_catalog_fluxes = np.array(ref_catalog_fluxes[ref_match_index_list])
+    matched_decon_catalog_fluxes = np.array([decon_catalog_limited[
+        index
+    ]['flux']['I'] for index in decon_match_index_list], dtype=float)
+    matched_ref_catalog_fluxes = np.array([
+        ref_catalog_fluxes[index] for index in ref_match_index_list
+    ], dtype=float)
 
     fit_param = np.sum(
         (matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)**2
@@ -140,22 +142,18 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                       '{}/{}_flux_compare.png'.format(output_path, obsid))
 
     # Calculate and plot positional offsets
-    matched_decon_catalog_ras = [
-        source['ra'] for i, source in enumerate(decon_catalog_limited)
-        if match_index_list[i] != -1.
-    ]
-    matched_decon_catalog_decs = [
-        source['dec'] for i, source in enumerate(decon_catalog_limited)
-        if match_index_list[i] != -1.
-    ]
-    matched_ref_catalog_ras = [
-        ref_catalog_limited[int(ind)]['ra'] for ind in match_index_list
-        if int(ind) != -1
-    ]
-    matched_ref_catalog_decs = [
-        ref_catalog_limited[int(ind)]['dec'] for ind in match_index_list
-        if int(ind) != -1
-    ]
+    matched_decon_catalog_ras = np.array([decon_catalog_limited[
+        index
+    ]['ra'] for index in decon_match_index_list], dtype=float)
+    matched_decon_catalog_decs = np.array([decon_catalog_limited[
+        index
+    ]['dec'] for index in decon_match_index_list], dtype=float)
+    matched_ref_catalog_ras = np.array([
+        ref_catalog_limited[index]['ra'] for index in ref_match_index_list
+    ], dtype=float)
+    matched_ref_catalog_decs = np.array([
+        ref_catalog_limited[index]['dec'] for index in ref_match_index_list
+    ], dtype=float)
 
     ra_offsets = [(
         matched_decon_catalog_ras[i]-matched_ref_catalog_ras[i]
