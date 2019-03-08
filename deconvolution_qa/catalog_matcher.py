@@ -85,7 +85,6 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
             ref_catalog_limited.append(source)
     # sort sources by flux
     ref_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
-    #ref_catalog_limited = ref_catalog_limited[0:100]  # for debugging
 
     plot_flux_hist([source['flux']['I'] for source in ref_catalog_limited],
                    [source['flux']['I'] for source in decon_catalog_limited],
@@ -117,25 +116,22 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
     ref_match_index_list = np.array(ref_match_index_list, dtype=int)
     decon_match_index_list = np.array(decon_match_index_list, dtype=int)
 
-    n_unmatched = len(decon_catalog_limited) - len(ref_match_index_list)
-    decon_catalog_match_ratio = 1.-float(n_unmatched)/float(len(ref_match_index_list))
-    ref_catalog_match_ratio = float(
-        len(ref_catalog_limited)-len(ref_match_index_list)
-        )/float(len(ref_catalog_limited))
+    decon_catalog_match_ratio = float(len(decon_match_index_list))/float(len(decon_catalog_limited))
+    ref_catalog_match_ratio = float(len(ref_match_index_list))/float(len(ref_catalog_limited))
 
     matched_decon_catalog_fluxes = np.array([decon_catalog_limited[
         index
-    ]['flux']['I'] for index in decon_match_index_list], dtype=float)
+    ]['flux']['I'][0] for index in decon_match_index_list], dtype=float)
     matched_ref_catalog_fluxes = np.array([
         ref_catalog_fluxes[index] for index in ref_match_index_list
     ], dtype=float)
 
     fit_param = np.sum(
-        (matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)**2
-    )/np.sum(matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)
-    goodness_of_fit = np.sum((
-            matched_ref_catalog_fluxes-(matched_decon_catalog_fluxes/fit_param)
-    )**2/matched_ref_catalog_fluxes**2)/len(matched_ref_catalog_fluxes)
+        matched_decon_catalog_fluxes*matched_ref_catalog_fluxes
+    )/np.sum(matched_ref_catalog_fluxes**2.)
+    goodness_of_fit = np.sum(
+        (matched_decon_catalog_fluxes-fit_param*matched_ref_catalog_fluxes)**2.
+    )/len(matched_ref_catalog_fluxes)
 
     plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                       fit_param, goodness_of_fit, decon_catalog_match_ratio,
@@ -213,12 +209,10 @@ def plot_flux_scatter(
         linestyle=':',
         linewidth=0.5,
         color='red',
-        label='power law fit: A={:.3f}, X^2={:.2f}'.format(
+        label='fit: param={:.3f}, X^2={:.2f}'.format(
             float(fit_param), float(goodness_of_fit)
         )
     )
-    print np.shape(matched_ref_catalog_fluxes)
-    print np.shape(matched_decon_catalog_fluxes)
     plt.scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                 marker='o', s=1., color='black')
     plt.xscale('log')
