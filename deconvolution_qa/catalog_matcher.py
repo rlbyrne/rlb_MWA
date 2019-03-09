@@ -4,11 +4,13 @@ import scipy.io
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import qa_utils
 
 
 def match_catalogs_wrapper(
     fhd_run_path, output_path,
-    ref_catalog_path='/Users/rubybyrne/FHD/catalog_data/GLEAM_v2_plus_rlb2019.sav'
+    ref_catalog_path='/Users/rubybyrne/FHD/catalog_data/GLEAM_v2_plus_rlb2019.sav',
+    qa_params_savepath='/Users/rubybyrne/diffuse_survey_qa/diffuse_qa_params.csv'
 ):
 
     # Find all obs files in the run path directory
@@ -44,10 +46,13 @@ def match_catalogs_wrapper(
         print 'Creating deconvolution QA plots for {}, obsid {}/{}'.format(
             obsid, i+1, len(obsid_list)
         )
-        match_catalogs(fhd_run_path, output_path, ref_catalog, obsid)
+        match_catalogs(
+            fhd_run_path, output_path, ref_catalog, obsid,
+            qa_params_savepath=qa_params_savepath
+        )
 
 
-def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
+def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_savepath=None):
 
     search_radius = 12.  # match sources out to 12 degrees from pointing center
     match_radius = .04  # a match is within this many degrees of the source
@@ -85,7 +90,6 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
             ref_catalog_limited.append(source)
     # sort sources by flux
     ref_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
-    #ref_catalog_limited = ref_catalog_limited[0:100]  # for debugging
 
     plot_flux_hist([source['flux']['I'] for source in ref_catalog_limited],
                    [source['flux']['I'] for source in decon_catalog_limited],
@@ -114,55 +118,79 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid):
                 decon_match_index_list.append(i)
                 ref_catalog_indices.remove(ref_index)
                 break
-    ref_match_index_list = np.array(ref_match_index_list)
-    decon_match_index_list = np.array(decon_match_index_list)
+    ref_match_index_list = np.array(ref_match_index_list, dtype=int)
+    decon_match_index_list = np.array(decon_match_index_list, dtype=int)
 
-    n_unmatched = len(decon_catalog_limited) - len(ref_match_index_list)
-    decon_catalog_match_ratio = 1.-float(n_unmatched)/float(len(ref_match_index_list))
-    ref_catalog_match_ratio = float(
-        len(ref_catalog_limited)-len(ref_match_index_list)
-        )/float(len(ref_catalog_limited))
+    decon_catalog_match_ratio = float(len(decon_match_index_list))/float(len(decon_catalog_limited))
+    ref_catalog_match_ratio = float(len(ref_match_index_list))/float(len(ref_catalog_limited))
+    if qa_params_savepath is not None:
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'source ratio matched to GLEAM', [obsid],
+            [decon_catalog_match_ratio]
+        )
 
-    matched_decon_catalog_fluxes = np.array(decon_catalog_limited[
-        decon_match_index_list
-    ]['flux']['I'])
-    matched_ref_catalog_fluxes = np.array(ref_catalog_fluxes[ref_match_index_list])
+    matched_decon_catalog_fluxes = np.array([decon_catalog_limited[
+        index
+    ]['flux']['I'][0] for index in decon_match_index_list], dtype=float)
+    matched_ref_catalog_fluxes = np.array([
+        ref_catalog_fluxes[index] for index in ref_match_index_list
+    ], dtype=float)
 
     fit_param = np.sum(
-        (matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)**2
-    )/np.sum(matched_decon_catalog_fluxes/matched_ref_catalog_fluxes)
-    goodness_of_fit = np.sum((
-            matched_ref_catalog_fluxes-(matched_decon_catalog_fluxes/fit_param)
-    )**2/matched_ref_catalog_fluxes**2)/len(matched_ref_catalog_fluxes)
+        matched_decon_catalog_fluxes*matched_ref_catalog_fluxes
+    )/np.sum(matched_ref_catalog_fluxes**2.)
+    goodness_of_fit = np.sum(
+        (matched_decon_catalog_fluxes-fit_param*matched_ref_catalog_fluxes)**2.
+    )/len(matched_ref_catalog_fluxes)
+    min_decon_flux = np.min(np.array(
+        [source['flux']['I'][0] for source in decon_catalog_limited],
+        dtype=float
+    ))
+    if qa_params_savepath is not None:
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'flux fit to GLEAM', [obsid], [fit_param]
+        )
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'flux fit to GLEAM fit quality', [obsid],
+            [goodness_of_fit]
+        )
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'min deconvolved flux', [obsid],
+            [min_decon_flux]
+        )
 
     plot_flux_scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                       fit_param, goodness_of_fit, decon_catalog_match_ratio,
                       '{}/{}_flux_compare.png'.format(output_path, obsid))
 
     # Calculate and plot positional offsets
-    matched_decon_catalog_ras = [
-        source['ra'] for i, source in enumerate(decon_catalog_limited)
-        if match_index_list[i] != -1.
-    ]
-    matched_decon_catalog_decs = [
-        source['dec'] for i, source in enumerate(decon_catalog_limited)
-        if match_index_list[i] != -1.
-    ]
-    matched_ref_catalog_ras = [
-        ref_catalog_limited[int(ind)]['ra'] for ind in match_index_list
-        if int(ind) != -1
-    ]
-    matched_ref_catalog_decs = [
-        ref_catalog_limited[int(ind)]['dec'] for ind in match_index_list
-        if int(ind) != -1
-    ]
+    matched_decon_catalog_ras = np.array([decon_catalog_limited[
+        index
+    ]['ra'] for index in decon_match_index_list], dtype=float)
+    matched_decon_catalog_decs = np.array([decon_catalog_limited[
+        index
+    ]['dec'] for index in decon_match_index_list], dtype=float)
+    matched_ref_catalog_ras = np.array([
+        ref_catalog_limited[index]['ra'] for index in ref_match_index_list
+    ], dtype=float)
+    matched_ref_catalog_decs = np.array([
+        ref_catalog_limited[index]['dec'] for index in ref_match_index_list
+    ], dtype=float)
 
-    ra_offsets = [(
-        matched_decon_catalog_ras[i]-matched_ref_catalog_ras[i]
-    )*60. for i in range(len(matched_ref_catalog_ras))]
-    dec_offsets = [(
-        matched_decon_catalog_decs[i]-matched_ref_catalog_decs[i]
-    )*60. for i in range(len(matched_ref_catalog_decs))]
+    ra_offsets = (matched_decon_catalog_ras-matched_ref_catalog_ras)*60.
+    dec_offsets = (matched_decon_catalog_decs-matched_ref_catalog_decs)*60.
+    overall_offset_ra = np.mean(ra_offsets)
+    overall_offset_dec = np.mean(dec_offsets)
+    ave_offset_size = np.mean((ra_offsets**2.+dec_offsets**2.)**.5)
+    if qa_params_savepath is not None:
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'source match to GLEAM overall position offset',
+            [obsid], [(overall_offset_ra**2.+overall_offset_dec**2.)**.5]
+        )
+        qa_utils.write_params_to_csv(
+            qa_params_savepath, 'source match to GLEAM ave position offset',
+            [obsid], [ave_offset_size]
+        )
 
     plot_pos_offsets_scatter(ra_offsets, dec_offsets, match_radius,
         '{}/{}_pos_offsets_scatter.png'.format(output_path, obsid)
@@ -215,12 +243,10 @@ def plot_flux_scatter(
         linestyle=':',
         linewidth=0.5,
         color='red',
-        label='power law fit: A={:.3f}, X^2={:.2f}'.format(
+        label='fit: param={:.3f}, X^2={:.2f}'.format(
             float(fit_param), float(goodness_of_fit)
         )
     )
-    print np.shape(matched_ref_catalog_fluxes)
-    print np.shape(matched_decon_catalog_fluxes)
     plt.scatter(matched_ref_catalog_fluxes, matched_decon_catalog_fluxes,
                 marker='o', s=1., color='black')
     plt.xscale('log')
@@ -349,6 +375,3 @@ if __name__=='__main__':
         '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019',
         '/Users/rubybyrne/diffuse_survey_qa/4pol_decon_Feb2019'
     )
-    #write_params_to_csv(
-    #    '/Users/rubybyrne/diffuse_survey_qa/test_params.csv',
-    #    'testparam', [1131556544, 1130783824], [100, 1], overwrite=True)
