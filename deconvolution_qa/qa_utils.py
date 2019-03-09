@@ -148,6 +148,7 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
     params = np.genfromtxt(filepath, delimiter=',', skip_header=1)
 
     fig = plt.figure(figsize=(6, 6))
+    plt.rcParams.update({'font.size': 5})
     grid = plt.GridSpec(
         2*len(param_names)-1, 2*len(param_names)-1, wspace=0.1, hspace=0.1
     )
@@ -162,7 +163,9 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
             subfig = fig.add_subplot(
                 grid[2*(ind2+ind1):2*(ind2+ind1)+2, 2*ind1+1:2*ind1+3]
             )
-            subfig.plot(use_params_x, use_params_y, 'ok', markersize=3, alpha=0.2)
+            subfig.plot(
+                use_params_x, use_params_y, 'ok', markersize=2, alpha=0.2
+            )
             subfig.axes.get_xaxis().set_visible(False)
             subfig.axes.get_yaxis().set_visible(False)
 
@@ -177,8 +180,9 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
                     (y_edges[i]+y_edges[i+1])/2 for i in range(len(y_edges)-1)
                 ]
                 subfig.contour(
-                    x_centers, y_centers, hist.T, levels=[np.max(hist)/10000., np.max(hist)/100.], colors=['skyblue', 'dodgerblue'],
-                    origin='image'
+                    x_centers, y_centers, hist.T,
+                    levels=[np.max(hist)/10000., np.max(hist)/100.],
+                    colors=['skyblue', 'dodgerblue']
                 )
 
             if ind2 == 0:
@@ -209,7 +213,6 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
             else:
                 subfig.get_shared_y_axes().join(y_hist, subfig)
 
-
     if saveloc == '':
         plt.show()
     else:
@@ -220,4 +223,4 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
 
 if __name__ == '__main__':
 
-    qa_param_hist_set('/Users/ruby/EoR/diffuse_total_occ.csv', ['obsid', 'RFI occupancy','obsid', 'RFI occupancy'], colorbar_range=None)
+    qa_param_hist_set('/Users/ruby/EoR/diffuse_total_occ.csv', ['obsid', 'RFI occupancy', 'obsid', 'RFI occupancy'], colorbar_range=None, saveloc='/Users/ruby/Desktop/test_params_plot.png')
