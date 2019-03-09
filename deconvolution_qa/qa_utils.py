@@ -29,10 +29,11 @@ def write_params_to_csv(
 
     obs_list_old = list(params[:, header.index('obsid')])
     for obs_ind, obsid in enumerate(obs_list):
+        obsid = int(obsid)
         if obsid in obs_list_old:
-            if overwrite or params[
+            if overwrite or np.isnan(params[
                 obs_list_old.index(obsid), header.index(param_name)
-            ] is np.nan:
+            ]):
                 params[
                     obs_list_old.index(obsid), header.index(param_name)
                 ] = param_vals[obs_ind]
