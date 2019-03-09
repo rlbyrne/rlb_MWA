@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import scipy.io
-import matplotlib.pyplot as plt
 import numpy as np
 import os
+import sys
+sys.path.append('../sky_imaging/')
 import healpix_utils
 import qa_utils
 
@@ -30,7 +30,7 @@ def average_stokes_v(
         ave_power.append(np.mean(map.signal_arr**2.)/len(map.signal_arr))
 
     qa_utils.write_params_to_csv(
-        qa_params_filepath, 'Average Stokes V Power', obs_list, ave_power,
+        qa_params_filepath, 'average Stokes V power', obs_list, ave_power,
         overwrite=True
     )
 
