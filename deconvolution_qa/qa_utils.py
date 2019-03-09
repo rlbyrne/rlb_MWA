@@ -148,6 +148,7 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
     params = np.genfromtxt(filepath, delimiter=',', skip_header=1)
 
     fig = plt.figure(figsize=(6, 6))
+    fig.subplots_adjust(bottom=0.15, left=0.2)
     plt.rcParams.update({'font.size': 5})
     grid = plt.GridSpec(
         2*len(param_names)-1, 2*len(param_names)-1, wspace=0.1, hspace=0.1
@@ -157,9 +158,14 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
         for ind2, param2 in enumerate(param_names[ind1+1:]):
             use_params_x = params[:, header.index(param1)]
             use_params_y = params[:, header.index(param2)]
+            use_inds = np.intersect1d(
+                np.where(~np.isnan(use_params_x))[0],
+                np.where(~np.isnan(use_params_y))[0]
+            )
+            use_params_x = use_params_x[use_inds]
+            use_params_y = use_params_y[use_inds]
             xrange = [np.min(use_params_x), np.max(use_params_x)]
             yrange = [np.min(use_params_y), np.max(use_params_y)]
-            print grid[2*ind1+1:2*ind1+3, 2*(ind2+ind1):2*(ind2+ind1)+2]
             subfig = fig.add_subplot(
                 grid[2*(ind2+ind1):2*(ind2+ind1)+2, 2*ind1+1:2*ind1+3]
             )
@@ -193,7 +199,22 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
                 )
                 x_hist.invert_yaxis()
                 x_hist.get_shared_x_axes().join(x_hist, subfig)
-                x_hist.set_xlabel(param1)
+                if len(param1) > 20:
+                    if ' ' in param1[21:]:
+                        split_loc = param1[21:].index(' ')+21
+                        xlabel = '{}\n{}'.format(
+                            param1[:split_loc], param1[split_loc+1:]
+                        )
+                    elif ' ' in param1[11:]:
+                        split_loc = param1[11:].index(' ')+11
+                        xlabel = '{}\n{}'.format(
+                            param1[:split_loc], param1[split_loc+1:]
+                        )
+                    else:
+                        xlabel = param1
+                else:
+                    xlabel = param1
+                x_hist.set_xlabel(xlabel, rotation=40)
                 x_hist.axes.get_yaxis().set_visible(False)
             else:
                 subfig.get_shared_x_axes().join(x_hist, subfig)
@@ -208,7 +229,22 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
                 )
                 y_hist.invert_xaxis()
                 y_hist.get_shared_y_axes().join(y_hist, subfig)
-                y_hist.set_ylabel(param2)
+                if len(param2) > 20:
+                    if ' ' in param2[21:]:
+                        split_loc = param2[21:].index(' ')+21
+                        ylabel = '{}\n{}'.format(
+                            param2[:split_loc], param2[split_loc+1:]
+                        )
+                    elif ' ' in param2[11:]:
+                        split_loc = param2[11:].index(' ')+11
+                        ylabel = '{}\n{}'.format(
+                            param2[:split_loc], param2[split_loc+1:]
+                        )
+                    else:
+                        ylabel = param2
+                else:
+                    ylabel = param2
+                y_hist.set_ylabel(ylabel, rotation=40, labelpad=20)
                 y_hist.axes.get_xaxis().set_visible(False)
             else:
                 subfig.get_shared_y_axes().join(y_hist, subfig)
@@ -223,4 +259,4 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
 
 if __name__ == '__main__':
 
-    qa_param_hist_set('/Users/ruby/EoR/diffuse_total_occ.csv', ['obsid', 'RFI occupancy', 'obsid', 'RFI occupancy'], colorbar_range=None, saveloc='/Users/ruby/Desktop/test_params_plot.png')
+    qa_param_hist_set('/Users/ruby/EoR/diffuse_qa_params_Mar2019.csv', ['RFI occupancy', 'source ratio matched to GLEAM', 'flux fit to GLEAM', 'flux fit to GLEAM fit quality', 'source match to GLEAM overall position offset', 'source match to GLEAM ave position offset', 'average Stokes V power'], colorbar_range=None, saveloc='/Users/ruby/Desktop/test_params_plot.png')
