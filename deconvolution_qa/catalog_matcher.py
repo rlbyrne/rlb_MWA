@@ -56,7 +56,7 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
 
     search_radius = 12.  # match sources out to 12 degrees from pointing center
     match_radius = .04  # a match is within this many degrees of the source
-    flux_percent_tolerance = .25  # a match is within this flux tolerance
+    flux_percent_tolerance = 1.  # a match is within this flux tolerance
 
     obs_sav = scipy.io.readsav(
         '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -67,13 +67,18 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
     decon_catalog = scipy.io.readsav(
         '{}/deconvolution/{}_fhd.sav'.format(fhd_run_path, obsid)
         )['source_array']
+    print len(decon_catalog)
     # grab sources near the pointing center
     decon_catalog_limited = []
     for source in decon_catalog:
-        if min((float(source['ra'])-obs_ra)**2.,
-               (float(source['ra'])-obs_ra+360.)**2.,
-               (float(source['ra'])-obs_ra-360.)**2.
-               ) + (float(source['dec'])-obs_dec)**2. < search_radius**2.:
+        if (
+            min(
+                (float(source['ra'])-obs_ra)**2.,
+                (float(source['ra'])-obs_ra+360.)**2.,
+                (float(source['ra'])-obs_ra-360.)**2.
+            ) + (float(source['dec'])-obs_dec)**2. < search_radius**2.
+            and float(source['flux']['I']) > 0.
+        ):
             decon_catalog_limited.append(source)
     # sort sources by flux
     decon_catalog_limited.sort(
@@ -83,10 +88,13 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
     # grab sources near the pointing center
     ref_catalog_limited = []
     for source in ref_catalog:
-        if min((float(source['ra'])-obs_ra)**2.,
-               (float(source['ra'])-obs_ra+360.)**2.,
-               (float(source['ra'])-obs_ra-360.)**2.
-               ) + (float(source['dec'])-obs_dec)**2. < search_radius**2.:
+        if (
+            min((float(source['ra'])-obs_ra)**2.,
+                (float(source['ra'])-obs_ra+360.)**2.,
+                (float(source['ra'])-obs_ra-360.)**2.
+            ) + (float(source['dec'])-obs_dec)**2. < (search_radius+match_radius)**2.
+            and float(source['flux']['I']) > 0.
+        ):
             ref_catalog_limited.append(source)
     # sort sources by flux
     ref_catalog_limited.sort(key=lambda x: float(x['flux']['I']), reverse=True)
@@ -104,7 +112,7 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
     ref_match_index_list = []
     decon_match_index_list = []
     ref_catalog_indices = list(range(len(ref_catalog_limited)))
-    for i, decon_source in enumerate(decon_catalog_limited):
+    for decon_ind, decon_source in enumerate(decon_catalog_limited):
         ra = float(decon_source['ra'])
         dec = float(decon_source['dec'])
         flux = float(decon_source['flux']['I'])
@@ -115,7 +123,7 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
                 and abs(ref_catalog_fluxes[ref_index]-flux) < flux_percent_tolerance*flux
             ):
                 ref_match_index_list.append(ref_index)
-                decon_match_index_list.append(i)
+                decon_match_index_list.append(decon_ind)
                 ref_catalog_indices.remove(ref_index)
                 break
     ref_match_index_list = np.array(ref_match_index_list, dtype=int)
