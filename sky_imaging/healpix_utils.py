@@ -494,6 +494,7 @@ def average_healpix_maps(
     print 'Averaging {} observations'.format(len(obs_list))
 
     for obs_ind, obsid in enumerate(obs_list):
+        print 'Loading observation {} of {}'.format(obs_ind, len(obs_list))
         maps = []
         for cube_ind, cube in enumerate(cube_names):
             map = load_map('{}/output_data/{}_uniform_{}_HEALPix.fits'.format(
@@ -525,18 +526,19 @@ def average_healpix_maps(
                 if map.coords != coords:
                     print 'ERROR: Map coordinates do not match. Exiting.'
                     sys.exit(1)
-            map.filter_map(lmin=10, lmax=100, filter_width=5)
             maps.append(map)
+
+        if apply_radial_weighting:  # Restore obs structure if necessary
+            obs_struct = scipy.io.readsav(
+                '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+            )['obs']
+            obs_vec = hp.pixelfunc.ang2vec(
+                float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                lonlat=True
+            )
 
         for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
             if apply_radial_weighting:
-                obs_struct = scipy.io.readsav(
-                    '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
-                )['obs']
-                obs_vec = hp.pixelfunc.ang2vec(
-                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
-                    lonlat=True
-                )
                 pix_vec = hp.pix2vec(nside, pix, nest=nest)
                 rad_weight = obs_radial_weighting_function(
                     (pix_vec[0]-obs_vec[0])**2.
@@ -746,7 +748,7 @@ def calculate_variance_healpix_maps(
     return variance_maps, averaged_maps, weights_map, nsamples_map
 
 
-def obs_radial_weighting_function(dist, max_dist=14., taper_width=4.):
+def obs_radial_weighting_function(dist, max_dist=10., taper_width=.2):
 
     if dist < max_dist-taper_width:
         weight = 1.
@@ -827,7 +829,6 @@ def combine_maps_nearest_data(
                 if map.coords != coords:
                     print 'ERROR: Map coordinates do not match. Exiting.'
                     sys.exit(1)
-            map.filter_map(lmin=10, lmax=100, filter_width=5)
             maps.append(map)
 
         # Use the first cube for the pixel list (assume cube pixels match)

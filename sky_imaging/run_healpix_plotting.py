@@ -197,9 +197,71 @@ def plot_maps_Mar4():
                 )
 
 
+def plot_maps_Mar15():
+
+    """combined_maps = healpix_utils.combine_maps_nearest_data(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_pol_leakage_correction_4pol_Mar2019',
+        nside=256, cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_closest.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_closest.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_closest.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_closest.fits'
+    )
+
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_closest.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_60obs_closest.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_closest.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_closest.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_closest.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_60obs_closest.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_closest.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_60obs_closest.png')
+    """
+    data_files = os.listdir('/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_pol_leakage_correction_4pol_Mar2019/output_data/')
+    data_files = [
+        file for file in data_files
+        if '_uniform_Residual_I_HEALPix.fits' in file
+    ]
+    obs_list = [file[0:10] for file in data_files]
+    combined_maps, weights_map = healpix_utils.average_healpix_maps(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_pol_leakage_correction_4pol_Mar2019',
+        obs_list, nside=128, apply_radial_weighting=True,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_ave.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_ave.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_ave.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_ave.fits'
+    )
+
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_ave.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_60obs_ave.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_ave.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_ave.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_ave.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_60obs_ave.png')
+    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_ave.fits')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_60obs_ave.png')
+
+
 if __name__ == '__main__':
 
-    plot_maps_Mar4()
+    plot_maps_Mar15()
 
     #map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits')
     #plot_healpix_map.plot_filled_pixels(
