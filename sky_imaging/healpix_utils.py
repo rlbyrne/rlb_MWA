@@ -541,9 +541,7 @@ def average_healpix_maps(
             if apply_radial_weighting:
                 pix_vec = hp.pix2vec(nside, pix, nest=nest)
                 rad_weight = obs_radial_weighting_function(
-                    (pix_vec[0]-obs_vec[0])**2.
-                    + (pix_vec[1]-obs_vec[1])**2.
-                    + (pix_vec[2]-obs_vec[2])**2.
+                    hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
                 use_weight = rad_weight*obs_weights[obs_ind]
             else:
@@ -690,9 +688,7 @@ def calculate_variance_healpix_maps(
                 )
                 pix_vec = hp.pix2vec(nside, pix, nest=nest)
                 rad_weight = obs_radial_weighting_function(
-                    (pix_vec[0]-obs_vec[0])**2.
-                    + (pix_vec[1]-obs_vec[1])**2.
-                    + (pix_vec[2]-obs_vec[2])**2.
+                    hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
                 use_weight = rad_weight*obs_weights[obs_ind]
             else:

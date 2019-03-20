@@ -217,13 +217,13 @@ def plot_maps_Mar15():
     )
 
     map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_closest.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_60obs_closest.png')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_closest.png')
     map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_closest.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_closest.png')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_closest.png')
     map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_closest.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_60obs_closest.png')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_closest.png')
     map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_closest.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_60obs_closest.png')
+    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_closest.png')
     """
     data_files = os.listdir('/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_pol_leakage_correction_4pol_Mar2019/output_data/')
     data_files = [
@@ -233,7 +233,7 @@ def plot_maps_Mar15():
     obs_list = [file[0:10] for file in data_files]
     combined_maps, weights_map = healpix_utils.average_healpix_maps(
         '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_pol_leakage_correction_4pol_Mar2019',
-        obs_list, nside=128, apply_radial_weighting=True,
+        obs_list, nside=256, apply_radial_weighting=True,
         cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
     )
     combined_maps[0].write_data_to_fits(
@@ -248,15 +248,15 @@ def plot_maps_Mar15():
     combined_maps[3].write_data_to_fits(
         '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_ave.fits'
     )
+    weights_map.write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/Weights_60obs_ave.fits'
+    )
 
-    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_ave.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesI_60obs_ave.png')
-    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_ave.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesQ_60obs_ave.png')
-    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_ave.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesU_60obs_ave.png')
-    map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_ave.fits')
-    plot_healpix_map.plot_filled_pixels(map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/StokesV_60obs_ave.png')
+    plot_healpix_map.plot_filled_pixels(combined_maps[0], '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesI_60obs_ave.png')
+    plot_healpix_map.plot_filled_pixels(combined_maps[1], '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesQ_60obs_ave.png')
+    plot_healpix_map.plot_filled_pixels(combined_maps[2], '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesU_60obs_ave.png')
+    plot_healpix_map.plot_filled_pixels(combined_maps[4], '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/StokesV_60obs_ave.png')
+    plot_healpix_map.plot_filled_pixels(weights_map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/Weights_60obs_ave.png')
 
 
 if __name__ == '__main__':
