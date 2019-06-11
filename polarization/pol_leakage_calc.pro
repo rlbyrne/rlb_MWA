@@ -1,6 +1,6 @@
 pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=write_fit_params, create_decon_catalogs=create_decon_catalogs
   
-  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jan2019/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019/'
   
   ; Find obsids where all files are present
   decon_filenames = file_search(fhd_path+'deconvolution/*')
@@ -35,7 +35,7 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
   endfor
   obsids = cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(cgsetintersection(long(obsids_decon), long(obsids_residual_I)), long(obsids_residual_Q)), long(obsids_residual_U)), long(obsids_residual_V)), long(obsids_obsfile))
   obsids = strtrim(obsids[uniq(obsids, sort(obsids))],1)
-  obsids = obsids[0]
+  print, 'Processing '+string(n_elements(obsids))+' observations.'
   
   if keyword_set(create_decon_catalogs) then begin
     for obs_index=0, n_elements(obsids)-1 do begin
@@ -56,7 +56,7 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 400
-    fit_radius = 18  ; use only sources within this many degrees of the pointing center
+    fit_radius = 80  ; use only sources within this many degrees of the pointing center
     fit_radius_pixels = 380
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
     isolated_source_radius = .1  ; use only isolated sources, distance between sources is at least this in degrees
@@ -65,7 +65,6 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     ; grab sources and sort by apparent flux
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
-    stop
     apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
 ;    for source_ind = 0, n_elements(catalog)-1 do begin
 ;      if catalog[source_ind].ra-obs.obsra gt 180. then catalog[source_ind].ra=catalog[source_ind].ra-360. 
