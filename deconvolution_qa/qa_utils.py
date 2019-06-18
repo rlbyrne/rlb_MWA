@@ -199,21 +199,7 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
                 )
                 x_hist.invert_yaxis()
                 x_hist.get_shared_x_axes().join(x_hist, subfig)
-                if len(param1) > 20:
-                    if ' ' in param1[21:]:
-                        split_loc = param1[21:].index(' ')+21
-                        xlabel = '{}\n{}'.format(
-                            param1[:split_loc], param1[split_loc+1:]
-                        )
-                    elif ' ' in param1[11:]:
-                        split_loc = param1[11:].index(' ')+11
-                        xlabel = '{}\n{}'.format(
-                            param1[:split_loc], param1[split_loc+1:]
-                        )
-                    else:
-                        xlabel = param1
-                else:
-                    xlabel = param1
+                xlabel = format_axis_labels(param1)
                 x_hist.set_xlabel(xlabel, rotation=40)
                 x_hist.axes.get_yaxis().set_visible(False)
             else:
@@ -229,21 +215,7 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
                 )
                 y_hist.invert_xaxis()
                 y_hist.get_shared_y_axes().join(y_hist, subfig)
-                if len(param2) > 20:
-                    if ' ' in param2[21:]:
-                        split_loc = param2[21:].index(' ')+21
-                        ylabel = '{}\n{}'.format(
-                            param2[:split_loc], param2[split_loc+1:]
-                        )
-                    elif ' ' in param2[11:]:
-                        split_loc = param2[11:].index(' ')+11
-                        ylabel = '{}\n{}'.format(
-                            param2[:split_loc], param2[split_loc+1:]
-                        )
-                    else:
-                        ylabel = param2
-                else:
-                    ylabel = param2
+                ylabel = format_axis_labels(param2)
                 y_hist.set_ylabel(ylabel, rotation=40, labelpad=20)
                 y_hist.axes.get_xaxis().set_visible(False)
             else:
@@ -257,6 +229,26 @@ def qa_param_hist_set(filepath, param_names, saveloc='', colorbar_range=None):
         plt.close()
 
 
+def format_axis_labels(axis_label, line_length=20):
+    residual_label = axis_label
+    label_beginning = ''
+    while len(residual_label) > line_length:
+        if ' ' in residual_label[:line_length+1]:
+            split_loc = line_length-(residual_label[:line_length+1])[::-1].index(' ')
+            label_beginning = '{}\n{}'.format(
+                label_beginning, residual_label[:split_loc]
+            )
+            residual_label = residual_label[split_loc+1:]
+        else:
+            split_loc = line_length-1
+            label_beginning = '{}\n{}'.format(
+                label_beginning, residual_label[:split_loc]
+            )
+            residual_label = residual_label[split_loc:]
+        axis_label = '{}\n{}'.format(label_beginning, residual_label)
+    return axis_label
+
+
 if __name__ == '__main__':
 
-    qa_param_hist_set('/Users/ruby/EoR/diffuse_qa_params_Mar2019.csv', ['RFI occupancy', 'source ratio matched to GLEAM', 'flux fit to GLEAM', 'flux fit to GLEAM fit quality', 'source match to GLEAM overall position offset', 'source match to GLEAM ave position offset', 'average Stokes V power'], colorbar_range=None, saveloc='/Users/ruby/Desktop/test_params_plot.png')
+    qa_param_hist_set('/Users/ruby/Desktop/diffuse_qa_params.csv', ['RFI occupancy', 'average Stokes V power', 'deconvolved sources', 'min decon flux', 'mean gain', 'cross phase'], colorbar_range=None, saveloc='/Users/ruby/Desktop/test_params_plot.png')
