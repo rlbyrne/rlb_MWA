@@ -148,12 +148,14 @@ pro calculate_cal_params
       ; Plot the x and y components of the gain phase gradient
       cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'.png', XSIZE = 7, YSIZE = 7
       cgplot, freq, fit_params[*,1], linestyle=2, thick=4, color=array_color, aspect=.8, xtitle='Frequency (MHz)', $
-        ytitle='Gain Phase Gradient (1/m)', xrange=[min(freq), max(freq)], yrange=[-8e-5,6e-5], charsize=1.
+        ytitle='Gain Phase Gradient (1/m)', xrange=[min(freq), max(freq)], yrange=[-7e-5,6e-5], charsize=1.
       cgplot, freq, fit_params[*,2], linestyle=1, thick=4, color=array_color, /overplot
       cgplot, [freq[0], freq[-1]], [0,0], linestyle=0, color='black', thick=1, /overplot
-      cglegend, title=['Gain Phase E-W Gradient', 'Gain Phase N-S Gradient'], linestyle=[2,1], thick=4, $
-        color=[array_color,array_color], length=0.03, /center_sym, location=[.18,.32], charsize=.8, /box, background='white'
+      cglegend, title=['$\Delta$$\downx$', '$\Delta$$\downy$'], linestyle=[2,1], thick=4, $
+        color=[array_color,array_color], length=0.03, /center_sym, location=[.18,.32], charsize=1, /box, background='white'
       cgps_close, /png, /delete_ps, density=plot_resolution
+      
+      stop
             
       ; Plot Fourier Transform of the x and y components of the gain phase gradient
       cgps_open, output_path+'/'+obsid+'_cal_phase_grad_errors_'+pol_name+'_ft.png', XSIZE = 7, YSIZE = 7

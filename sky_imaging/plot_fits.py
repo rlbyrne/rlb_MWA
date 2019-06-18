@@ -182,6 +182,26 @@ def difference_images(image1, image2):
     return data_diff
 
 
+def divide_images(image1, image2):
+
+    if image1.ra_axis == image2.ra_axis and image1.dec_axis == image2.dec_axis:
+        image2_use = image2.signal_arr
+    else:
+        print 'WARNING: Image axes do not match. Interpolating image2 to image1 axes.'
+        image2_use = griddata(  # This doesn't work
+            (image2.ra_axis, image2.dec_axis),
+            image2.signal_arr,
+            (image1.ra_axis, image1.dec_axis)
+            )
+
+    signal_div = np.divide(image1.signal_arr, image2_use)
+    signal_div[np.where(image2_use==0.)] = np.nan
+    data_div = ImageFromFits(
+        signal_div, ra_axis=image1.ra_axis, dec_axis=image1.dec_axis
+    )
+    return data_div
+
+
 def plot_fits_image(
     fits_image, save_filename='', title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
@@ -221,8 +241,15 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    weights = load_image('/Volumes/Bilbo/rlb_fhd_outputs/array_simulation/fhd_rlb_array_sim_Barry_effect_Jun2018/output_data/random1_array_sim_331_UV_weights_XX.fits')
-    plot_fits_image(weights, colorbar_range=[0, 1e-5],
-        xlabel='U (wavelengths)', ylabel='V (wavelengths)', colorbar_label='Weight (Jy/beam)',
-        plot_grid=False, ra_range=[-210,210], dec_range=[-210,210],
-        save_filename='/Users/rubybyrne/weights_plots_for_cal_paper/random1_array.png')
+    image1 = load_image(
+        '/Volumes/Bilbo/rlb_fhd_outputs/fhd_merge_bug_testing_Mar2019/fhd_rlb_test_master_branch_May2019/output_data/1061316296_Beam_XX.fits'
+    )
+    image2 = load_image(
+        '/Volumes/Bilbo/rlb_fhd_outputs/fhd_merge_bug_testing_Mar2019/fhd_rlb_test_beam_power_polarized_calculation_branch_Jun2019/output_data/1061316296_Beam_XX.fits'
+    )
+    diff = difference_images(image1, image2)
+    divided = divide_images(diff, image1)
+    print np.min(divided.signal_arr)
+    print np.max(divided.signal_arr)
+    print divided.signal_arr[np.where(divided.signal_arr!=0.)]
+    plot_fits_image(divided, colorbar_range=[-.1, .1])
