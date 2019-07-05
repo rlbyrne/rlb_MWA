@@ -460,9 +460,30 @@ def average_healpix_maps_simple(maps_arr):
 
 
 def average_healpix_maps(
-    fhd_run_path, obs_list, obs_weights=None, nside=None,
+    fhd_run_path, obs_list=None, obs_weights=None, nside=None,
     cube_names=['Residual_I'], apply_radial_weighting=False
 ):
+
+    if fhd_run_path[-1] == '/':
+        fhd_run_path = fhd_run_path[:-1]
+
+    if obs_list is None:  # use all obs in the data directory
+        if obs_weights is not None:
+            print 'WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.'
+            obs_weights = None
+        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+        for cube_ind, cube in enumerate(cube_names):
+            data_files_cube = [
+                file for file in data_files
+                if '_uniform_{}_HEALPix.fits'.format(cube) in file
+            ]
+            obs_list_cube = [file[0:10] for file in data_files_cube]
+            if cube_ind == 0:
+                obs_list = obs_list_cube
+            else:
+                obs_list = [
+                    obs for obs in obs_list_cube if obs in obs_list
+                ]
 
     if obs_weights is None or len(obs_weights) == 0:
         print 'Observation weights not provided. Using equal weighting.'
@@ -567,6 +588,9 @@ def average_healpix_maps(
     weighted_ave_signal_array[
         :, np.where(weights_array == hp.pixelfunc.UNSEEN)
     ] = hp.pixelfunc.UNSEEN
+    weighted_ave_signal_array[
+        :, np.where(weights_array == 0)
+    ] = hp.pixelfunc.UNSEEN
 
     averaged_maps = []
     for cube_ind in range(len(cube_names)):
@@ -575,6 +599,7 @@ def average_healpix_maps(
             coords=coords, quiet=True
         )
         map.implicit_to_explicit_ordering()
+        print np.min(map.signal_arr)
         averaged_maps.append(map)
 
     weights_map = HealpixMap(
@@ -768,11 +793,18 @@ def combine_maps_nearest_data(
 
     if obs_list_file is None:  # use all obs in the data directory
         data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
-        data_files = [
-            file for file in data_files
-            if '_uniform_{}_HEALPix.fits'.format(cube_names[0]) in file
-        ]
-        obs_list = [file[0:10] for file in data_files]
+        for cube_ind, cube in enumerate(cube_names):
+            data_files_cube = [
+                file for file in data_files
+                if '_uniform_{}_HEALPix.fits'.format(cube) in file
+            ]
+            obs_list_cube = [file[0:10] for file in data_files_cube]
+            if cube_ind == 0:
+                obs_list = obs_list_cube
+            else:
+                obs_list = [
+                    obs for obs in obs_list_cube if obs in obs_list
+                ]
     else:  # use the obs file list
         obs_list = open(obs_list_file, 'r').readlines()
         # strip newline characters

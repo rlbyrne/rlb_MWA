@@ -259,9 +259,74 @@ def plot_maps_Mar15():
     plot_healpix_map.plot_filled_pixels(weights_map, '/Users/rubybyrne/diffuse_survey_plotting_Mar2019/Weights_60obs_ave.png')
 
 
+def plot_maps_Jul3():
+
+    combined_maps = healpix_utils.combine_maps_nearest_data(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jul2019', obs_list_file=None, nside=256, cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesI_combined_closest.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesQ_combined_closest.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesU_combined_closest.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesV_combined_closest.fits'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[0], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesI_combined_closest.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[1], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesQ_combined_closest.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[2], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesU_combined_closest.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[3], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesV_combined_closest.png'
+    )
+
+
+def plot_maps_Jul4():
+
+    combined_maps, weight_maps = healpix_utils.average_healpix_maps(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jul2019',
+        nside=256,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+        apply_radial_weighting=True
+    )
+    combined_maps[0].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesI_ave.fits'
+    )
+    combined_maps[1].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesQ_ave.fits'
+    )
+    combined_maps[2].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesU_ave.fits'
+    )
+    combined_maps[3].write_data_to_fits(
+        '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesV_ave.fits'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[0], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesI_ave.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[1], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesQ_ave.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[2], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesU_ave.png'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        combined_maps[3], '/Users/rubybyrne/diffuse_survey_plotting_Jul2019/StokesV_ave.png'
+    )
+
+
 if __name__ == '__main__':
 
-    plot_maps_Mar15()
+    plot_maps_Jul4()
 
     #map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits')
     #plot_healpix_map.plot_filled_pixels(
