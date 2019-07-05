@@ -1,6 +1,7 @@
 pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=write_fit_params, create_decon_catalogs=create_decon_catalogs
   
-  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Feb2019/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Jul2019/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Jul2019/'
   
   ; Find obsids where all files are present
   decon_filenames = file_search(fhd_path+'deconvolution/*')
@@ -46,10 +47,7 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
   endif  
   
   if keyword_set(write_fit_params) then begin
-    ;openw, outfile, output_path+'pol_leakage_fit_params.csv', /get_lun
-    ;output_string = 'obsid,Q leakage param1,Q leakage param2,Q leakage param3,Q leakage param4,Q leakage param5,Q leakage param6,U leakage param1,U leakage param2,U leakage param3,U leakage param4,U leakage param5,U leakage param6\n'
     spawn, 'echo "obsid,Q leakage param1,Q leakage param2,Q leakage param3,Q leakage param4,Q leakage param5,Q leakage param6,U leakage param1,U leakage param2,U leakage param3,U leakage param4,U leakage param5,U leakage param6" > '+fhd_path+'pol_leakage_fit_params.csv'
-    ;printf, outfile, 'obsid,Q leakage param1,Q leakage param2,Q leakage param3,Q leakage param4,Q leakage param5,Q leakage param6,U leakage param1,U leakage param2,U leakage param3,U leakage param4,U leakage param5,U leakage param6'
   endif
     
   for obs_index=0, n_elements(obsids)-1 do begin
@@ -170,8 +168,8 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     
     if keyword_set(plot) then begin
       for pol = 0, 2 do begin
-        print, 'Saving plot to '+'/Users/rubybyrne/polarization_leakage/plots_Feb2019/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
-        cgPS_Open, '/Users/rubybyrne/polarization_leakage/plots_Feb2019/'+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
+        print, 'Saving plot to '+save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
+        cgPS_Open, save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
         ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
         colorbar_extent = .3
         plot_range = [1024-400, 1024+400]
@@ -251,15 +249,15 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
           endfor
         endif
       endfor
-      print, 'Saving polarization leakage corrected catalog to '+'/Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/'+obsid+'_decon_catalog_pol_leakage_corrected.sav'
-      save, catalog, filename='/Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/'+obsid+'_decon_catalog_pol_leakage_corrected.sav'
+      print, 'Saving polarization leakage corrected catalog to '+save_path+obsid+'_decon_catalog_pol_leakage_corrected.sav'
+      save, catalog, filename=save_path+obsid+'_decon_catalog_pol_leakage_corrected.sav'
     endif
     
     if keyword_set(write_fit_params) then begin
       line = obsid+','+strtrim(fit_params[0,0],2)+','+strtrim(fit_params[1,0],2)+','+strtrim(fit_params[2,0],2)+','+strtrim(fit_params[3,0],2)+','+strtrim(fit_params[4,0],2)+','+strtrim(fit_params[5,0],2) $
         +','+strtrim(fit_params[0,1],2)+','+strtrim(fit_params[1,1],2)+','+strtrim(fit_params[2,1],2)+','+strtrim(fit_params[3,1],2)+','+strtrim(fit_params[4,1],2)+','+strtrim(fit_params[5,1],2)
-      print, 'Saving fit parameters to /Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/pol_leakage_fit_params.csv'
-      spawn, 'printf "'+line+'\n" >> /Users/rubybyrne/polarization_leakage/leakage_corrected_catalogs_Feb2019/pol_leakage_fit_params.csv'
+      print, 'Saving fit parameters to '+save_path+'pol_leakage_fit_params.csv'
+      spawn, 'printf "'+line+'\n" >> '+save_path+'pol_leakage_fit_params.csv'
     endif
 
   endfor
