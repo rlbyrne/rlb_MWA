@@ -16,7 +16,7 @@ from scipy.interpolate import griddata
 
 def plot_filled_pixels(
     map, save_filename, title='', ra_range=[], dec_range=[],
-    colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/sr)',
+    colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/beam)',
     ra_cut=None
 ):
 
@@ -108,7 +108,7 @@ def plot_filled_pixels(
 def plot_grid_interp(
     map, save_filename, resolution=.1, title='', ra_range=[], dec_range=[],
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/sr)'
+    colorbar_label='Flux Density (Jy/beam)'
 ):
     # resolution is in degrees
 
