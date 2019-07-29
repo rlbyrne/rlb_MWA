@@ -205,7 +205,7 @@ def divide_images(image1, image2):
 def plot_fits_image(
     fits_image, save_filename='', title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/sr)', plot_grid=True,
+    colorbar_label='Flux Density (Jy/beam)', plot_grid=True,
     xlabel='RA (deg.)', ylabel='Dec. (deg.)'
 ):
 
@@ -227,6 +227,7 @@ def plot_fits_image(
     ax.set_facecolor('black')
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
+    plt.title(title)
     if plot_grid:
         plt.grid(which='both', zorder=10, lw=0.5)
     cbar = plt.colorbar()
@@ -246,8 +247,6 @@ if __name__ == '__main__':
     )
     pixels = 100
     image.signal_arr = image.signal_arr[1230-pixels:1230+pixels,1072-pixels:1072+pixels]
-    print np.max(image.signal_arr)
-    print np.where(image.signal_arr == np.max(image.signal_arr))
     image.ra_axis = image.ra_axis[1230-pixels:1230+pixels]
     image.dec_axis = image.dec_axis[1072-pixels:1072+pixels]
-    plot_fits_image(image)
+    plot_fits_image(image, save_filename='/Users/ruby/EoR/polarization_leakage_testing_Jul2019/normal_beam_I.png', title='Stokes I')
