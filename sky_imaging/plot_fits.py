@@ -14,7 +14,7 @@ class ImageFromFits:
 
     def __init__(self, signal_arr, ra_axis=None, dec_axis=None,
                  ra_range=None, dec_range=None):
-        n_dec_vals, n_ra_vals = np.shape(signal_arr)
+        n_ra_vals, n_dec_vals = np.shape(signal_arr)
         if ra_axis is not None:
             ra_axis = list(ra_axis)
             if len(ra_axis) != n_ra_vals:
@@ -55,8 +55,8 @@ class ImageFromFits:
         else:
             use_dec_inds = range(len(self.dec_axis))
         self.signal_arr = self.signal_arr[
-            use_dec_inds[0]:use_dec_inds[-1]+1,
-            use_ra_inds[0]:use_ra_inds[-1]+1
+            use_ra_inds[0]:use_ra_inds[-1]+1,
+            use_dec_inds[0]:use_dec_inds[-1]+1
         ]
         self.ra_axis = list(
             np.linspace(ra_range[0], ra_range[1], len(use_ra_inds))
@@ -70,7 +70,7 @@ def load_image(data_filename):
 
     contents = fits.open(data_filename)
     use_hdu = 0
-    data = contents[use_hdu].data
+    data = contents[use_hdu].data.T  # transpose so convention is [RA, Dec]
     header = contents[use_hdu].header
 
     if 'CD1_1' in header.keys() and 'CD2_2' in header.keys():  # FHD convention
@@ -120,9 +120,9 @@ def load_gaussian_source_model_as_image(
             dec_range = [-37.8, -36.7]
 
         grid_dec, grid_ra = np.mgrid[
-            dec_range[0]:dec_range[1]:resolution,
-            ra_range[0]:ra_range[1]:resolution
-            ]
+            ra_range[0]:ra_range[1]:resolution,
+            dec_range[0]:dec_range[1]:resolution
+        ]
 
     plot_signal = np.zeros_like(grid_dec)
 
@@ -214,7 +214,7 @@ def plot_fits_image(
 
     fig, ax = plt.subplots()
     plt.imshow(
-        fits_image.signal_arr, origin='lower', interpolation='none',
+        fits_image.signal_arr.T, origin='lower', interpolation='none',
         cmap='Greys_r',
         extent=[
             fits_image.ra_axis[0], fits_image.ra_axis[-1],
@@ -241,15 +241,13 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    image1 = load_image(
-        '/Volumes/Bilbo/rlb_fhd_outputs/fhd_merge_bug_testing_Mar2019/fhd_rlb_test_master_branch_May2019/output_data/1061316296_Beam_XX.fits'
+    image = load_image(
+        '/Users/ruby/EoR/polarization_leakage_testing_Jul2019/normal/1130773144_uniform_Model_I.fits'
     )
-    image2 = load_image(
-        '/Volumes/Bilbo/rlb_fhd_outputs/fhd_merge_bug_testing_Mar2019/fhd_rlb_test_beam_power_polarized_calculation_branch_Jun2019/output_data/1061316296_Beam_XX.fits'
-    )
-    diff = difference_images(image1, image2)
-    divided = divide_images(diff, image1)
-    print np.min(divided.signal_arr)
-    print np.max(divided.signal_arr)
-    print divided.signal_arr[np.where(divided.signal_arr!=0.)]
-    plot_fits_image(divided, colorbar_range=[-.1, .1])
+    pixels = 100
+    image.signal_arr = image.signal_arr[1230-pixels:1230+pixels,1072-pixels:1072+pixels]
+    print np.max(image.signal_arr)
+    print np.where(image.signal_arr == np.max(image.signal_arr))
+    image.ra_axis = image.ra_axis[1230-pixels:1230+pixels]
+    image.dec_axis = image.dec_axis[1072-pixels:1072+pixels]
+    plot_fits_image(image)
