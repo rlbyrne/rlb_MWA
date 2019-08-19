@@ -769,7 +769,7 @@ def calculate_variance_healpix_maps(
     return variance_maps, averaged_maps, weights_map, nsamples_map
 
 
-def obs_radial_weighting_function(dist, max_dist=10., taper_width=.2):
+def obs_radial_weighting_function(dist, max_dist=12., taper_width=2.):
 
     if dist < max_dist-taper_width:
         weight = 1.
@@ -781,7 +781,8 @@ def obs_radial_weighting_function(dist, max_dist=10., taper_width=.2):
 
 
 def combine_maps_nearest_data(
-    fhd_run_path, obs_list_file=None, nside=None, cube_names=['Residual_I']
+    fhd_run_path, obs_list=None, obs_list_file=None, nside=None,
+    cube_names=['Residual_I']
 ):
     # This function loads a set of maps from an FHD output directory (or a list
     # of observations) and returns a combined map.
@@ -791,26 +792,27 @@ def combine_maps_nearest_data(
     if fhd_run_path[-1] == '/':
         fhd_run_path = fhd_run_path[:-1]
 
-    if obs_list_file is None:  # use all obs in the data directory
-        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
-        for cube_ind, cube in enumerate(cube_names):
-            data_files_cube = [
-                file for file in data_files
-                if '_uniform_{}_HEALPix.fits'.format(cube) in file
-            ]
-            obs_list_cube = [file[0:10] for file in data_files_cube]
-            if cube_ind == 0:
-                obs_list = obs_list_cube
-            else:
-                obs_list = [
-                    obs for obs in obs_list_cube if obs in obs_list
+    if obs_list is None:
+        if obs_list_file is None:  # use all obs in the data directory
+            data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+            for cube_ind, cube in enumerate(cube_names):
+                data_files_cube = [
+                    file for file in data_files
+                    if '_uniform_{}_HEALPix.fits'.format(cube) in file
                 ]
-    else:  # use the obs file list
-        obs_list = open(obs_list_file, 'r').readlines()
-        # strip newline characters
-        obs_list = [obs.strip() for obs in obs_list]
-        # remove duplicates
-        obs_list = list(set(obs_list))
+                obs_list_cube = [file[0:10] for file in data_files_cube]
+                if cube_ind == 0:
+                    obs_list = obs_list_cube
+                else:
+                    obs_list = [
+                        obs for obs in obs_list_cube if obs in obs_list
+                    ]
+        else:  # use the obs file list
+            obs_list = open(obs_list_file, 'r').readlines()
+            # strip newline characters
+            obs_list = [obs.strip() for obs in obs_list]
+            # remove duplicates
+            obs_list = list(set(obs_list))
 
     print 'Combining {} observations'.format(len(obs_list))
 
