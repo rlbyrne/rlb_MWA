@@ -22,21 +22,42 @@ plt.show()
 """
 
 
-def calibrate_test_data():
+def get_data(
+    fhd_path='/Users/ruby/EoR/calibration_testing_Sept2019/fhd_rlb_single_source_test_single_beam_Sept2019',
+    obsid='1130773144', pol='XX'
+):
 
-    metadata = UVData()
-    metadata.read_uvfits('/Users/ruby/EoR/1061316296.uvfits', read_data=False)
+    filelist = ['{}/{}'.format(fhd_path, file) for file in [
+        'vis_data/{}_vis_{}.sav'.format(obsid, pol),
+        'vis_data/{}_vis_model_{}.sav'.format(obsid, pol),
+        'vis_data/{}_flags.sav'.format(obsid),
+        'metadata/{}_params.sav'.format(obsid),
+        'metadata/{}_settings.txt'.format(obsid)
+    ]]
     data = UVData()
-    data.read_uvfits(
-        '/Users/ruby/EoR/1061316296.uvfits', times=metadata.time_array[200000],
-        polarizations=-5  # supports only one polarization: -5=XX
-    )
-    # Data has shape (Nblts, Nspws, Nfreqs, Npols)
+    print 'Reading data...'
+    data.read_fhd(filelist)
+    model = UVData()
+    print 'Reading model...'
+    model.read_fhd(filelist, use_model=True)
+    print 'Done.'
+
+    # For testing, use one time only
+    use_time = data.time_array[200000]
+    data.select(times=use_time)
+    model.select(times=use_time)
+
     data_times = np.unique(data.time_array)
     data_antennas = np.unique(np.append(data.ant_1_array, data.ant_2_array))
 
+    # Data has shape (Nblts, Nspws, Nfreqs, Npols)
     # Reformat data array to have shape (Nants, Nants, Ntimes, Nfreqs)
+    print 'Reformatting arrays...'
     data_vis_array = np.full(
+        (data.Nants_data, data.Nants_data, data.Ntimes, data.Nfreqs),
+        np.nan, dtype=complex
+    )
+    model_vis_array = np.full(
         (data.Nants_data, data.Nants_data, data.Ntimes, data.Nfreqs),
         np.nan, dtype=complex
     )
@@ -48,25 +69,11 @@ def calibrate_test_data():
         data_vis_array[ant2, ant1, time, :] = np.conj(
             data.data_array[ind, 0, :, 0]
         )
-
-    # Use dummy data for the model:
-    model = data
-
-    # Reformat model array to have shape (Nants, Nants, Ntimes, Nfreqs)
-    model_vis_array = np.full(
-        (data.Nants_data, data.Nants_data, data.Ntimes, data.Nfreqs),
-        np.nan, dtype=complex
-    )
-    for ind in range(data.Nblts):
-        ant1 = np.where((data_antennas == model.ant_1_array[ind]))[0][0]
-        ant2 = np.where((data_antennas == model.ant_2_array[ind]))[0][0]
-        time = np.where((data_times == model.time_array[ind]))[0][0]
         model_vis_array[ant1, ant2, time, :] = model.data_array[ind, 0, :, 0]
         model_vis_array[ant2, ant1, time, :] = np.conj(
             model.data_array[ind, 0, :, 0]
         )
-
-    model_vis_array *= 1.2+1e-10*1j  # make model different from data
+    print 'Done.'
 
     # Initialize weights:
     vis_weights_array = np.full(
@@ -85,13 +92,17 @@ def calibrate_test_data():
 
 def calibration_routine(
     data_vis_array, model_vis_array, vis_weights_array, delay_calibrate=False,
-    convergence_threshold=1, max_iter=10000, gain_factor=1e-5, use_autos=False
+    convergence_threshold=1, max_iter=1000, step_size=1e-3, use_autos=False,
+    gains_init=None
 ):
 
     Nants, Ntimes, Nfreqs = data_vis_array.shape[1:4]
 
     # Initialize gains to 1
-    gains = np.full((Nants, Nfreqs), 1., dtype=complex)
+    if gains_init is None:
+        gains = np.full((Nants, Nfreqs), 1., dtype=complex)
+    else:
+        gains = gains_init
 
     if not use_autos:  # autocalibration is currently not supported
         for ind in range(Nants):
@@ -110,7 +121,8 @@ def calibration_routine(
         )**2.)
         print "Initial X-squared for mode {}: {}".format(mode+1, chi_squared)
 
-        convergence = 1.  # initialize convergence parameter
+        # Initialize convergence parameter
+        convergence = convergence_threshold+1
         iter = 0  # initialize iter parameter
         while iter <= max_iter and convergence >= convergence_threshold:
 
@@ -147,7 +159,7 @@ def calibration_routine(
             # Update gains
             gains[:, mode] -= (
                 (gain_grad_real + 1j * gain_grad_imag)
-                / convergence * gain_factor
+                / convergence * step_size
             )
             gains_ant1_mat = np.repeat(np.repeat(
                 gains[:, mode, np.newaxis], Nants, axis=1
@@ -159,31 +171,13 @@ def calibration_routine(
                 - gains_ant1_mat * np.conj(gains_ant2_mat)
                 * model_vis_array[:, :, :, mode]
             )**2.)
-            print new_chi_squared
             chi_squared = new_chi_squared
             iter += 1
+            print chi_squared
             print convergence
+            print gains
+        sys.exit()
 
 
 if __name__ == '__main__':
-    """data_vis_array = np.full(
-        (2, 2, 1, 1),
-        1., dtype=complex
-    )
-    data_vis_array[0, 1, 0, 0] = 1+1j
-    data_vis_array[1, 0, 0, 0] = 1-1j
-    model_vis_array = np.full(
-        (2, 2, 1, 1),
-        1.2, dtype=complex
-    )
-    model_vis_array[0, 1, 0, 0] = 1.1+1j
-    model_vis_array[1, 0, 0, 0] = 1.1-1j
-    vis_weights_array = np.full(
-        (2, 2, 1, 1),
-        1., dtype=float
-    )
-    calibration_routine(
-        data_vis_array, model_vis_array, vis_weights_array, delay_calibrate=False,
-        max_iter=100, use_autos=False
-    )"""
-    calibrate_test_data()
+    get_data()
