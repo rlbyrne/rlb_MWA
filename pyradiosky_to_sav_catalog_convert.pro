@@ -34,6 +34,6 @@ pro pyradiosky_to_sav_catalog_convert, filename_txt, filename_sav
         catalog[ind].flux.I = source_fluxes_I[ind]
     endfor
     
-    ;save, catalog, filename=filename_sav
+    save, catalog, filename=filename_sav
 
 end
