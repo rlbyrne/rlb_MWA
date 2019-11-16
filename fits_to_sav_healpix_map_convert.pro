@@ -11,7 +11,7 @@ pro fits_to_sav_healpix_map_convert
     beam_area = beam_width_calculate(obs, /area_return, /radians) ;Synthesized beam area in sr
     model_arr = ptrarr(4)
     for ind=0,3 do begin
-        read_fits_map, stokes_maps_paths[0], data_new, nside=nside_new
+        read_fits_map, stokes_maps_paths[ind], data_new, nside=nside_new
         if ind ne 0 then begin
             if ~array_equal(data_new[*,1], data[*,1]) or nside_new ne nside then begin
                 print, 'ERROR: index mismatch'
