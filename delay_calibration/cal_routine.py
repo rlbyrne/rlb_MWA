@@ -2,7 +2,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas
 import sys
+import scipy
 sys.path.append('/Users/ruby/EoR/pyuvdata')
 from pyuvdata import UVData
 
@@ -22,30 +24,70 @@ plt.show()
 """
 
 
-def get_data(
-    fhd_path='/Users/ruby/EoR/calibration_testing_Sept2019/fhd_rlb_single_source_test_single_beam_Sept2019',
-    obsid='1130773144', pol='XX'
-):
+def main():
 
-    filelist = ['{}/{}'.format(fhd_path, file) for file in [
+    data, model = get_test_data()
+    data_vis_array, model_vis_array, vis_weights_array = reformat_data(
+        data, model
+    )
+    gains = calibration_routine(
+        data_vis_array, model_vis_array, vis_weights_array
+    )
+    pandas.DataFrame(gains).to_csv('/Users/ruby/EoR/calibration_testing_Sept2019/gains_v1.csv')
+    gains_avg_amp = np.mean(np.abs(gains), axis=0)
+
+    cal = scipy.io.readsav(
+        '/Users/ruby/EoR/calibration_testing_Sept2019/fhd_rlb_random_array_Barry_effect_sim_May2018/calibration/random1_array_sim_cal.sav'
+    )
+    fhd_gains_avg_amp = np.mean(np.abs(cal['cal']['gain'][0][0]), axis=0)
+
+    plt.plot(gains_avg_amp)
+    plt.plot(fhd_gains_avg_amp)
+    plt.show()
+
+
+def get_test_data():
+
+    model_path = '/Users/ruby/EoR/calibration_testing_Sept2019/fhd_rlb_random_array_Barry_effect_sim_May2018'
+    model_use_model = True
+    data_path = '/Users/ruby/EoR/calibration_testing_Sept2019/fhd_rlb_random_array_sim_reference_May2018'
+    data_use_model = True
+    obsid='random1_array_sim'
+    pol='XX'
+
+    model_filelist = ['{}/{}'.format(model_path, file) for file in [
         'vis_data/{}_vis_{}.sav'.format(obsid, pol),
         'vis_data/{}_vis_model_{}.sav'.format(obsid, pol),
         'vis_data/{}_flags.sav'.format(obsid),
         'metadata/{}_params.sav'.format(obsid),
         'metadata/{}_settings.txt'.format(obsid)
     ]]
-    data = UVData()
-    print 'Reading data...'
-    data.read_fhd(filelist)
+    data_filelist = ['{}/{}'.format(data_path, file) for file in [
+        'vis_data/{}_vis_{}.sav'.format(obsid, pol),
+        'vis_data/{}_vis_model_{}.sav'.format(obsid, pol),
+        'vis_data/{}_flags.sav'.format(obsid),
+        'metadata/{}_params.sav'.format(obsid),
+        'metadata/{}_settings.txt'.format(obsid)
+    ]]
+
     model = UVData()
     print 'Reading model...'
-    model.read_fhd(filelist, use_model=True)
+    model.read_fhd(model_filelist, use_model=model_use_model)
+    data = UVData()
+    print 'Reading data...'
+    data.read_fhd(data_filelist, use_model=data_use_model)
     print 'Done.'
 
     # For testing, use one time only
     use_time = data.time_array[200000]
     data.select(times=use_time)
     model.select(times=use_time)
+
+    return data, model
+
+
+def reformat_data(data, model):
+# Takes UVData objects and converts them into calibratable arrays
 
     data_times = np.unique(data.time_array)
     data_antennas = np.unique(np.append(data.ant_1_array, data.ant_2_array))
@@ -69,6 +111,10 @@ def get_data(
         data_vis_array[ant2, ant1, time, :] = np.conj(
             data.data_array[ind, 0, :, 0]
         )
+    for ind in range(model.Nblts):
+        ant1 = np.where((data_antennas == model.ant_1_array[ind]))[0][0]
+        ant2 = np.where((data_antennas == model.ant_2_array[ind]))[0][0]
+        time = np.where((data_times == model.time_array[ind]))[0][0]
         model_vis_array[ant1, ant2, time, :] = model.data_array[ind, 0, :, 0]
         model_vis_array[ant2, ant1, time, :] = np.conj(
             model.data_array[ind, 0, :, 0]
@@ -87,12 +133,12 @@ def get_data(
     if len(model_nans[0]) > 0:
         vis_weights_array[model_nans[[0, 1, 2, 4]]] = 0.
 
-    calibration_routine(data_vis_array, model_vis_array, vis_weights_array)
+    return data_vis_array, model_vis_array, vis_weights_array
 
 
 def calibration_routine(
     data_vis_array, model_vis_array, vis_weights_array, delay_calibrate=False,
-    convergence_threshold=1, max_iter=1000, step_size=1e-3, use_autos=False,
+    convergence_threshold=1, max_iter=1000, step_size=5e-6, use_autos=False,
     gains_init=None
 ):
 
@@ -107,6 +153,16 @@ def calibration_routine(
     if not use_autos:  # autocalibration is currently not supported
         for ind in range(Nants):
             vis_weights_array[ind, ind, :] = 0.
+    else:
+        print 'WARNING: Autocalibration is not supported.'
+
+    if delay_calibrate:
+        data_vis_array = np.fft.fftshift(
+            np.fft.fft(data_vis_array, axis=3),
+        axes=3)
+        model_vis_array = np.fft.fftshift(
+            np.fft.fft(model_vis_array, axis=3),
+        axes=3)
 
     for mode in range(Nfreqs):
         gains_ant1_mat = np.repeat(np.repeat(
@@ -173,11 +229,31 @@ def calibration_routine(
             )**2.)
             chi_squared = new_chi_squared
             iter += 1
-            print chi_squared
             print convergence
-            print gains
-        sys.exit()
+            print chi_squared
+        #sys.exit()
+    return gains
+
+
+def apply_calibration(data_vis_array, gains, delay_calibrate=False):
+
+    Nants, Ntimes, Nfreqs = data_vis_array.shape[1:4]
+    gains_ant1_mat = np.repeat(np.repeat(
+        gains[:, np.newaxis, :], Nants, axis=1
+        )[:, :, np.newaxis, :], Ntimes, axis=2
+    )
+    gains_ant2_mat = np.transpose(gains_ant1_mat, axes=[1, 0, 2, 3])
+    if delay_calibrate:
+        data_vis_array = np.fft.fftshift(
+            np.fft.fft(data_vis_array, axis=3),
+        axes=3)
+    data_vis_array = data_vis_array/(gains_ant1_mat*np.conj(gains_ant2_mat))
+    if delay_calibrate:
+        data_vis_array = np.fft.ifft(
+            np.fft.ifftshift(data_vis_array, axes=3),
+        axis=3)
+    return data_vis_array
 
 
 if __name__ == '__main__':
-    get_data()
+    main()
