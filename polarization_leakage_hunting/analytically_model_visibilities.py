@@ -3,6 +3,7 @@
 from pyuvdata import UVData
 import scipy.io
 import numpy as np
+import sys
 
 UV = UVData()
 fhd_prefix = '/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Oct2019/fhd_rlb_single_source_test_master_onefreq_Nov2019'
@@ -17,6 +18,8 @@ fhd_files = [fhd_prefix + '/metadata/' + fhd_obs + '_settings.txt',
 UV.read_fhd(fhd_files, use_model=True)
 use_freq_hz = 167555000.
 UV.select(frequencies=use_freq_hz)
+UV.write_uvfits('{}/model_vis.uvfits'.format(fhd_prefix), spoof_nonessential=True)
+sys.exit()
 start_phase_ra = UV.phase_center_ra
 start_phase_dec = UV.phase_center_dec
 
