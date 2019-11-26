@@ -15,7 +15,7 @@ from scipy.interpolate import griddata
 
 
 def plot_filled_pixels(
-    map, save_filename, title='', ra_range=[], dec_range=[],
+    map, save_filename=None, title='', ra_range=[], dec_range=[],
     colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/beam)',
     ra_cut=None
 ):
@@ -101,12 +101,15 @@ def plot_filled_pixels(
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
     # label colorbar
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
-    print 'Saving plot to {}'.format(save_filename)
-    plt.savefig(save_filename, format='png', dpi=300)
+    if save_filename is not None:
+        print 'Saving plot to {}'.format(save_filename)
+        plt.savefig(save_filename, format='png', dpi=300)
+    else:
+        plt.show()
 
 
 def plot_grid_interp(
-    map, save_filename, resolution=.1, title='', ra_range=[], dec_range=[],
+    map, save_filename=None, resolution=.1, title='', ra_range=[], dec_range=[],
     colorbar_range=[None, None], log=False,
     colorbar_label='Flux Density (Jy/beam)'
 ):
@@ -143,8 +146,11 @@ def plot_grid_interp(
     plt.grid(which='both', zorder=10, lw=0.5)
     cbar = plt.colorbar(extend='max')
     cbar.ax.set_ylabel(colorbar_label, rotation=270)  # label colorbar
-    print 'Saving plot to {}'.format(save_filename)
-    plt.savefig(save_filename, format='png', dpi=500)
+    if save_filename is not None:
+        print 'Saving plot to {}'.format(save_filename)
+        plt.savefig(save_filename, format='png', dpi=500)
+    else:
+        plt.show()
 
 
 if __name__ == '__main__':
