@@ -84,15 +84,15 @@ class HealpixMap:
                 ras_pix, decs_pix = hp.pixelfunc.vec2ang(
                     np.transpose(corner_coords[pixel]), lonlat=True
                 )
-                ras_pix[np.where(ras_pix > ra_cut)] = ras_pix[
-                    np.where(ras_pix > ra_cut)
-                ] - 360.
-                ras_pix[np.where(ras_pix < ra_cut-360.)] = ras_pix[
-                    np.where(ras_pix > ra_cut)
-                ] + 360.
-                ras_pix[np.where(ras_pix-np.amin(ras_pix) > 180.)] = ras_pix[
-                    np.where(ras_pix-np.amin(ras_pix) > 180.)
-                ] - 360.
+                where_above = np.where(ras_pix > ra_cut)
+                if len(where_above[0]) > 0:
+                    ras_pix[where_above] = ras_pix[where_above] - 360.
+                where_below = np.where(ras_pix < ra_cut-360.)
+                if len(where_below[0]) > 0:
+                    ras_pix[where_below] = ras_pix[where_below] + 360.
+                where_separated = np.where(ras_pix-np.amin(ras_pix) > 180.)
+                if len(where_separated[0]) > 0:
+                    ras_pix[where_separated] = ras_pix[where_separated] - 360.
                 ras.append(ras_pix)
                 decs.append(decs_pix)
             ras = np.array(ras)
