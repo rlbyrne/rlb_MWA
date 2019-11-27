@@ -4,7 +4,7 @@ pro fits_to_sav_healpix_map_convert, from_jy_per_beam=from_jy_per_beam, obsfile=
         '/Users/ruby/EoR/sky_maps/StokesQ_nearest_short_baselines.fits',$
         '/Users/ruby/EoR/sky_maps/StokesU_nearest_short_baselines.fits',$
         '/Users/ruby/EoR/sky_maps/StokesV_nearest_short_baselines.fits']
-    outpath = '/Users/ruby/EoR/sky_maps/nearest_short_baselines_altnorm_Aug2019.sav'
+    outpath = '/Users/ruby/EoR/sky_maps/nearest_short_baselines_ring_ordering_Aug2019.sav'
     
     if keyword_set(from_jy_per_beam) and ~keyword_set(obsfile) then begin
       print, 'ERROR: No obs file provided'
@@ -18,12 +18,24 @@ pro fits_to_sav_healpix_map_convert, from_jy_per_beam=from_jy_per_beam, obsfile=
     
     model_arr = ptrarr(4)
     for ind=0,3 do begin
-        read_fits_map, stokes_maps_paths[ind], data_new, nside=nside_new
+        read_fits_map, stokes_maps_paths[ind], data_new, nside=nside_new, ordering=ordering
+        if ordering eq 'NESTED' then begin
+            print, 'Reordering Healpix map: nested to ring'
+            ;Need to convert to implicit ordering
+            data_implicit = make_array(12*nside_new^2, /float, value=-1.6375e+30)
+            for pix=0,n_elements(data_new[*,0])-1 do begin
+                data_implicit[long(data_new[pix,1])] = data_new[pix,0]
+            endfor
+            data_implicit = reorder(data_implicit, /n2r)
+            keep_pixels = where(data_implicit ne -1.6375e+30)
+            data_new[*,0] = data_implicit[keep_pixels]
+            data_new[*,1] = keep_pixels
+        endif
         if ind ne 0 then begin
-            if ~array_equal(data_new[*,1], data[*,1]) or nside_new ne nside then begin
-                print, 'ERROR: index mismatch'
-                return
-            endif
+          if ~array_equal(data_new[*,1], data[*,1]) or nside_new ne nside then begin
+            print, 'ERROR: index mismatch'
+            return
+          endif
         endif
         data = data_new
         nside = nside_new
