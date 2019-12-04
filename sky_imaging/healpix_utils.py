@@ -27,11 +27,27 @@ class HealpixMap:
         else:
             print 'ERROR: Invalid nest parameter. Exiting.'
             sys.exit(1)
+        if (
+            coords is not None and coords != 'equitorial'
+            and coords != 'galactic' and coords != 'ecliptic'
+        ):
+            print 'ERROR: Invalid coords parameter.'
+            print 'Valid options are equitorial, galactic, or ecliptic.'
+            print 'Exiting.'
+            sys.exit(1)
         self.signal_arr = np.array(signal_arr)
         self.pix_arr = np.array(pix_arr, dtype=int)
         self.nside = nside
         self.nest = nest
         self.coords = coords
+        if self.coords == 'galactic':
+            self.coords_healpy_conv = 'G'
+        elif self.coords == 'equitorial':
+            self.coords_healpy_conv = 'C'
+        elif self.coords == 'ecliptic':
+            self.coords_healpy_conv = 'E'
+        else:
+            self.coords_healpy_conv = None
 
     def get_ra_dec(self, ra_cut=270):
         if self.coords == 'galactic':

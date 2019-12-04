@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
-import pylab
 import healpix_utils
 from scipy.interpolate import griddata
 
@@ -154,33 +153,30 @@ def plot_grid_interp(
         plt.show()
 
 
-def plot_projection(map):
+def plot_projection(map, save_filename=None):
 
     map.explicit_to_implicit_ordering()
-    if map.coords == 'galactic':
-        coord = 'G'
-    else:
-        if map.coords == 'equitorial':
-            coord = 'C'
-        else:
-            if map.coords == 'ecliptic':
-                coord = 'E'
-    #cmap = pylab.cm.bwr
-    #cmap.set_under('w')  # Make nodata color white
-    proj = hp.mollview(map=map.signal_arr, coord='C', nest=map.nest, title='', min=None, max=None, cbar=True, cmap='Greys_r', return_projected_map=True, notext=True)
+
+    proj = hp.mollview(
+        map=map.signal_arr, coord=map.coords_healpy_conv, nest=map.nest,
+        title='', min=-2, max=2, cbar=True, cmap='Greys_r',
+        return_projected_map=False, notext=True
+    )
     hp.graticule()
-    #plt.xlim([-1.3,.4])
-    #plt.ylim([-1, .25])
-    plt.show()
-    #print np.shape(proj)
-    #plt.close('all')
-    #plt.imshow(
-    #    proj, origin='lower', interpolation='none'
-    #)
-    #plt.show()
+    plt.xlim([-1.3,.4])
+    plt.ylim([-1, .25])
+    if save_filename is None:
+        plt.show()
+    else:
+        plt.savefig(save_filename, dpi=300)
 
 
 if __name__ == '__main__':
 
-    map = healpix_utils.load_map('/Users/ruby/EoR/sky_maps/StokesI_nearest_short_baselines.fits')
-    plot_projection(map)
+    map = healpix_utils.load_map(
+        '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged.fits'
+    )
+    plot_projection(
+        map,
+        save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged_mollweide.png'
+    )
