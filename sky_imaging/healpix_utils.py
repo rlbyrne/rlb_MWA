@@ -784,7 +784,7 @@ def calculate_variance_healpix_maps(
     return variance_maps, averaged_maps, weights_map, nsamples_map
 
 
-def obs_radial_weighting_function(dist, max_dist=12., taper_width=2.):
+def obs_radial_weighting_function(dist, max_dist=14., taper_width=10.):
 
     if dist < max_dist-taper_width:
         weight = 1.
