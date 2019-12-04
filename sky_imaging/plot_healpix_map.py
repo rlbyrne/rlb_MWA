@@ -10,13 +10,14 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
+import pylab
 import healpix_utils
 from scipy.interpolate import griddata
 
 
 def plot_filled_pixels(
     map, save_filename=None, title='', ra_range=[], dec_range=[],
-    colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/beam)',
+    colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/sr)',
     ra_cut=None
 ):
 
@@ -111,7 +112,7 @@ def plot_filled_pixels(
 def plot_grid_interp(
     map, save_filename=None, resolution=.1, title='', ra_range=[], dec_range=[],
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/beam)'
+    colorbar_label='Flux Density (Jy/sr)'
 ):
     # resolution is in degrees
 
@@ -153,12 +154,33 @@ def plot_grid_interp(
         plt.show()
 
 
+def plot_projection(map):
+
+    map.explicit_to_implicit_ordering()
+    if map.coords == 'galactic':
+        coord = 'G'
+    else:
+        if map.coords == 'equitorial':
+            coord = 'C'
+        else:
+            if map.coords == 'ecliptic':
+                coord = 'E'
+    #cmap = pylab.cm.bwr
+    #cmap.set_under('w')  # Make nodata color white
+    proj = hp.mollview(map=map.signal_arr, coord='C', nest=map.nest, title='', min=None, max=None, cbar=True, cmap='Greys_r', return_projected_map=True, notext=True)
+    hp.graticule()
+    #plt.xlim([-1.3,.4])
+    #plt.ylim([-1, .25])
+    plt.show()
+    #print np.shape(proj)
+    #plt.close('all')
+    #plt.imshow(
+    #    proj, origin='lower', interpolation='none'
+    #)
+    #plt.show()
+
+
 if __name__ == '__main__':
 
-    plot_maps_Mar4()
-
-    #map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits')
-    #plot_filled_pixels(
-    #    map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.png',
-    #    colorbar_label='Number of Observations'
-    #)
+    map = healpix_utils.load_map('/Users/ruby/EoR/sky_maps/StokesI_nearest_short_baselines.fits')
+    plot_projection(map)

@@ -324,10 +324,25 @@ def load_fhd_output_map(data_filename, cube='model', freq_index=0):
     data = scipy.io.readsav(data_filename)
     cube_data = data[cube_name][freq_index]
     nside = int(data['nside'])
-    hpx_inds = [int(val) for val in data['hpx_inds']]
+    hpx_inds = data['hpx_inds']
+    hpx_inds.astype(int)
     healpix_map = HealpixMap(
         cube_data, hpx_inds, nside, nest=False, coords='equitorial'
-        )
+    )
+    return healpix_map
+
+
+def load_fhd_input_map(data_filename):
+    # Load a HEALPix map formatted in a .sav file to be input to FHD as a model
+
+    data = scipy.io.readsav(data_filename, python_dict=True)
+    cube_data = data['map']
+    nside = int(data['nside'])
+    hpx_inds = data['hpx_inds']
+    hpx_inds.astype(int)
+    healpix_map = HealpixMap(
+        cube_data, hpx_inds, nside, nest=False, coords='equitorial'
+    )
     return healpix_map
 
 
