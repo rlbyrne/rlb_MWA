@@ -3,7 +3,7 @@
 
 pro fits_to_sav_catalog_convert, filename_fits, output_filename
 
-  filename_fits = '/Users/ruby/Downloads/75219_test_file.fits'
+  filename_fits = '/Users/ruby/Downloads/75219_test_file_updated.fits'
   filename_gleam = '/Users/ruby/EoR/FHD/catalog_data/GLEAM_v2_plus_rlb2019.sav'
   filename_sav = '/Users/ruby/EoR/kelcey_catalogs/GLEAM_plus_75219.sav'
   
@@ -67,12 +67,13 @@ pro fits_to_sav_catalog_convert, filename_fits, output_filename
   source.dec = source_dec
   source.extend = ptr_new(comps)
   
-  restore, filename_gleam
-  print, catalog[gleamnum].ra 
-  print, catalog[gleamnum].dec 
-  print, catalog[gleamnum].flux.I 
-  catalog[gleamnum] = source
+  catalog = getvar_savefile(filename_gleam, 'catalog', /compatibility_mode)
+  catalog[gleamnum].flux.I = source_flux
+  catalog[gleamnum].ra = source_ra
+  catalog[gleamnum].dec = source_dec
+  catalog[gleamnum].extend = ptr_new(comps)
 
-  ;save, catalog, filename=filename_sav
+  print, 'Saving catalog to: '+filename_sav
+  save, catalog, filename=filename_sav
 
 end
