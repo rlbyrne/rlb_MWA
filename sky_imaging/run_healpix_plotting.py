@@ -366,12 +366,115 @@ def plot_maps_Jul10():
     )
 
 
+def plot_maps_Aug25():
+
+    saveloc = '/Users/rubybyrne/diffuse_survey_plotting_Aug2019'
+    combined_maps = healpix_utils.combine_maps_nearest_data(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_baseline_cut_Aug2019',
+        nside=256,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V']
+    )
+    pol_names = ['I', 'Q', 'U', 'V']
+    for map_ind in range(len(combined_maps)):
+        combined_maps[map_ind].write_data_to_fits(
+            '{}/Stokes{}_nearest_short_baselines.fits'.format(saveloc, pol_names[map_ind])
+        )
+    for map_ind in range(len(combined_maps)):
+        plot_healpix_map.plot_filled_pixels(
+            combined_maps[map_ind], '{}/Stokes{}_nearest_short_baselines.png'.format(saveloc, pol_names[map_ind])
+        )
+
+
+
+def plot_maps_Dec3():
+
+    obs_list = [
+        '1131551744',
+        '1130783824',
+        '1131562544',
+        '1131709912',
+        '1130776864',
+        '1131461496',
+        '1130782264',
+        #'1131454176', high power and systematics in Stokes V
+        '1131715432',
+        '1131733552',
+        '1131542624',
+        '1130773144',
+        '1131461376',
+        '1131557144',
+        '1131454296',
+        '1131731752',
+        '1130778664',
+        '1131470496',
+        '1131559064',
+        '1131717232',
+        '1131463536',
+        '1130773264',
+        '1131463416',
+        '1131717352',
+        '1131713632',
+        '1131478056',
+        '1131468936',
+        '1131468696',
+        '1131535424',
+        '1131463296',
+        '1131465216',
+        '1131710032',
+        '1130776624',
+        '1131456096',
+        #'1131456216',
+        '1131540824',
+        '1131711952',
+        '1131459576',
+        '1131477936',
+        '1131733672',
+        '1131564464',
+        '1130787784',
+        #'1131475896',
+        '1131461616',
+        '1131558944',
+        '1131470616',
+        '1131549944',
+        '1131553544',
+        #'1131477816',
+        '1131459696',
+        '1130780464',
+        '1131726352',
+        #'1131715312',
+        '1131470736',
+        '1131548024',
+        '1131710152',
+        '1130785864',
+        #'1131724672',
+        '1131544424'
+    ]
+    combined_maps, weight_maps = healpix_utils.average_healpix_maps(
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_baseline_cut_Aug2019',
+        obs_list = obs_list,
+        nside=512,
+        cube_names=['Dirty_I', 'Dirty_Q', 'Dirty_U', 'Dirty_V'],
+        apply_radial_weighting=True
+    )
+    #combined_maps = healpix_utils.combine_maps_nearest_data(
+    #    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_baseline_cut_Aug2019',
+    #    obs_list = obs_list,
+    #    nside=512,
+    #    cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+    #)
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019'
+    pols = ['I', 'Q', 'U', 'V']
+    for pol_ind, pol_name in enumerate(pols):
+        combined_maps[pol_ind].write_data_to_fits(
+            '{}/Stokes{}_dirty_averaged.fits'.format(outdir, pol_name)
+        )
+    for pol_ind, pol_name in enumerate(pols):
+        plot_healpix_map.plot_filled_pixels(
+            combined_maps[pol_ind],
+            '{}/Stokes{}_dirty_averaged.png'.format(outdir, pol_name)
+        )
+
+
 if __name__ == '__main__':
 
-    plot_maps_Jul10()
-
-    #map = healpix_utils.load_map('/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.fits')
-    #plot_healpix_map.plot_filled_pixels(
-    #    map, '/Users/rubybyrne/diffuse_survey_plotting_Feb2019/Weights_combined_60obs.png',
-    #    colorbar_label='Number of Observations'
-    #)
+    plot_maps_Dec3()
