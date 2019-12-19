@@ -348,16 +348,18 @@ def load_fhd_output_map(data_filename, cube='model', freq_index=0):
     return healpix_map
 
 
-def load_fhd_input_map(data_filename):
+def load_fhd_input_map(data_filename, cube_ind=0):
     # Load a HEALPix map formatted in a .sav file to be input to FHD as a model
 
     data = scipy.io.readsav(data_filename, python_dict=True)
-    cube_data = data['map']
+    map_data = data['model_arr']
+    if np.size(map_data[0]) > 1: # array contains multiple maps
+        map_data = map_data[cube_ind]
     nside = int(data['nside'])
     hpx_inds = data['hpx_inds']
     hpx_inds.astype(int)
     healpix_map = HealpixMap(
-        cube_data, hpx_inds, nside, nest=False, coords='equitorial'
+        map_data, hpx_inds, nside, nest=False, coords='equitorial'
     )
     return healpix_map
 
@@ -930,3 +932,94 @@ def combine_maps_nearest_data(
         combined_maps.append(map)
 
     return combined_maps
+
+
+def write_data_to_standard_fits(maps, save_filename):
+
+    if len(maps) != 4:
+        print 'ERROR: Must provide Stokes I,Q,U,V maps.'
+        sys.exit()
+
+    self.signal_arr = np.array(signal_arr)
+    self.pix_arr = np.array(pix_arr, dtype=int)
+    self.nside = nside
+    self.nest = nest
+    self.coords = coords
+
+    data = np.zeros((len(map[0].signal_arr), 1, 4))
+    data[:, :, 0] = map[0].signal_arr
+
+    for map_ind in range(1, 4):
+        if maps[map_ind].nside != maps[0].nside:
+            print 'ERROR: Map nsides do not match.'
+            sys.exit()
+        if maps[map_ind].nest != maps[0].nest:
+            print 'ERROR: Map nest conventions do not match.'
+            sys.exit()
+        if maps[map_ind].coords != maps[0].coords:
+            print 'ERROR: Map coordinate system conventions do not match.'
+            sys.exit()
+        if len(maps[map_ind].pix_arr) != len(maps[0].pix_arr):
+            print 'ERROR: Maps have different numbers of pixels.'
+            sys.exit()
+        if maps[map_ind].pix_arr != maps[0].pix_arr:
+            print 'WARNING: Pixel ordering does not match. Reordering.'
+            new_signal_arr = np.zeros((len(maps[map_ind].pix_arr)))
+            for pix_ind in range(len(maps[map_ind].pix_arr)):
+                new_signal_arr[pix_ind] = maps[map_ind].signal_arr[
+                    np.where(
+                        maps[map_ind].pix_arr == maps[0].pix_arr[pix_ind]
+                    )[0][0]
+                ]
+            maps[map_ind].signal_arr = new_signal_arr
+            maps[map_ind].pix_arr = maps[0].pix_arr
+        data[:, :, map_ind] = map[map_ind].signal_arr
+
+    header = fits.Header()
+
+    # Conforming to fits format
+    header['SIMPLE'] = True
+    header['BITPIX'] = 32
+    header['NAXIS'] = 3
+    header['NSIDE'] = self.nside
+    header['ORDERING'] = self.ordering
+    header['BUNIT'] = 'Jy/sr'
+    header['COORDSYS'] = self.coords
+    header['AUTHOR'] = 'Ruby Byrne'
+    header['INSTRUME'] = 'MWA'
+    header['HISTORY'] = 'Processed with FHD'
+
+    ax_nums = {'pixel': 1, 'freq': 2, 'pol': 3}
+
+    # set up pixel axis
+    header['CTYPE' + str(ax_nums['pixel'])] = \
+        ('Pix_Ind', 'Index into pixel array in HPX_INDS extension.')
+    header['CRVAL' + str(ax_nums['pixel'])] = 1
+    header['CRPIX' + str(ax_nums['pixel'])] = 1
+    header['CDELT' + str(ax_nums['pixel'])] = 1
+
+    # set up frequency axis
+    header['CTYPE' + str(ax_nums['freq'])] = 'FREQ'
+    header['CUNIT' + str(ax_nums['freq'])] = 'MHz'
+    header['CRVAL' + str(ax_nums['freq'])] = 182.
+    header['CRPIX' + str(ax_nums['freq'])] = 1
+    header['CDELT' + str(ax_nums['freq'])] = 30.
+
+    # set up polarization axis
+    header['CTYPE' + str(ax_nums['pol'])] = \
+        ('STOKES', 'Polarization integers: I,Q,U,V=1,2,3,4')
+    header['CRVAL' + str(ax_nums['pol'])] = 1
+    header['CRPIX' + str(ax_nums['pol'])] = 1
+    header['CDELT' + str(ax_nums['pol'])] = 1
+
+    primary_hdu = fits.PrimaryHDU(data=data, header=header)
+    hdulist = fits.HDUList([primary_hdu])
+
+    # set up pixel array
+    c1 = fits.Column(name='HPX_INDS', format='K', array=maps[0].pix_arr)
+    coldefs = fits.ColDefs([c1])
+    hpx_hdu = fits.BinTableHDU.from_columns(coldefs)
+    hpx_hdu.header['EXTNAME'] = 'HPX_INDS'
+    hdulist.append(hpx_hdu)
+
+    hdulist.writeto(save_filename)
