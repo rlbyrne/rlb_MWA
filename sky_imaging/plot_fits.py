@@ -242,11 +242,19 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    image = load_image(
-        '/Users/ruby/EoR/polarization_leakage_testing_Jul2019/normal/1130773144_uniform_Model_I.fits'
-    )
-    pixels = 100
-    image.signal_arr = image.signal_arr[1230-pixels:1230+pixels,1072-pixels:1072+pixels]
-    image.ra_axis = image.ra_axis[1230-pixels:1230+pixels]
-    image.dec_axis = image.dec_axis[1072-pixels:1072+pixels]
-    plot_fits_image(image, save_filename='/Users/ruby/EoR/polarization_leakage_testing_Jul2019/normal_beam_I.png', title='Stokes I')
+    """master = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Nov2019/fhd_rlb_master_reference_Nov2019/output_data/1061316296_uniform_Model_Q.fits')
+    branch = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Nov2019/fhd_rlb_diffuse_subtract_Nov2019/output_data/1061316296_uniform_Model_Q.fits')
+    diff = difference_images(master, branch)
+    print np.max(np.abs(diff.signal_arr))"""
+    image1 = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Oct2019/fhd_rlb_single_source_test_master_onefreq_Nov2019/output_data/1130773144_natural_Model_V.fits')
+    plot_fits_image(image1, colorbar_range=[-10,10])
+    """source_ra = 50.405659
+    source_dec = -37.149250
+    image_range = 5
+    image1.limit_data_range(ra_range=[source_ra-image_range,source_ra+image_range], dec_range=[source_dec-image_range,source_dec+image_range])
+    #image2 = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Oct2019/fhd_rlb_single_source_ofcent_flipped_beam_branch_real_part_Oct2019/output_data/1130773144_uniform_Model_Q.fits')
+    #diff = difference_images(image1, image2)
+    print np.max(image1.signal_arr)
+    print np.where(image1.signal_arr==np.max(image1.signal_arr))
+    print image1.signal_arr[32,76]
+    plot_fits_image(image1, colorbar_range=[-50,50])"""

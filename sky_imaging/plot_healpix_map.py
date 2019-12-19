@@ -153,21 +153,24 @@ def plot_grid_interp(
         plt.show()
 
 
-def plot_projection(map, save_filename=None):
+def plot_projection(
+    map, save_filename=None, title='', colorbar_range=[None, None]
+):
 
     map.explicit_to_implicit_ordering()
 
     proj = hp.mollview(
         map=map.signal_arr, coord=map.coords_healpy_conv, nest=map.nest,
-        title='', min=-2, max=2, cbar=True, cmap='Greys_r',
-        return_projected_map=False, notext=True
+        title=title, min=colorbar_range[0], max=colorbar_range[1], cbar=True,
+        cmap='Greys_r', return_projected_map=False, notext=True, unit='Jy/sr'
     )
     hp.graticule()
     plt.xlim([-1.3,.4])
-    plt.ylim([-1, .25])
+    plt.ylim([-1.1, .25])
     if save_filename is None:
         plt.show()
     else:
+        print 'Saving plot to {}'.format(save_filename)
         plt.savefig(save_filename, dpi=300)
 
 
@@ -177,6 +180,6 @@ if __name__ == '__main__':
         '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged.fits'
     )
     plot_projection(
-        map,
-        save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged_mollweide.png'
+        map, title='Stokes I', colorbar_range=[-1.5,5],
+        save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged_alt_colorbar_mollweide.png'
     )
