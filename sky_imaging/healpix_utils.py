@@ -934,20 +934,14 @@ def combine_maps_nearest_data(
     return combined_maps
 
 
-def write_data_to_standard_fits(maps, save_filename):
+def write_data_to_standard_fits(maps, save_filename, history_str=''):
 
     if len(maps) != 4:
         print 'ERROR: Must provide Stokes I,Q,U,V maps.'
         sys.exit()
 
-    self.signal_arr = np.array(signal_arr)
-    self.pix_arr = np.array(pix_arr, dtype=int)
-    self.nside = nside
-    self.nest = nest
-    self.coords = coords
-
-    data = np.zeros((len(map[0].signal_arr), 1, 4))
-    data[:, :, 0] = map[0].signal_arr
+    data = np.zeros((len(maps[0].signal_arr), 1, 4))
+    data[:, 0, 0] = maps[0].signal_arr
 
     for map_ind in range(1, 4):
         if maps[map_ind].nside != maps[0].nside:
@@ -962,7 +956,7 @@ def write_data_to_standard_fits(maps, save_filename):
         if len(maps[map_ind].pix_arr) != len(maps[0].pix_arr):
             print 'ERROR: Maps have different numbers of pixels.'
             sys.exit()
-        if maps[map_ind].pix_arr != maps[0].pix_arr:
+        if not np.array_equal(maps[map_ind].pix_arr, maps[0].pix_arr):
             print 'WARNING: Pixel ordering does not match. Reordering.'
             new_signal_arr = np.zeros((len(maps[map_ind].pix_arr)))
             for pix_ind in range(len(maps[map_ind].pix_arr)):
@@ -973,7 +967,7 @@ def write_data_to_standard_fits(maps, save_filename):
                 ]
             maps[map_ind].signal_arr = new_signal_arr
             maps[map_ind].pix_arr = maps[0].pix_arr
-        data[:, :, map_ind] = map[map_ind].signal_arr
+        data[:, 0, map_ind] = maps[map_ind].signal_arr
 
     header = fits.Header()
 
@@ -981,13 +975,17 @@ def write_data_to_standard_fits(maps, save_filename):
     header['SIMPLE'] = True
     header['BITPIX'] = 32
     header['NAXIS'] = 3
-    header['NSIDE'] = self.nside
-    header['ORDERING'] = self.ordering
+    header['NSIDE'] = maps[0].nside
+    if maps[0].nest:
+        ordering = 'nested'
+    else:
+        ordering = 'ring'
+    header['ORDERING'] = ordering
     header['BUNIT'] = 'Jy/sr'
-    header['COORDSYS'] = self.coords
+    header['COORDSYS'] = maps[0].coords_healpy_conv
     header['AUTHOR'] = 'Ruby Byrne'
     header['INSTRUME'] = 'MWA'
-    header['HISTORY'] = 'Processed with FHD'
+    header['HISTORY'] = history_str
 
     ax_nums = {'pixel': 1, 'freq': 2, 'pol': 3}
 
