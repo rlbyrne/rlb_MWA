@@ -205,7 +205,7 @@ def divide_images(image1, image2):
 def plot_fits_image(
     fits_image, save_filename='', title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/beam)', plot_grid=True,
+    colorbar_label='Flux Density (Jy/sr)', plot_grid=True,
     xlabel='RA (deg.)', ylabel='Dec. (deg.)'
 ):
 
