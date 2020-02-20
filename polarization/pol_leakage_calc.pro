@@ -1,7 +1,7 @@
 pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=write_fit_params, create_decon_catalogs=create_decon_catalogs
   
-  fhd_path = '/Users/ruby/EoR/polarization_leakage_correction_testing/fhd_rlb_diffuse_survey_decon_4pol_Jul2019/'
-  save_path = '/Users/ruby/EoR/polarization_leakage_correction_testing/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Feb2020/'
   
   ; Find obsids where all files are present
   decon_filenames = file_search(fhd_path+'deconvolution/*')
@@ -53,9 +53,9 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
   for obs_index=0, n_elements(obsids)-1 do begin
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
-    fit_sources_number = 400
+    fit_sources_number = 2000
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
-    isolated_source_radius = .1  ; use only isolated sources, distance between sources is at least this in degrees
+    isolated_source_radius = .02  ; use only isolated sources, distance between sources is at least this in degrees
     output_path = fhd_path+'plots/'
     
     ; grab sources and sort by apparent flux
@@ -127,27 +127,28 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     frac_pol_leakage[*, 0] = pol_fluxes[*, 1] / pol_fluxes[*, 0]
     frac_pol_leakage[*, 1] = pol_fluxes[*, 2] / pol_fluxes[*, 0]
     frac_pol_leakage[*, 2] = pol_fluxes[*, 3] / pol_fluxes[*, 0]
+    weights = pol_fluxes[*, 0] ; Weight by the source flux
       
     fit_matrix = make_array(6, 6, /float, value=0.)
-    fit_matrix[0,*] = [total(source_xvals^4.), total(source_xvals^2.*source_yvals^2.), total(source_xvals^3.*source_yvals), $
-      total(source_xvals^3.), total(source_xvals^2.*source_yvals), total(source_xvals^2.)]
-    fit_matrix[1,*] = [total(source_xvals^2.*source_yvals^2.), total(source_yvals^4.), total(source_xvals*source_yvals^3.), $
-      total(source_xvals*source_yvals^2.), total(source_yvals^3.), total(source_yvals^2.)]
-    fit_matrix[2,*] = [total(source_xvals^3.*source_yvals), total(source_xvals*source_yvals^3.), total(source_xvals^2.*source_yvals^2.), $
-      total(source_xvals^2.*source_yvals), total(source_xvals*source_yvals^2.), total(source_xvals*source_yvals)]
-    fit_matrix[3,*] = [total(source_xvals^3.), total(source_xvals*source_yvals^2.), total(source_xvals^2.*source_yvals), $
-      total(source_xvals^2.), total(source_xvals*source_yvals), total(source_xvals)]
-    fit_matrix[4,*] = [total(source_xvals^2.*source_yvals), total(source_yvals^3.), total(source_xvals*source_yvals^2.), $
-      total(source_xvals*source_yvals), total(source_yvals^2.), total(source_yvals)]
-    fit_matrix[5,*] = [total(source_xvals^2.), total(source_yvals^2.), total(source_xvals*source_yvals), $
-      total(source_xvals), total(source_yvals), fit_sources_number]
+    fit_matrix[0,*] = [total(weights*source_xvals^4.), total(weights*source_xvals^2.*source_yvals^2.), total(weights*source_xvals^3.*source_yvals), $
+      total(weights*source_xvals^3.), total(weights*source_xvals^2.*source_yvals), total(weights*source_xvals^2.)]
+    fit_matrix[1,*] = [total(weights*source_xvals^2.*source_yvals^2.), total(weights*source_yvals^4.), total(weights*source_xvals*source_yvals^3.), $
+      total(weights*source_xvals*source_yvals^2.), total(weights*source_yvals^3.), total(weights*source_yvals^2.)]
+    fit_matrix[2,*] = [total(weights*source_xvals^3.*source_yvals), total(weights*source_xvals*source_yvals^3.), total(weights*source_xvals^2.*source_yvals^2.), $
+      total(weights*source_xvals^2.*source_yvals), total(weights*source_xvals*source_yvals^2.), total(weights*source_xvals*source_yvals)]
+    fit_matrix[3,*] = [total(weights*source_xvals^3.), total(weights*source_xvals*source_yvals^2.), total(weights*source_xvals^2.*source_yvals), $
+      total(weights*source_xvals^2.), total(weights*source_xvals*source_yvals), total(weights*source_xvals)]
+    fit_matrix[4,*] = [total(weights*source_xvals^2.*source_yvals), total(weights*source_yvals^3.), total(weights*source_xvals*source_yvals^2.), $
+      total(weights*source_xvals*source_yvals), total(weights*source_yvals^2.), total(weights*source_yvals)]
+    fit_matrix[5,*] = [total(weights*source_xvals^2.), total(weights*source_yvals^2.), total(weights*source_xvals*source_yvals), $
+      total(weights*source_xvals), total(weights*source_yvals), total(weights)]
   
     polarizations = ['Q', 'U', 'V']
     
     fit_params = make_array(6, 2, /float, value=0.)
     for pol = 0, 1 do begin
-      fit_vector = [total(source_xvals^2.*frac_pol_leakage[*,pol]), total(source_yvals^2.*frac_pol_leakage[*,pol]), total(source_xvals*source_yvals*frac_pol_leakage[*,pol]), $
-        total(source_xvals*frac_pol_leakage[*,pol]), total(source_yvals*frac_pol_leakage[*,pol]), total(frac_pol_leakage[*,pol])]
+      fit_vector = [total(weights*source_xvals^2.*frac_pol_leakage[*,pol]), total(weights*source_yvals^2.*frac_pol_leakage[*,pol]), total(weights*source_xvals*source_yvals*frac_pol_leakage[*,pol]), $
+        total(weights*source_xvals*frac_pol_leakage[*,pol]), total(weights*source_yvals*frac_pol_leakage[*,pol]), total(weights*frac_pol_leakage[*,pol])]
       fit_result = matrix_multiply(invert(fit_matrix), fit_vector)
       fit_result = reform(fit_result)
       fit_params[*,pol] = fit_result  
@@ -198,11 +199,16 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     endif
       
     if keyword_set(make_catalog) then begin
+      leakage_threshold = .4
       for source_ind = 0, n_elements(catalog)-1 do begin
         q_leakage = fit_params[0,0]*(catalog[source_ind].X)^2. + fit_params[1,0]*(catalog[source_ind].Y)^2. + fit_params[2,0]*(catalog[source_ind].X)*(catalog[source_ind].Y) $
           + fit_params[3,0]*(catalog[source_ind].X) + fit_params[4,0]*(catalog[source_ind].Y) + fit_params[5,0]
+        if q_leakage lt -leakage_threshold then q_leakage=-leakage_threshold
+        if q_leakage gt leakage_threshold then q_leakage=leakage_threshold
         u_leakage = fit_params[0,1]*(catalog[source_ind].X)^2. + fit_params[1,1]*(catalog[source_ind].Y)^2. + fit_params[2,1]*(catalog[source_ind].X)*(catalog[source_ind].Y) $
           + fit_params[3,1]*(catalog[source_ind].X) + fit_params[4,1]*(catalog[source_ind].Y) + fit_params[5,1]
+        if u_leakage lt -leakage_threshold then u_leakage=-leakage_threshold
+        if u_leakage gt leakage_threshold then u_leakage=leakage_threshold
         catalog[source_ind].flux.Q = catalog[source_ind].flux.I * q_leakage
         catalog[source_ind].flux.U = catalog[source_ind].flux.I * u_leakage
         if catalog[source_ind].extend ne !null then begin
