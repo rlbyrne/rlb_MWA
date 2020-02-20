@@ -4,17 +4,17 @@ pro fits_to_sav_healpix_map_convert, units_in=units_in, units_out=units_out, obs
     if ~keyword_set(units_in) then units_in='Jy/sr'
     if ~keyword_set(units_out) then units_out='Jy/sr'
     
-    obsfile = '/Users/ruby/Downloads/1130773144_obs.sav'
-    ;stokes_maps_paths = ['/Users/ruby/EoR/sky_maps/StokesI_nearest_short_baselines.fits',$
-    ;  '/Users/ruby/EoR/sky_maps/StokesQ_nearest_short_baselines.fits',$
-    ;  '/Users/ruby/EoR/sky_maps/StokesU_nearest_short_baselines.fits',$
-    ;  '/Users/ruby/EoR/sky_maps/StokesV_nearest_short_baselines.fits']
-    ;outpath = '/Users/ruby/EoR/sky_maps/nearest_Jan2020norm_Aug2019.sav'
-    stokes_maps_paths = ['/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_I_HEALPix.fits',$
-      '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_Q_HEALPix.fits',$
-      '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_U_HEALPix.fits',$
-      '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_V_HEALPix.fits']
-    outpath = '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/single_obs_stokes_maps.sav'
+    ;obsfile = '/Users/ruby/Downloads/1130773144_obs.sav'
+    stokes_maps_paths = ['/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesI_residual_averaged.fits',$
+      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesQ_residual_averaged.fits',$
+      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesU_residual_averaged.fits',$
+      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesV_residual_averaged.fits']
+    outpath = '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/averaged_diffuse_Feb2020.sav'
+    ;stokes_maps_paths = ['/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_I_HEALPix.fits',$
+    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_Q_HEALPix.fits',$
+    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_U_HEALPix.fits',$
+    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_V_HEALPix.fits']
+    ;outpath = '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/single_obs_stokes_maps.sav'
 
     case units_in of
       'Jy/cart_pixel':
@@ -61,10 +61,12 @@ pro fits_to_sav_healpix_map_convert, units_in=units_in, units_out=units_out, obs
         ;for FHD outputs, the first column is the pixels and the second column is the data
         ;third and fourth columns report N_obs and serror
         ;turn this off if the output is not directly out of FHD
-        data_reordered = make_array(n_elements(data_new[*,0]), 2, /float)
-        data_reordered[*,0] = data_new[*,1]
-        data_reordered[*,1] = data_new[*,0]
-        data_new = data_reordered
+        if 0 then begin
+          data_reordered = make_array(n_elements(data_new[*,0]), 2, /float)
+          data_reordered[*,0] = data_new[*,1]
+          data_reordered[*,1] = data_new[*,0]
+          data_new = data_reordered
+        endif
         
         if ordering eq 'NESTED' then begin
             print, 'Reordering Healpix map: nested to ring'

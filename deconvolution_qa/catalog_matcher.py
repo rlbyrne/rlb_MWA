@@ -67,7 +67,6 @@ def match_catalogs(fhd_run_path, output_path, ref_catalog, obsid, qa_params_save
     decon_catalog = scipy.io.readsav(
         '{}/deconvolution/{}_fhd.sav'.format(fhd_run_path, obsid)
         )['source_array']
-    print len(decon_catalog)
     # grab sources near the pointing center
     decon_catalog_limited = []
     for source in decon_catalog:
