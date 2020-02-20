@@ -55,7 +55,8 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 2000
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
-    isolated_source_radius = .02  ; use only isolated sources, distance between sources is at least this in degrees
+    isolated_source_radius = .02  ; distance between sources is at least this in degrees
+    isolated_source_flux_fraction = .9  ; if sources aren't isolated, they must contain this fraction of the flux in the region
     output_path = fhd_path+'plots/'
     
     ; grab sources and sort by apparent flux
@@ -71,12 +72,16 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     
     ; find only isolated sources
     close_sources_indices = []
-    for source_ind_1 = 0, n_elements(brightest_indices)-2 do begin
-      for source_ind_2 = source_ind_1+1, n_elements(brightest_indices)-1 do begin
-        if (catalog[brightest_indices[source_ind_1]].RA-catalog[brightest_indices[source_ind_2]].RA)^2.+(catalog[brightest_indices[source_ind_1]].DEC-catalog[brightest_indices[source_ind_2]].DEC)^2. lt isolated_source_radius^2. then begin
-          close_sources_indices = [close_sources_indices, source_ind_1, source_ind_2]
+    for source_ind_1 = 0, n_elements(brightest_indices-1) do begin
+      close_flux = 0.
+      for source_ind_2 = 0, n_elements(brightest_indices-1) do begin
+        if source_ind_2 ne source_ind_1 then begin
+          if (catalog[brightest_indices[source_ind_1]].RA-catalog[brightest_indices[source_ind_2]].RA)^2.+(catalog[brightest_indices[source_ind_1]].DEC-catalog[brightest_indices[source_ind_2]].DEC)^2. lt isolated_source_radius^2. then begin
+            close_flux += catalog[brightest_indices[source_ind_2]].flux.I
+          endif
         endif
       endfor
+      if close_flux gt (1.-isolated_source_flux_fraction)*catalog[brightest_indices[source_ind_1]].flux.I then close_sources_indices = [close_sources_indices, source_ind_1]
     endfor
     remove, close_sources_indices, brightest_indices
     
