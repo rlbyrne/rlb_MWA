@@ -1,14 +1,31 @@
-pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=write_fit_params, create_decon_catalogs=create_decon_catalogs
+pro pol_leakage_calc, $
+  plot=plot, $ ; produce plots of the polarization leakage fits
+  make_catalog=make_catalog, $ ; produce catalogs that correct for polarization leakage
+  write_fit_params=write_fit_params, $ ; record the leakage fit parameters in a csv
+  create_decon_catalogs=create_decon_catalogs, $ ; produce catalogs from the FHD deconvolution outputs (must be set if those catalogs do not exist)
+  image_units_jy_per_sr=image_units_jy_per_sr, $ ; set this keyword if the FHD outputs are in units Jy/sr (i.e. created after Feb 2020)
+  obs_list=obs_list ; optional list of obsids or path to a list of obsids. If unset, code will use all available observations.
   
   fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
   save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Feb2020/'
   
   ; Find obsids where all files are present
-  decon_filenames = file_search(fhd_path+'deconvolution/*')
-  obsids_decon = []
-  for file=0,n_elements(decon_filenames)-1 do begin
-    obsids_decon = [obsids_decon, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
-  endfor
+  if ~keyword_set(obs_list) then begin
+    decon_filenames = file_search(fhd_path+'deconvolution/*') 
+    obsids_decon = []
+    for file=0,n_elements(decon_filenames)-1 do begin
+      obsids_decon = [obsids_decon, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
+    endfor
+  endif else begin
+    if size(obs_list, /type) eq 7 then begin ; obs_list is a string
+      nlines = FILE_LINES(obs_list)
+      obsids_decon = STRARR(nlines)
+      OPENR, file, obs_list, /GET_LUN
+      READF, file, obsids_decon
+      FREE_LUN, file
+    endif else obsids_decon = obs_list
+  endelse
+  
   residual_I_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_I.fits')
   obsids_residual_I = []
   for file=0,n_elements(residual_I_filenames)-1 do begin
@@ -54,19 +71,21 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 2000
+    use_extended = 1  ; if set, use extended sources
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
     isolated_source_radius = .02  ; distance between sources is at least this in degrees
     isolated_source_flux_fraction = .9  ; if sources aren't isolated, they must contain this fraction of the flux in the region
     output_path = fhd_path+'plots/'
+    if ~keyword_set(image_units_jy_per_sr) then image_units_jy_per_sr=1
     
     ; grab sources and sort by apparent flux
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
     apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
     for source_ind = 0, n_elements(catalog)-1 do begin
-      if catalog[source_ind].extend eq !null then begin  ; use point sources only (no extended)
-        apparent_fluxes[source_ind] = catalog[source_ind].flux.I
-      endif
+      if keyword_set(use_extended) then apparent_fluxes[source_ind] = catalog[source_ind].flux.I else begin
+        if catalog[source_ind].extend eq !null then apparent_fluxes[source_ind] = catalog[source_ind].flux.I
+      endelse
     endfor
     brightest_indices = reverse(sort(apparent_fluxes))
     
@@ -94,6 +113,9 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     residual_Q = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_Q.fits')
     residual_U = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_U.fits')
     residual_V = readfits(fhd_path + 'output_data/' + obsid + '_uniform_Residual_V.fits')
+    if keyword_set(image_units_jy_per_sr) then begin
+      image_norm = (obs.degpix*!DtoR)^2.
+    endif else image_norm = 1.
     
     pol_fluxes = make_array(fit_sources_number, 4, /float, value=0.)
     source_ras = make_array(fit_sources_number, 1, /float, value=0.)
@@ -101,31 +123,47 @@ pro pol_leakage_calc, plot=plot, make_catalog=make_catalog, write_fit_params=wri
     source_xvals = make_array(fit_sources_number, 1, /float, value=0.)
     source_yvals = make_array(fit_sources_number, 1, /float, value=0.)
     for source_ind = 0, fit_sources_number-1 do begin
-      xval = fit_sources[source_ind].X
-      yval = fit_sources[source_ind].Y
       source_flux_I = fit_sources[source_ind].flux.I
       source_flux_Q = 0.
       source_flux_U = 0.
       source_flux_V = 0.
-      for pixel_x = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
-        for pixel_y = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
-          if (round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2. lt (source_size*3.)^2. then begin  ; use pixels within 3*source_size of the source center
-            weighting = exp(-((round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2.)/(source_size*2.))
-            source_flux_I = source_flux_I + weighting*residual_I[round(xval)+pixel_x, round(yval)+pixel_y]
-            source_flux_Q = source_flux_Q + weighting*residual_Q[round(xval)+pixel_x, round(yval)+pixel_y]
-            source_flux_U = source_flux_U + weighting*residual_U[round(xval)+pixel_x, round(yval)+pixel_y]
-            source_flux_V = source_flux_V + weighting*residual_V[round(xval)+pixel_x, round(yval)+pixel_y]
-          endif
+      image_mask = make_array((size(residual_I))[1], (size(residual_I))[2], /float, value=0.)
+      
+      if fit_sources[source_ind].extend eq !null then begin
+        xvals = [fit_sources[source_ind].X]
+        yvals = [fit_sources[source_ind].Y]
+        n_comps = 1
+      endif else begin
+        xvals = (*fit_sources[source_ind].extend).X
+        yvals = (*fit_sources[source_ind].extend).Y
+        n_comps = n_elements(xvals)
+      endelse
+      
+      for comp_ind = 0, n_comps-1 do begin
+        xval = xvals[comp_ind]
+        yval = yvals[comp_ind]
+        for pixel_x = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
+          for pixel_y = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
+            if (round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2. lt (source_size*3.)^2. then begin  ; use pixels within 3*source_size of the source center
+              image_mask[round(xval)+pixel_x, round(yval)+pixel_y] += exp(-((round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2.)/(source_size*2.))
+            endif
+          endfor
         endfor
       endfor
+      image_mask[where(image_mask gt 1.)] = 1.
+      source_flux_I += total(residual_I*image_mask)*image_norm
+      source_flux_Q += total(residual_Q*image_mask)*image_norm
+      source_flux_U += total(residual_U*image_mask)*image_norm
+      source_flux_V += total(residual_V*image_mask)*image_norm
+      
       pol_fluxes[source_ind, 0] = source_flux_I
       pol_fluxes[source_ind, 1] = source_flux_Q
       pol_fluxes[source_ind, 2] = source_flux_U
       pol_fluxes[source_ind, 3] = source_flux_V
       source_ras[source_ind] = fit_sources[source_ind].RA
       source_decs[source_ind] = fit_sources[source_ind].DEC
-      source_xvals[source_ind] = xval
-      source_yvals[source_ind] = yval
+      source_xvals[source_ind] = fit_sources[source_ind].X
+      source_yvals[source_ind] = fit_sources[source_ind].Y
     endfor
     
     frac_pol_leakage = make_array(fit_sources_number, 3, /float, value=0.)
