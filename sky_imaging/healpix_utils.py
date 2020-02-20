@@ -494,7 +494,7 @@ def average_healpix_maps_simple(maps_arr):
 
 def average_healpix_maps(
     fhd_run_path, obs_list=None, obs_weights=None, nside=None,
-    cube_names=['Residual_I'], apply_radial_weighting=False
+    cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False
 ):
 
     if fhd_run_path[-1] == '/':
@@ -508,7 +508,7 @@ def average_healpix_maps(
         for cube_ind, cube in enumerate(cube_names):
             data_files_cube = [
                 file for file in data_files
-                if '_uniform_{}_HEALPix.fits'.format(cube) in file
+                if '_{}_{}_HEALPix.fits'.format(weighting, cube) in file
             ]
             obs_list_cube = [file[0:10] for file in data_files_cube]
             if cube_ind == 0:
@@ -533,9 +533,9 @@ def average_healpix_maps(
     exclude_obs_list = []
     for obs in obs_list:
         for cube in cube_names:
-            if '{}_uniform_{}_HEALPix.fits'.format(obs, cube) not in data_files:
-                print 'WARNING: File {}/output_data/{}_uniform_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
-                    fhd_run_path, obs, cube, obs
+            if '{}_{}_{}_HEALPix.fits'.format(obs, weighting, cube) not in data_files:
+                print 'WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
+                    fhd_run_path, obs, weighting, cube, obs
                 )
                 exclude_obs_list.append(obs)
                 continue
@@ -551,8 +551,8 @@ def average_healpix_maps(
         print 'Loading observation {} of {}'.format(obs_ind, len(obs_list))
         maps = []
         for cube_ind, cube in enumerate(cube_names):
-            map = load_map('{}/output_data/{}_uniform_{}_HEALPix.fits'.format(
-                fhd_run_path, obsid, cube
+            map = load_map('{}/output_data/{}_{}_{}_HEALPix.fits'.format(
+                fhd_run_path, obsid, weighting, cube
             ))
             if obs_ind == 0 and cube_ind == 0:  # Use first map for conventions
                 if nside is None:
