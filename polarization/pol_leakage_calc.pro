@@ -7,7 +7,7 @@ pro pol_leakage_calc, $
   obs_list=obs_list ; optional list of obsids or path to a list of obsids. If unset, code will use all available observations.
   
   fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
-  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Feb2020/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Feb2020_new/'
   
   ; Find obsids where all files are present
   if ~keyword_set(obs_list) then begin
@@ -17,13 +17,15 @@ pro pol_leakage_calc, $
       obsids_decon = [obsids_decon, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
     endfor
   endif else begin
-    if size(obs_list, /type) eq 7 then begin ; obs_list is a string
+    if isa(obs_list, /array) then begin ;obs_list is an array
+      obsids_decon = obs_list
+    endif else begin ;else assume obs_list is a path to a .txt file of obsids
       nlines = FILE_LINES(obs_list)
       obsids_decon = STRARR(nlines)
       OPENR, file, obs_list, /GET_LUN
       READF, file, obsids_decon
       FREE_LUN, file
-    endif else obsids_decon = obs_list
+    endelse
   endelse
   
   residual_I_filenames = file_search(fhd_path+'output_data/*_uniform_Residual_I.fits')
@@ -71,31 +73,46 @@ pro pol_leakage_calc, $
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 2000
+    search_radius = 25. ; use sources within this radius of the observation center in degrees
     use_extended = 1  ; if set, use extended sources
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
     isolated_source_radius = .02  ; distance between sources is at least this in degrees
     isolated_source_flux_fraction = .9  ; if sources aren't isolated, they must contain this fraction of the flux in the region
     output_path = fhd_path+'plots/'
-    if ~keyword_set(image_units_jy_per_sr) then image_units_jy_per_sr=1
+    if n_elements(image_units_jy_per_sr) eq 0 then image_units_jy_per_sr=1
     
-    ; grab sources and sort by apparent flux
+    ; grab sources and sort by flux
     catalog = getvar_savefile(deconvolution_catalog, 'catalog', /compatibility_mode)
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
-    apparent_fluxes = make_array(n_elements(catalog), /float, value=0.)
-    for source_ind = 0, n_elements(catalog)-1 do begin
-      if keyword_set(use_extended) then apparent_fluxes[source_ind] = catalog[source_ind].flux.I else begin
-        if catalog[source_ind].extend eq !null then apparent_fluxes[source_ind] = catalog[source_ind].flux.I
-      endelse
-    endfor
-    brightest_indices = reverse(sort(apparent_fluxes))
+    ;source_fluxes = catalog.flux.XX+catalog.flux.YY ;things work better when you use true, not apparent, fluxes
+    source_fluxes = catalog.flux.I
+    brightest_indices = reverse(sort(source_fluxes))
     
-    ; find only isolated sources
+    ; remove extended sources if use_extended is not set
+    if ~keyword_set(use_extended) then begin
+      extended_indices = []
+      for source_ind = 0, n_elements(brightest_indices)-1 do begin
+        if catalog[brightest_indices[source_ind]].extend ne !null then extended_indices=[extended_indices, source_ind]
+      endfor
+      remove, extended_indices, brightest_indices
+    endif
+    
+    ; remove sources far from the obs center
+    far_indices = []
+    for source_ind = 0, n_elements(brightest_indices)-1 do begin
+      if (catalog[brightest_indices[source_ind]].X-obs.obsx)^2.+(catalog[brightest_indices[source_ind]].Y-obs.obsy)^2. gt (search_radius/obs.degpix)^2. then begin
+        far_indices = [far_indices, source_ind]
+      endif
+    endfor
+    remove, far_indices, brightest_indices
+    
+    ; remove sources close to another bright source
     close_sources_indices = []
-    for source_ind_1 = 0, n_elements(brightest_indices-1) do begin
+    for source_ind_1 = 0, n_elements(brightest_indices)-1 do begin
       close_flux = 0.
-      for source_ind_2 = 0, n_elements(brightest_indices-1) do begin
+      for source_ind_2 = 0, n_elements(brightest_indices)-1 do begin
         if source_ind_2 ne source_ind_1 then begin
-          if (catalog[brightest_indices[source_ind_1]].RA-catalog[brightest_indices[source_ind_2]].RA)^2.+(catalog[brightest_indices[source_ind_1]].DEC-catalog[brightest_indices[source_ind_2]].DEC)^2. lt isolated_source_radius^2. then begin
+          if (catalog[brightest_indices[source_ind_1]].X-catalog[brightest_indices[source_ind_2]].X)^2.+(catalog[brightest_indices[source_ind_1]].Y-catalog[brightest_indices[source_ind_2]].Y)^2. lt (isolated_source_radius/obs.degpix)^2. then begin
             close_flux += catalog[brightest_indices[source_ind_2]].flux.I
           endif
         endif
@@ -151,7 +168,7 @@ pro pol_leakage_calc, $
         endfor
       endfor
       image_mask[where(image_mask gt 1.)] = 1.
-      source_flux_I += total(residual_I*image_mask)*image_norm
+      ;source_flux_I += total(residual_I*image_mask)*image_norm ;commented out: use the deconvolved flux as reference
       source_flux_Q += total(residual_Q*image_mask)*image_norm
       source_flux_U += total(residual_U*image_mask)*image_norm
       source_flux_V += total(residual_V*image_mask)*image_norm
