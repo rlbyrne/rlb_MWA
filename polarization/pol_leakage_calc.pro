@@ -7,7 +7,7 @@ pro pol_leakage_calc, $
   obs_list=obs_list ; optional list of obsids or path to a list of obsids. If unset, code will use all available observations.
   
   fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
-  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Feb2020_new/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Mar2020/'
   
   ; Find obsids where all files are present
   if ~keyword_set(obs_list) then begin
@@ -66,14 +66,14 @@ pro pol_leakage_calc, $
   endif  
   
   if keyword_set(write_fit_params) then begin
-    spawn, 'echo "obsid,Q leakage param1,Q leakage param2,Q leakage param3,Q leakage param4,Q leakage param5,Q leakage param6,U leakage param1,U leakage param2,U leakage param3,U leakage param4,U leakage param5,U leakage param6" > '+fhd_path+'pol_leakage_fit_params.csv'
+    spawn, 'echo "obsid,Q leakage param1,Q leakage param2,Q leakage param3,Q leakage param4,Q leakage param5,Q leakage param6,U leakage param1,U leakage param2,U leakage param3,U leakage param4,U leakage param5,U leakage param6" > '+save_path+'pol_leakage_fit_params.csv'
   endif
     
   for obs_index=0, n_elements(obsids)-1 do begin
     obsid = obsids[obs_index]
     deconvolution_catalog = fhd_path+'decon_catalogs/'+obsid+'_decon_catalog.sav'
     fit_sources_number = 2000
-    search_radius = 25. ; use sources within this radius of the observation center in degrees
+    search_radius = 17. ; use sources within this radius of the observation center in degrees
     use_extended = 1  ; if set, use extended sources
     source_size = 1.  ; stddev of the Gaussian sources fit in pixels
     isolated_source_radius = .02  ; distance between sources is at least this in degrees
