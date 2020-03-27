@@ -75,7 +75,7 @@ pro pol_leakage_calc, $
     fit_sources_number = 2000
     search_radius = 17. ; use sources within this radius of the observation center in degrees
     use_extended = 1  ; if set, use extended sources
-    source_size = 1.  ; stddev of the Gaussian sources fit in pixels
+    source_size = 1.  ; FWHM of the Gaussian sources fit in pixels
     isolated_source_radius = .02  ; distance between sources is at least this in degrees
     isolated_source_flux_fraction = .9  ; if sources aren't isolated, they must contain this fraction of the flux in the region
     output_path = fhd_path+'plots/'
@@ -156,13 +156,14 @@ pro pol_leakage_calc, $
         n_comps = n_elements(xvals)
       endelse
       
+      source_size_stddev = source_size/2.335
       for comp_ind = 0, n_comps-1 do begin
         xval = xvals[comp_ind]
         yval = yvals[comp_ind]
-        for pixel_x = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
-          for pixel_y = floor(-source_size*2.)-1, ceil(source_size*2.)+1 do begin
-            if (round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2. lt (source_size*3.)^2. then begin  ; use pixels within 3*source_size of the source center
-              image_mask[round(xval)+pixel_x, round(yval)+pixel_y] += exp(-((round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2.)/(source_size*2.))
+        for pixel_x = floor(-source_size_stddev*2.)-1, ceil(source_size_stddev*2.)+1 do begin
+          for pixel_y = floor(-source_size_stddev*2.)-1, ceil(source_size_stddev*2.)+1 do begin
+            if (round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2. lt (source_size_stddev*3.)^2. then begin  ; use pixels within 3*source_size_stddev of the source center
+              image_mask[round(xval)+pixel_x, round(yval)+pixel_y] += exp(-((round(xval)+pixel_x-xval)^2.+(round(yval)+pixel_y-yval)^2.)/(source_size_stddev*2.))
             endif
           endfor
         endfor
