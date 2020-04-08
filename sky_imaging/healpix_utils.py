@@ -670,6 +670,32 @@ def average_healpix_maps(
     return averaged_maps, weights_map
 
 
+def rm_correction(
+    obsid, maps, rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv',
+    reference_freq_mhz=180.
+):
+
+    c = 3.e8
+    if len(maps) < 3:
+        print 'ERROR: RM correction requires Stokes Q and U maps.'
+        sys.exit(1)
+    rm_data = np.genfromtxt(rm_file, delimiter=',', dtype=None, names=True)
+    if int(obsid) not in rm_data['ObsID']:
+        print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
+        sys.exit(1)
+    rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
+    wavelength = c/(reference_freq_mhz*1.e6)
+    rot_angle = rm * wavelength**2.
+    if maps[1].pix_arr != maps[2].pix_arr:
+        print 'ERROR: Stokes Q and U pixel arrays do not match. Exiting.'
+        sys.exit(1)
+    new_q = np.cos(2*rot_angle)*maps[1].signal_arr + np.sin(2*rot_angle)*maps[2].signal_arr
+    new_u = -np.sin(2*rot_angle)*maps[1].signal_arr + np.cos(2*rot_angle)*maps[2].signal_arr
+    maps[1].signal_arr = new_q
+    maps[2].signal_arr = new_u
+    return maps
+
+
 def calculate_variance_healpix_maps(
     fhd_run_path, obs_list, saved_averaged_maps=None, obs_weights=None,
     nside=None, cube_names=['Residual_I'], apply_radial_weighting=False
