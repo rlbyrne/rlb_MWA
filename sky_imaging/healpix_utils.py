@@ -493,129 +493,157 @@ def average_healpix_maps_simple(maps_arr):
 
 
 def average_healpix_maps(
-    fhd_run_path, obs_list=None, obs_weights=None, nside=None,
+    fhd_run_paths, obs_lists=None, obs_weights_list=None, nside=None,
     cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False
 ):
 
-    if fhd_run_path[-1] == '/':
-        fhd_run_path = fhd_run_path[:-1]
-
-    if obs_list is None:  # use all obs in the data directory
-        if obs_weights is not None:
-            print 'WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.'
-            obs_weights = None
-        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
-        for cube_ind, cube in enumerate(cube_names):
-            data_files_cube = [
-                file for file in data_files
-                if '_{}_{}_HEALPix.fits'.format(weighting, cube) in file
-            ]
-            obs_list_cube = [file[0:10] for file in data_files_cube]
-            if cube_ind == 0:
-                obs_list = obs_list_cube
-            else:
-                obs_list = [
-                    obs for obs in obs_list_cube if obs in obs_list
-                ]
-
-    if obs_weights is None or len(obs_weights) == 0:
-        print 'Observation weights not provided. Using equal weighting.'
-        obs_weights = np.array([1.]*len(obs_list))
-    else:
-        if len(obs_weights) != len(obs_list):
-            print 'ERROR: Invalid obs_weights. Exiting.'
+    if isinstance(fhd_run_paths, str): #check if string
+        fhd_run_paths = [fhd_run_paths]
+    if obs_lists is not None:
+        if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
+            obs_lists = [obs_lists]
+        elif len(fhd_run_paths) != len(obs_lists):
+            print 'ERROR: obs_list not provided for each path'
             sys.exit(1)
-        obs_weights = np.array(obs_weights)
-    if fhd_run_path[-1] == '/':
-        fhd_run_path = fhd_run_path[:-1]
+    if obs_weights_list is not None:
+        if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
+            obs_weights_list = [obs_weights_list]
+        elif len(fhd_run_paths) != len(obs_weights_list):
+            print 'ERROR: obs_weights_list not provided for each path'
+            sys.exit(1)
 
-    data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
-    exclude_obs_list = []
-    for obs in obs_list:
-        for cube in cube_names:
-            if '{}_{}_{}_HEALPix.fits'.format(obs, weighting, cube) not in data_files:
-                print 'WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
-                    fhd_run_path, obs, weighting, cube, obs
-                )
-                exclude_obs_list.append(obs)
-                continue
-    obs_weights = np.array([
-        obs_weights[ind] for ind in range(len(obs_weights))
-        if obs_list[ind] not in exclude_obs_list
-    ])
-    obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
+    for path_ind, fhd_run_path in enumerate(fhd_run_paths):
 
-    print 'Averaging {} observations'.format(len(obs_list))
+        if obs_lists is not None:
+            obs_list = obs_lists[path_ind]
+        else:
+            obs_list = None
+        if obs_weights_list is not None:
+            obs_weights = obs_weights_list[path_ind]
+        else:
+            obs_weights = None
 
-    for obs_ind, obsid in enumerate(obs_list):
-        print 'Loading observation {} of {}'.format(obs_ind, len(obs_list))
-        maps = []
-        for cube_ind, cube in enumerate(cube_names):
-            map = load_map('{}/output_data/{}_{}_{}_HEALPix.fits'.format(
-                fhd_run_path, obsid, weighting, cube
-            ))
-            if obs_ind == 0 and cube_ind == 0:  # Use first map for conventions
-                if nside is None:
-                    nside = map.nside
-                    print 'nside is not specified. Using nside {}.'.format(nside)
+        if fhd_run_path[-1] == '/':
+            fhd_run_path = fhd_run_path[:-1]
+
+        if obs_list is None:  # use all obs in the data directory
+            if obs_weights is not None:
+                print 'WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.'
+                obs_weights = None
+            data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+            for cube_ind, cube in enumerate(cube_names):
+                data_files_cube = [
+                    file for file in data_files
+                    if '_{}_{}_HEALPix.fits'.format(weighting, cube) in file
+                ]
+                print data_files
+                print '_{}_{}_HEALPix.fits'.format(weighting, cube)
+                obs_list_cube = [file[0:10] for file in data_files_cube]
+                if cube_ind == 0:
+                    obs_list = obs_list_cube
+                else:
+                    obs_list = [
+                        obs for obs in obs_list_cube if obs in obs_list
+                    ]
+
+        if obs_weights is None or len(obs_weights) == 0:
+            print 'Observation weights not provided. Using equal weighting.'
+            obs_weights = np.array([1.]*len(obs_list))
+        else:
+            if len(obs_weights) != len(obs_list):
+                print 'ERROR: Invalid obs_weights. Exiting.'
+                sys.exit(1)
+            obs_weights = np.array(obs_weights)
+        if fhd_run_path[-1] == '/':
+            fhd_run_path = fhd_run_path[:-1]
+
+        data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
+        exclude_obs_list = []
+        for obs in obs_list:
+            for cube in cube_names:
+                if '{}_{}_{}_HEALPix.fits'.format(obs, weighting, cube) not in data_files:
+                    print 'WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
+                        fhd_run_path, obs, weighting, cube, obs
+                    )
+                    exclude_obs_list.append(obs)
+                    continue
+        obs_weights = np.array([
+            obs_weights[ind] for ind in range(len(obs_weights))
+            if obs_list[ind] not in exclude_obs_list
+        ])
+        obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
+
+        print 'Averaging {} observations from {}'.format(len(obs_list), fhd_run_path)
+
+        for obs_ind, obsid in enumerate(obs_list):
+            print 'Loading observation {} of {}'.format(obs_ind+1, len(obs_list))
+            maps = []
+            for cube_ind, cube in enumerate(cube_names):
+                map = load_map('{}/output_data/{}_{}_{}_HEALPix.fits'.format(
+                    fhd_run_path, obsid, weighting, cube
+                ))
+                if obs_ind == 0 and cube_ind == 0 and path_ind == 0:  # Use first map for conventions
+                    if nside is None:
+                        nside = map.nside
+                        print 'nside is not specified. Using nside {}.'.format(nside)
+                    else:
+                        if map.nside != nside:
+                            map.resample(nside)
+                    nest = map.nest
+                    coords = map.coords
+                    # Initialize output arrays
+                    signal_array = np.full(
+                        (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
+                    )
+                    weights_array = np.full(12*nside**2, hp.pixelfunc.UNSEEN)
                 else:
                     if map.nside != nside:
                         map.resample(nside)
-                nest = map.nest
-                coords = map.coords
-                # Initialize output arrays
-                signal_array = np.full(
-                    (len(cube_names), 12*nside**2), hp.pixelfunc.UNSEEN
-                )
-                weights_array = np.full(12*nside**2, hp.pixelfunc.UNSEEN)
-            else:
-                if map.nside != nside:
-                    map.resample(nside)
-                if map.nest != nest:
-                    print 'Map nesting conventions do not match. Converting.'
-                    if nest:
-                        map.reorder_ring_to_nest()
-                    else:
-                        map.reorder_nest_to_ring()
-                if map.coords != coords:
-                    print 'ERROR: Map coordinates do not match. Exiting.'
-                    sys.exit(1)
-            maps.append(map)
+                    if map.nest != nest:
+                        print 'Map nesting conventions do not match. Converting.'
+                        if nest:
+                            map.reorder_ring_to_nest()
+                        else:
+                            map.reorder_nest_to_ring()
+                    if map.coords != coords:
+                        print 'ERROR: Map coordinates do not match. Exiting.'
+                        sys.exit(1)
+                maps.append(map)
 
-        if apply_radial_weighting:  # Restore obs structure if necessary
-            obs_struct = scipy.io.readsav(
-                '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
-            )['obs']
-            obs_vec = hp.pixelfunc.ang2vec(
-                float(obs_struct['obsra']), float(obs_struct['obsdec']),
-                lonlat=True
-            )
-
-        for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
-            if apply_radial_weighting:
-                pix_vec = hp.pix2vec(nside, pix, nest=nest)
-                rad_weight = obs_radial_weighting_function(
-                    hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
+            if apply_radial_weighting:  # Restore obs structure if necessary
+                obs_struct = scipy.io.readsav(
+                    '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+                )['obs']
+                obs_vec = hp.pixelfunc.ang2vec(
+                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                    lonlat=True
                 )
-                use_weight = rad_weight*obs_weights[obs_ind]
-            else:
-                use_weight = obs_weights[obs_ind]
-            if signal_array[0, pix] == hp.pixelfunc.UNSEEN:
-                for cube_ind in range(len(cube_names)):
-                    signal_array[cube_ind, pix] = use_weight*maps[
-                        cube_ind
-                    ].signal_arr[
-                        np.where(maps[cube_ind].pix_arr == pix)
-                    ]
-                    weights_array[pix] = use_weight
-            else:
-                for cube_ind in range(len(cube_names)):
-                    signal_array[cube_ind, pix] += use_weight*maps[
-                        cube_ind
-                    ].signal_arr[
-                        np.where(maps[cube_ind].pix_arr == pix)
-                    ]
-                    weights_array[pix] += use_weight
+
+            for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
+                if apply_radial_weighting:
+                    pix_vec = hp.pix2vec(nside, pix, nest=nest)
+                    rad_weight = obs_radial_weighting_function(
+                        hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
+                    )
+                    use_weight = rad_weight*obs_weights[obs_ind]
+                else:
+                    use_weight = obs_weights[obs_ind]
+                if signal_array[0, pix] == hp.pixelfunc.UNSEEN:
+                    for cube_ind in range(len(cube_names)):
+                        signal_array[cube_ind, pix] = use_weight*maps[
+                            cube_ind
+                        ].signal_arr[
+                            np.where(maps[cube_ind].pix_arr == pix)
+                        ]
+                        weights_array[pix] = use_weight
+                else:
+                    for cube_ind in range(len(cube_names)):
+                        signal_array[cube_ind, pix] += use_weight*maps[
+                            cube_ind
+                        ].signal_arr[
+                            np.where(maps[cube_ind].pix_arr == pix)
+                        ]
+                        weights_array[pix] += use_weight
 
     weighted_ave_signal_array = signal_array/weights_array[None, :]
     weighted_ave_signal_array[
@@ -632,7 +660,6 @@ def average_healpix_maps(
             coords=coords, quiet=True
         )
         map.implicit_to_explicit_ordering()
-        print np.min(map.signal_arr)
         averaged_maps.append(map)
 
     weights_map = HealpixMap(
