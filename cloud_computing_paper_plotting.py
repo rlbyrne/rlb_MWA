@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 def plot_iops():
 
-    path = '/Users/ruby/Downloads/CloudWatch_Data'
+    path = '/Users/ruby/EoR/aws_cloudwatch_data'
 
-    read_ops_file = 'volume_read_ops_4pol_decon.json'
-    write_ops_file = 'volume_write_ops_4pol_decon.json'
+    read_ops_file = 'volume_read_ops_april16_4pol_decon.json'
+    write_ops_file = 'volume_write_ops_april16_4pol_decon.json'
 
     read_data = pd.read_json(f'{path}/{read_ops_file}')
     read_timestamps = np.array([
@@ -22,7 +22,6 @@ def plot_iops():
         read_data['Datapoints'][ind]['Sum']
         for ind in range(len(read_data['Datapoints']))
     ])
-    print(np.shape(read_values))
     read_times = np.array([datetime.strptime(
         read_timestamps[ind], '%Y-%m-%dT%H:%M:%SZ'
     ) for ind in range(len(read_timestamps))])
@@ -33,13 +32,13 @@ def plot_iops():
     ])
     read_values = read_values[sort_inds]
 
-    write_data = pd.read_json(f'{path}/{read_ops_file}')
+    write_data = pd.read_json(f'{path}/{write_ops_file}')
     write_timestamps = np.array([
-        read_data['Datapoints'][ind]['Timestamp']
+        write_data['Datapoints'][ind]['Timestamp']
         for ind in range(len(read_data['Datapoints']))
     ])
     write_values = np.array([
-        read_data['Datapoints'][ind]['Sum']
+        write_data['Datapoints'][ind]['Sum']
         for ind in range(len(read_data['Datapoints']))
     ])
     write_times = np.array([datetime.strptime(
@@ -53,20 +52,25 @@ def plot_iops():
     time_interval = float(max(times_sorted))/len(times_sorted)
     iops = total_vals/time_interval
     iops = np.append(np.array([0]), iops)
-    times_sorted = np.append(times_sorted, np.array([times_sorted[-1]+time_interval]))
-    print(time_interval)
+    times_sorted = np.append(
+        times_sorted, np.array([times_sorted[-1]+time_interval])
+    )
 
     plt.figure()
-    plt.plot(times_sorted/60., iops, "-o", markersize=1)
+    plt.plot(times_sorted/60., iops, "-", markersize=1)
     plt.xlabel("time (m)")
     plt.ylabel("IOPS")
-    plt.show()
+    
+    plt.xlim(0, 700)
+    plt.ylim(0, max(iops)*1.1)
+    plt.title('IOPS')
+    plt.savefig('/Users/ruby/EoR/aws_cloudwatch_data/iops.png', format='png', dpi=600)
 
 
 def plot_cpu_usage():
 
-    path = '/Users/ruby/Downloads/CloudWatch_Data'
-    cpu_utilization_file = 'cpu_utilization_4pol_decon.json'
+    path = '/Users/ruby/EoR/aws_cloudwatch_data'
+    cpu_utilization_file = 'cpu_utilization_april16_4pol_decon.json'
 
     data = pd.read_json(f'{path}/{cpu_utilization_file}')
     timestamps = np.array([
@@ -77,7 +81,6 @@ def plot_cpu_usage():
         data['Datapoints'][ind]['Maximum']
         for ind in range(len(data['Datapoints']))
     ])
-    print(np.shape(values))
     times = np.array([datetime.strptime(
         timestamps[ind], '%Y-%m-%dT%H:%M:%SZ'
     ) for ind in range(len(timestamps))])
@@ -89,15 +92,19 @@ def plot_cpu_usage():
     values = values[sort_inds]
 
     plt.figure()
-    plt.plot(values, "-o", markersize=1)
+    plt.plot(times_sorted/60., values, "-", markersize=1)
+    plt.xlim(0, 700)
+    plt.ylim(0, max(values)*1.1)
     plt.xlabel("time (m)")
     plt.ylabel("CPU usage (%)")
-    plt.show()
+    plt.title('CPU Usage')
+    plt.savefig('/Users/ruby/EoR/aws_cloudwatch_data/cpu_utilization_april16_4pol_decon.png', format='png', dpi=600)
+    #plt.show()
 
 
 def plot_ram_usage():
 
-    path = '/Users/ruby/Downloads/CloudWatch_Data'
+    path = '/Users/ruby/Downloads'
     ram_use_file = '1131731632_ram_usage_365_3.84.16.70.txt'
 
     file = open(f'{path}/{ram_use_file}', 'r')
@@ -121,13 +128,18 @@ def plot_ram_usage():
     ])
     data_sorted = data[sort_inds]
     plt.figure()
-    plt.plot(times_sorted/60., data_sorted/1024., "-o", markersize=1)
+    plt.plot(times_sorted/60., data_sorted/1024., "-", markersize=1)
     plt.xlabel("time (m)")
     plt.ylabel("RAM usage (GB)")
-    plt.show()
-    plt.close()
+
+    plt.xlim(0, 700)
+    plt.ylim(0, max(data_sorted/1024.)*1.1)
+    plt.xlabel("time (m)")
+    plt.title('RAM Usage')
+    plt.savefig('/Users/ruby/EoR/aws_cloudwatch_data/ram_usage.png', format='png', dpi=600)
+    #plt.show()
 
 
 if __name__ == '__main__':
-    plot_ram_usage()
+    plot_iops()
     
