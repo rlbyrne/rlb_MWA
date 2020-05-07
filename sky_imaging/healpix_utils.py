@@ -2,6 +2,7 @@
 
 from astropy.io import fits
 import scipy.io
+import scipy
 import numpy as np
 import healpy as hp
 import sys
@@ -494,7 +495,8 @@ def average_healpix_maps_simple(maps_arr):
 
 def average_healpix_maps(
     fhd_run_paths, obs_lists=None, obs_weights_list=None, nside=None,
-    cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False
+    cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False,
+    apply_rm_correction=False
 ):
 
     if isinstance(fhd_run_paths, str): #check if string
@@ -610,6 +612,9 @@ def average_healpix_maps(
                         sys.exit(1)
                 maps.append(map)
 
+            if apply_rm_correction:
+                maps = rm_correction(obsid, maps, use_single_freq_calc=False)
+
             if apply_radial_weighting:  # Restore obs structure if necessary
                 obs_struct = scipy.io.readsav(
                     '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
@@ -630,17 +635,13 @@ def average_healpix_maps(
                     use_weight = obs_weights[obs_ind]
                 if signal_array[0, pix] == hp.pixelfunc.UNSEEN:
                     for cube_ind in range(len(cube_names)):
-                        signal_array[cube_ind, pix] = use_weight*maps[
-                            cube_ind
-                        ].signal_arr[
+                        signal_array[cube_ind, pix] = use_weight*maps[cube_ind].signal_arr[
                             np.where(maps[cube_ind].pix_arr == pix)
                         ]
                         weights_array[pix] = use_weight
                 else:
                     for cube_ind in range(len(cube_names)):
-                        signal_array[cube_ind, pix] += use_weight*maps[
-                            cube_ind
-                        ].signal_arr[
+                        signal_array[cube_ind, pix] += use_weight*maps[cube_ind].signal_arr[
                             np.where(maps[cube_ind].pix_arr == pix)
                         ]
                         weights_array[pix] += use_weight
@@ -672,25 +673,51 @@ def average_healpix_maps(
 
 def rm_correction(
     obsid, maps, rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv',
-    reference_freq_mhz=180.
+    start_freq_mhz=167., end_freq_mhz=198., use_single_freq_calc=False
 ):
-
     c = 3.e8
     if len(maps) < 3:
         print 'ERROR: RM correction requires Stokes Q and U maps.'
         sys.exit(1)
-    rm_data = np.genfromtxt(rm_file, delimiter=',', dtype=None, names=True)
+    rm_data = np.genfromtxt(
+        rm_file, delimiter=',', dtype=None, names=True, encoding=None
+    )
     if int(obsid) not in rm_data['ObsID']:
         print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
         sys.exit(1)
     rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
-    wavelength = c/(reference_freq_mhz*1.e6)
-    rot_angle = rm * wavelength**2.
-    if maps[1].pix_arr != maps[2].pix_arr:
-        print 'ERROR: Stokes Q and U pixel arrays do not match. Exiting.'
-        sys.exit(1)
-    new_q = np.cos(2*rot_angle)*maps[1].signal_arr + np.sin(2*rot_angle)*maps[2].signal_arr
-    new_u = -np.sin(2*rot_angle)*maps[1].signal_arr + np.cos(2*rot_angle)*maps[2].signal_arr
+    if start_freq_mhz == end_freq_mhz:
+        use_single_freq_calc = True
+
+    if use_single_freq_calc:
+        reference_freq_mhz = np.mean([start_freq_mhz, end_freq_mhz])
+        wavelength = c/(reference_freq_mhz*1.e6)
+        rot_angle = rm * wavelength**2.
+        new_q = np.cos(2*rot_angle)*maps[1].signal_arr + np.sin(2*rot_angle)*maps[2].signal_arr
+        new_u = -np.sin(2*rot_angle)*maps[1].signal_arr + np.cos(2*rot_angle)*maps[2].signal_arr
+    else:
+        wl_max = c/(start_freq_mhz*1.e6)
+        wl_min = c/(end_freq_mhz*1.e6)
+        fresS_min, fresC_min = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_min)
+        fresS_max, fresC_max = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_max)
+        cos_int = (
+            np.cos(2.*rm*wl_min**2.)/wl_min
+            - np.cos(2.*rm*wl_max**2.)/wl_max
+            + 2*np.sqrt(np.pi*rm+0j)*(fresS_min-fresS_max)
+        )
+        sin_int = (
+            np.sin(2.*rm*wl_min**2.)/wl_min
+            - np.sin(2.*rm*wl_max**2.)/wl_max
+            - 2*np.sqrt(np.pi*rm+0j)*(fresC_min-fresC_max)
+        )
+        const = (1/wl_min - 1/wl_max)/(cos_int**2 + sin_int**2)
+        new_q = np.real(const*(
+            cos_int*maps[1].signal_arr + sin_int*maps[2].signal_arr
+        ))
+        new_u = np.real(const*(
+            -sin_int*maps[1].signal_arr + cos_int*maps[2].signal_arr
+        ))
+
     maps[1].signal_arr = new_q
     maps[2].signal_arr = new_u
     return maps
