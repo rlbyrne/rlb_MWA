@@ -1067,7 +1067,7 @@ def test_rm_correction_Apr22():
         )
 
 
-def plot_maps_May7():
+def plot_variance_maps_May7():
 
     obs_list_1 = [
         '1131551744',
@@ -1234,7 +1234,7 @@ def plot_maps_May7():
         '1130785624'
     ]
 
-    combined_maps, weight_maps = healpix_utils.average_healpix_maps(
+    averaged_maps, variance_maps, snr_maps, weights_map, nsamples_map = healpix_utils.calculate_variance_healpix_maps(
         ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
         '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
         obs_lists = [obs_list_1, obs_list_2],
@@ -1244,24 +1244,48 @@ def plot_maps_May7():
         apply_radial_weighting=False,
         apply_rm_correction=True
     )
+    print np.shape(snr_maps[0].signal_arr)
+    print np.shape(averaged_maps[0].signal_arr)
     outdir = '/Users/rubybyrne/diffuse_survey_plotting_May2020'
     pols = ['I', 'Q', 'U', 'V']
     for pol_ind, pol_name in enumerate(pols):
-        combined_maps[pol_ind].write_data_to_fits(
-            '{}/Stokes{}_residual_rm_corrected.fits'.format(outdir, pol_name)
+        averaged_maps[pol_ind].write_data_to_fits(
+            '{}/Stokes{}_average_map.fits'.format(outdir, pol_name)
+        )
+        variance_maps[pol_ind].write_data_to_fits(
+            '{}/Stokes{}_variance_map.fits'.format(outdir, pol_name)
         )
     for pol_ind, pol_name in enumerate(pols):
         if pol_name == 'I':
             colorbar_range = [-1e4, 1e4]
+            var_colorbar_range = [0, 1e6]
+            snr_colorbar_range = [0, 2]
         else:
             colorbar_range = [-2e3, 2e3]
+            var_colorbar_range = [0, 1e4]
+            snr_colorbar_range = [0, 2]
         plot_healpix_map.plot_filled_pixels(
-            combined_maps[pol_ind],
-            '{}/Stokes{}_residual_rm_corrected.png'.format(outdir, pol_name),
+            averaged_maps[pol_ind],
+            '{}/Stokes{}_average_map.png'.format(outdir, pol_name),
             colorbar_range=colorbar_range
         )
+        plot_healpix_map.plot_filled_pixels(
+            variance_maps[pol_ind],
+            '{}/Stokes{}_variance_map.png'.format(outdir, pol_name),
+            colorbar_range=var_colorbar_range, colorbar_label='Variance (Jy^2/sr^2)'
+        )
+        print np.shape(snr_maps[pol_ind].signal_arr)
+        plot_healpix_map.plot_filled_pixels(
+            snr_maps[pol_ind],
+            '{}/Stokes{}_snr_map.png'.format(outdir, pol_name),
+            colorbar_range=snr_colorbar_range, colorbar_label='Signal Amplitude/Standard Dev.'
+        )
+    plot_healpix_map.plot_filled_pixels(
+        weights_map,
+        '{}/weights_map.png'.format(outdir)
+    )
 
 
 if __name__ == '__main__':
 
-    test_rm_correction_Apr22()
+    plot_variance_maps_May7()
