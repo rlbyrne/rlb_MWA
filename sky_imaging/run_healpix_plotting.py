@@ -1241,48 +1241,45 @@ def plot_variance_maps_May7():
         nside=128,
         cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
         weighting='weighted',
-        apply_radial_weighting=False,
-        apply_rm_correction=True
+        apply_radial_weighting=True,
+        apply_rm_correction=False
     )
-    print np.shape(snr_maps[0].signal_arr)
-    print np.shape(averaged_maps[0].signal_arr)
     outdir = '/Users/rubybyrne/diffuse_survey_plotting_May2020'
     pols = ['I', 'Q', 'U', 'V']
-    for pol_ind, pol_name in enumerate(pols):
-        averaged_maps[pol_ind].write_data_to_fits(
-            '{}/Stokes{}_average_map.fits'.format(outdir, pol_name)
-        )
-        variance_maps[pol_ind].write_data_to_fits(
-            '{}/Stokes{}_variance_map.fits'.format(outdir, pol_name)
-        )
+    #for pol_ind, pol_name in enumerate(pols):
+    #    averaged_maps[pol_ind].write_data_to_fits(
+    #        '{}/Stokes{}_average_map.fits'.format(outdir, pol_name)
+    #    )
+    #    variance_maps[pol_ind].write_data_to_fits(
+    #        '{}/Stokes{}_variance_map.fits'.format(outdir, pol_name)
+    #    )
     for pol_ind, pol_name in enumerate(pols):
         if pol_name == 'I':
             colorbar_range = [-1e4, 1e4]
-            var_colorbar_range = [0, 1e6]
+            var_colorbar_range = [0, 1e8]
             snr_colorbar_range = [0, 2]
         else:
             colorbar_range = [-2e3, 2e3]
-            var_colorbar_range = [0, 1e4]
+            var_colorbar_range = [0, 1e6]
             snr_colorbar_range = [0, 2]
         plot_healpix_map.plot_filled_pixels(
             averaged_maps[pol_ind],
-            '{}/Stokes{}_average_map.png'.format(outdir, pol_name),
+            '{}/Stokes{}_average_map_taper_no_rm_correction.png'.format(outdir, pol_name),
             colorbar_range=colorbar_range
         )
         plot_healpix_map.plot_filled_pixels(
             variance_maps[pol_ind],
-            '{}/Stokes{}_variance_map.png'.format(outdir, pol_name),
+            '{}/Stokes{}_variance_map_taper_no_rm_correction.png'.format(outdir, pol_name),
             colorbar_range=var_colorbar_range, colorbar_label='Variance (Jy^2/sr^2)'
         )
-        print np.shape(snr_maps[pol_ind].signal_arr)
         plot_healpix_map.plot_filled_pixels(
             snr_maps[pol_ind],
-            '{}/Stokes{}_snr_map.png'.format(outdir, pol_name),
+            '{}/Stokes{}_snr_map_taper_no_rm_correction.png'.format(outdir, pol_name),
             colorbar_range=snr_colorbar_range, colorbar_label='Signal Amplitude/Standard Dev.'
         )
     plot_healpix_map.plot_filled_pixels(
         weights_map,
-        '{}/weights_map.png'.format(outdir)
+        '{}/weights_map_taper.png'.format(outdir)
     )
 
 
