@@ -238,6 +238,7 @@ def plot_fits_image(
     else:
         print 'Saving figure to {}'.format(save_filename)
         plt.savefig(save_filename, format='png', dpi=500)
+        plt.close()
 
 
 if __name__ == '__main__':
