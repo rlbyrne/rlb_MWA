@@ -436,16 +436,16 @@ def divide_healpix_maps(map1, map2):
             map2.reorder_nest_to_ring()
 
     pixelnum_use = np.intersect1d(map1.pix_arr, map2.pix_arr)
-    denominator = np.array([
+    denominator = np.squeeze(np.array([
         map2.signal_arr[np.where(map2.pix_arr==pixelnum)[0]]
         for pixelnum in pixelnum_use
-    ])
+    ]))
     pixelnum_use = pixelnum_use[np.where(denominator != 0.)[0]]
-    data_div = np.array([
+    data_div = np.squeeze(np.array([
         map1.signal_arr[np.where(map1.pix_arr==pixelnum)[0]]
         / map2.signal_arr[np.where(map2.pix_arr==pixelnum)[0]]
         for pixelnum in pixelnum_use
-    ])
+    ]))
     div_map = HealpixMap(
         data_div, pixelnum_use, map1.nside, nest=map1.nest
     )
@@ -867,15 +867,17 @@ def calculate_variance_healpix_maps(
                         sys.exit(1)
                 maps.append(map)
 
+            if apply_radial_weighting:  # Restore obs structure if necessary
+                obs_struct = scipy.io.readsav(
+                    '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
+                )['obs']
+                obs_vec = hp.pixelfunc.ang2vec(
+                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                    lonlat=True
+                )
+
             for pix in maps[0].pix_arr:  # Use the first cube for the pixel list
                 if apply_radial_weighting:
-                    obs_struct = scipy.io.readsav(
-                        '{}/metadata/{}_obs.sav'.format(fhd_run_path, obsid)
-                    )['obs']
-                    obs_vec = hp.pixelfunc.ang2vec(
-                        float(obs_struct['obsra']), float(obs_struct['obsdec']),
-                        lonlat=True
-                    )
                     pix_vec = hp.pix2vec(nside, pix, nest=nest)
                     rad_weight = obs_radial_weighting_function(
                         hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
@@ -890,8 +892,8 @@ def calculate_variance_healpix_maps(
                                 np.where(maps[cube_ind].pix_arr == pix)
                             ][0] - averaged_maps[cube_ind].signal_arr[pix]
                         )**2
-                        weights_array[pix] = use_weight
-                        nsamples_array[pix] = 1
+                    weights_array[pix] = use_weight
+                    nsamples_array[pix] = 1
                 else:
                     for cube_ind in range(len(cube_names)):
                         var_array[cube_ind, pix] += use_weight*(
@@ -899,8 +901,8 @@ def calculate_variance_healpix_maps(
                                 np.where(maps[cube_ind].pix_arr == pix)
                             ] - averaged_maps[cube_ind].signal_arr[pix]
                         )**2
-                        weights_array[pix] += use_weight
-                        nsamples_array[pix] += 1
+                    weights_array[pix] += use_weight
+                    nsamples_array[pix] += 1
 
     weighted_ave_var_array = var_array/weights_array[None, :]
 
@@ -944,7 +946,7 @@ def calculate_variance_healpix_maps(
     return averaged_maps, variance_maps, snr_maps, weights_map, nsamples_map
 
 
-def obs_radial_weighting_function(dist, max_dist=14., taper_width=10.):
+def obs_radial_weighting_function(dist, max_dist=12., taper_width=8.):
 
     if dist < max_dist-taper_width:
         weight = 1.
