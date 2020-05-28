@@ -4,17 +4,15 @@ pro fits_to_sav_healpix_map_convert, units_in=units_in, units_out=units_out, obs
     if ~keyword_set(units_in) then units_in='Jy/sr'
     if ~keyword_set(units_out) then units_out='Jy/sr'
     
-    ;obsfile = '/Users/ruby/Downloads/1130773144_obs.sav'
-    stokes_maps_paths = ['/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesI_residual_averaged.fits',$
-      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesQ_residual_averaged.fits',$
-      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesU_residual_averaged.fits',$
-      '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/StokesV_residual_averaged.fits']
-    outpath = '/Users/rubybyrne/diffuse_survey_plotting_Feb2020/averaged_diffuse_Feb2020.sav'
-    ;stokes_maps_paths = ['/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_I_HEALPix.fits',$
-    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_Q_HEALPix.fits',$
-    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_U_HEALPix.fits',$
-    ;  '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/1061316296_weighted_Model_V_HEALPix.fits']
-    ;outpath = '/Users/ruby/EoR/diffuse_normalization/fhd_rlb_diffuse_model_limit_dimension_Jan2019/single_obs_stokes_maps.sav'
+    ;path = '/Users/rubybyrne/diffuse_survey_plotting_May2020'
+    ;stokes_maps_paths = [path+'/StokesI_average_map_no_rm_correction_more_obs.fits', path+'/StokesQ_average_map_no_rm_correction_more_obs.fits', $
+    ;  path+'/StokesU_average_map_no_rm_correction_more_obs.fits', path+'/StokesV_average_map_no_rm_correction_more_obs.fits']
+    ;outpath = path+'/averaged_diffuse_no_rm_correction_May2020.sav'
+    
+    stokes_maps_paths = ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_model_diffuse_May2020/output_data/1061316296_weighted_Model_I_HEALPix.fits',$
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_model_diffuse_May2020/output_data/1061316296_weighted_Model_Q_HEALPix.fits']
+    outpath = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_model_diffuse_May2020/diffuse_roundtrip_test_May2020.sav'
+      
 
     case units_in of
       'Jy/cart_pixel':
@@ -54,14 +52,14 @@ pro fits_to_sav_healpix_map_convert, units_in=units_in, units_out=units_out, obs
       cart_pix_area = (obs.degpix*!DtoR)^2.
     endif
     
-    model_arr = ptrarr(4)
-    for ind=0,3 do begin
+    model_arr = ptrarr(n_elements(stokes_maps_paths))
+    for ind=0,n_elements(stokes_maps_paths)-1 do begin
         read_fits_map, stokes_maps_paths[ind], data_new, nside=nside_new, ordering=ordering
         
         ;for FHD outputs, the first column is the pixels and the second column is the data
         ;third and fourth columns report N_obs and serror
         ;turn this off if the output is not directly out of FHD
-        if 0 then begin
+        if 1 then begin
           data_reordered = make_array(n_elements(data_new[*,0]), 2, /float)
           data_reordered[*,0] = data_new[*,1]
           data_reordered[*,1] = data_new[*,0]
