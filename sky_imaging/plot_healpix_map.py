@@ -104,6 +104,7 @@ def plot_filled_pixels(
     if save_filename is not None:
         print 'Saving plot to {}'.format(save_filename)
         plt.savefig(save_filename, format='png', dpi=300)
+        plt.close()
     else:
         plt.show()
 
