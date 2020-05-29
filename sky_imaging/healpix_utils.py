@@ -243,12 +243,12 @@ class HealpixMap:
             name='SIGNAL',
             array=np.array(self.signal_arr),
             format='1E'
-            )
+        )
         pixelnum_column = fits.Column(
             name='PIXEL',
             array=np.array(self.pix_arr),
             format='1J'
-            )
+        )
         header = fits.Header()  # initialize header object
         header['nside'] = self.nside
         if self.nest:
@@ -638,13 +638,13 @@ def average_healpix_maps(
                         signal_array[cube_ind, pix] = use_weight*maps[cube_ind].signal_arr[
                             np.where(maps[cube_ind].pix_arr == pix)
                         ]
-                        weights_array[pix] = use_weight
+                    weights_array[pix] = use_weight
                 else:
                     for cube_ind in range(len(cube_names)):
                         signal_array[cube_ind, pix] += use_weight*maps[cube_ind].signal_arr[
                             np.where(maps[cube_ind].pix_arr == pix)
                         ]
-                        weights_array[pix] += use_weight
+                    weights_array[pix] += use_weight
 
     weighted_ave_signal_array = signal_array/weights_array[None, :]
     weighted_ave_signal_array[
@@ -951,7 +951,7 @@ def obs_radial_weighting_function(dist, max_dist=12., taper_width=8.):
     if dist < max_dist-taper_width:
         weight = 1.
     elif dist > max_dist:
-        weight = 0.
+        weight = 0.00001
     else:
         weight = 0.5*np.cos(np.pi*(dist+taper_width-max_dist)/taper_width)+0.5
     return weight
