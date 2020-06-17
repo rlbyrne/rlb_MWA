@@ -946,14 +946,23 @@ def calculate_variance_healpix_maps(
     return averaged_maps, variance_maps, snr_maps, weights_map, nsamples_map
 
 
-def obs_radial_weighting_function(dist, max_dist=12., taper_width=8.):
+def obs_radial_weighting_function(
+    dist, max_dist=10., taper_width=6.,
+    mask_edges=False # if true, this will set some weights to zero
+):
 
+    if mask_edges:
+        zero_point = 0.
+    else:
+        zero_point = 0.00001 # Don't zero things out completely
     if dist < max_dist-taper_width:
         weight = 1.
     elif dist > max_dist:
-        weight = 0.00001
+        weight = zero_point
     else:
-        weight = 0.5*np.cos(np.pi*(dist+taper_width-max_dist)/taper_width)+0.5
+        weight = (0.5-zero_point)*np.cos(
+            np.pi*(dist+taper_width-max_dist)/taper_width
+        )+0.5+zero_point
     return weight
 
 

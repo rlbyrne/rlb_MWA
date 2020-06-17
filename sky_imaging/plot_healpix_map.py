@@ -166,13 +166,15 @@ def plot_projection(
         cmap='Greys_r', return_projected_map=False, notext=True, unit='Jy/sr'
     )
     hp.graticule()
-    plt.xlim([-1.3,.4])
+    plt.xlim([-1.7,.7])
     plt.ylim([-1.1, .25])
+    plt.title = title
     if save_filename is None:
         plt.show()
     else:
         print 'Saving plot to {}'.format(save_filename)
         plt.savefig(save_filename, dpi=300)
+        plt.close()
 
 
 if __name__ == '__main__':

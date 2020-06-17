@@ -429,7 +429,7 @@ def make_combined_images():
             cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
             weighting='weighted',
             apply_radial_weighting=True,
-            apply_rm_correction=False
+            apply_rm_correction=True
         )
         pols = ['I', 'Q', 'U', 'V']
         for map_ind in range(len(combined_maps)):
@@ -442,7 +442,7 @@ def make_combined_images():
             combined_maps[map_ind].pix_arr = map.pix_arr
 
             combined_maps[map_ind].write_data_to_fits(
-                '/Users/rubybyrne/diffuse_survey_plotting_May2020/eor0_plots/Stokes{}_eor0_map{}_no_rm_correction.fits'.format(pol, group_ind+1)
+                '/Users/rubybyrne/diffuse_survey_plotting_May2020/eor0_plots/Stokes{}_eor0_map{}_tapered.fits'.format(pol, group_ind+1)
             )
             if pol == 'I':
                 colorbar_range = [-1e4, 1e4]
@@ -450,7 +450,7 @@ def make_combined_images():
                 colorbar_range = [-5e3, 5e3]
             plot_healpix_map.plot_filled_pixels(
                 combined_maps[map_ind],
-                '/Users/rubybyrne/diffuse_survey_plotting_May2020/eor0_plots/Stokes{}_eor0_map{}_no_rm_correction.png'.format(pol, group_ind+1),
+                '/Users/rubybyrne/diffuse_survey_plotting_May2020/eor0_plots/Stokes{}_eor0_map{}_tapered.png'.format(pol, group_ind+1),
                 colorbar_range=colorbar_range
             )
 
