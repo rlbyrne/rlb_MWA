@@ -11,7 +11,7 @@ pro rlb_versions_gillyweed
   case version of
 
     'rlb_get_uvf_cubes_Apr2020': begin
-      recalculate_all = 0
+      recalculate_all = 1
       uvfits_version = 4
       uvfits_subversion = 1
       max_sources = 200000
