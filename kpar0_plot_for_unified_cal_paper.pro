@@ -7,6 +7,7 @@ pro kpar0_plot_for_unified_cal_paper
   linestyles = [0,2]
 
   cgps_open, '/Users/rubybyrne/kpar0_plot_for_unified_cal_paper.png'
+  cgDisplay, 900, 650
   for file_ind = 0,n_elements(datafiles)-1 do begin
     k_edges = getvar_savefile(datafiles[file_ind], 'k_edges')
     xrange=[8e-4, 2e-1]
@@ -21,18 +22,19 @@ pro kpar0_plot_for_unified_cal_paper
     endfor
     if file_ind eq 0 then overplot=0 else overplot=1
     cgplot, plot_x, plot_y, /xlog, /ylog, yrange=yrange, xrange=xrange, $
-      linestyle=linestyles[file_ind], color=colors[file_ind], thick=8, overplot=overplot, title='', Charsize=1.25,$
+      linestyle=linestyles[file_ind], color=colors[file_ind], thick=8, overplot=overplot, title='', Charsize=2.,$
       ytitle=textoidl('k-parallel=0 Power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
       xstyle=8 ;draw only the main axis, don't draw the top axis
   endfor
-  cgAxis, XAxis=1.0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl(''), Charsize=1.25
+  cgAxis, XAxis=1.0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl(''), Charsize=2.
   xlocation = (!X.Window[1] - !X.Window[0]) / 2  + !X.Window[0]
   ylocation = !Y.Window[1] + 2.75 * (!D.Y_CH_Size / Float(!D.Y_Size))
-  cgText, xlocation, ylocation, 'baseline length (wavelengths)', $
-    /Normal, Alignment=0.5, Charsize=1.25
+  cgText, xlocation, ylocation+.01, 'baseline length (wavelengths)', $
+    /Normal, Alignment=0.5, Charsize=2.
   cglegend, title=['Data', 'Model'], $
     linestyle=[0,2], thick=8, $
-    color=[colors], length=0.03, /center_sym, location=[.7,.8], charsize=1, /box, background='white'
+    color=[colors], length=0.03, /center_sym, location=[.7,.8], charsize=2., /box, background='white', vspace=3.
+  cgControl, Resize=[800,800]
   cgps_close, /png, /delete_ps, density=800
 
 
