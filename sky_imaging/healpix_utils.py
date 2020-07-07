@@ -266,10 +266,11 @@ class HealpixMap:
         hdu_list.writeto(save_filename, overwrite=True)
 
 
-def load_map(data_filename):
+def load_map(data_filename, quiet=False):
     # Load a HEALPix map formatted with FHD image conventions
 
-    print 'Loading HEALPix map {}'.format(data_filename)
+    if not quiet:
+        print 'Loading HEALPix map {}'.format(data_filename)
     contents = fits.open(data_filename)
     nside = int(contents[1].header['nside'])
     ordering = contents[1].header['ordering']
@@ -496,7 +497,7 @@ def average_healpix_maps_simple(maps_arr):
 def average_healpix_maps(
     fhd_run_paths, obs_lists=None, obs_weights_list=None, nside=None,
     cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False,
-    apply_rm_correction=False
+    apply_rm_correction=False, rm_file=None
 ):
 
     if isinstance(fhd_run_paths, str): #check if string
@@ -613,7 +614,9 @@ def average_healpix_maps(
                 maps.append(map)
 
             if apply_rm_correction:
-                maps = rm_correction(obsid, maps, use_single_freq_calc=False)
+                maps = rm_correction(
+                    obsid, maps, use_single_freq_calc=False, rm_file=rm_file
+                )
 
             if apply_radial_weighting:  # Restore obs structure if necessary
                 obs_struct = scipy.io.readsav(
@@ -673,19 +676,28 @@ def average_healpix_maps(
 
 def rm_correction(
     obsid, maps, rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv',
-    start_freq_mhz=167., end_freq_mhz=198., use_single_freq_calc=False
+    start_freq_mhz=167., end_freq_mhz=198., use_single_freq_calc=False,
+    use_rm=None
 ):
-    c = 3.e8
+
+    if rm_file is None:
+        rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+
     if len(maps) < 3:
         print 'ERROR: RM correction requires Stokes Q and U maps.'
         sys.exit(1)
-    rm_data = np.genfromtxt(
-        rm_file, delimiter=',', dtype=None, names=True, encoding=None
-    )
-    if int(obsid) not in rm_data['ObsID']:
-        print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
-        sys.exit(1)
-    rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
+    if use_rm is None: # Look up RM if none is provided explicitly
+        rm_data = np.genfromtxt(
+            rm_file, delimiter=',', dtype=None, names=True, encoding=None
+        )
+        if int(obsid) not in rm_data['ObsID']:
+            print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
+            sys.exit(1)
+        rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
+    else:
+        rm = use_rm
+
+    c = 3.e8
     if start_freq_mhz == end_freq_mhz:
         use_single_freq_calc = True
 

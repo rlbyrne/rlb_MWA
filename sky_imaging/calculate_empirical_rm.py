@@ -9,6 +9,7 @@ import sys
 import os
 import healpix_utils
 import plot_healpix_map
+import csv
 
 obs_list_1 = [
     '1131551744',
@@ -229,7 +230,7 @@ def get_effective_rotation_angles(rms, start_freq_mhz, end_freq_mhz):
         - np.sin(2.*rms*wl_max**2.)/wl_max
         - 2*np.sqrt(np.pi*rms+0j)*(fresC_min-fresC_max)
     )
-    rot_angles = np.real(np.arctan(sin_int/cos_int))
+    rot_angles = np.arctan2(np.real(sin_int), np.real(cos_int))
     return rot_angles
 
 
@@ -245,9 +246,9 @@ def create_rm_lookup_table(start_freq_mhz, end_freq_mhz):
 
 def test_rot_angle_interp():
 
-    rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    start_freq_mhz=167.
-    end_freq_mhz=198.
+    rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+    start_freq_mhz = 167.
+    end_freq_mhz = 198.
 
     # Get RMs
     rm_data = np.genfromtxt(
@@ -291,9 +292,10 @@ def main():
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
 
-    rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    start_freq_mhz=167.
-    end_freq_mhz=198.
+    rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+    rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
+    start_freq_mhz = 167.
+    end_freq_mhz = 198.
 
     # Get RMs
     rm_data = np.genfromtxt(
@@ -370,29 +372,29 @@ def main():
                     hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
 
-            tangent_value = np.sum(rad_weights*(
+            tangent_numerator = np.sum(rad_weights*(
                 q_average_map_signal*u_map_rot.signal_arr - u_average_map_signal*q_map_rot.signal_arr
-            ))/np.sum(rad_weights*(
+            ))
+            tangent_denominator = np.sum(rad_weights*(
                 q_average_map_signal*q_map_rot.signal_arr + u_average_map_signal*u_map_rot.signal_arr
             ))
-            rot_angle_delta = np.arctan(tangent_value)
+            rot_angle_delta = np.arctan2(tangent_numerator, tangent_denominator)
             rot_angle_deltas_list[obsind] = rot_angle_delta
 
         # Ensure that the change in the rotation angles is mean-zero
-        mean_angle = np.arctan(
-            np.total(np.sin(rot_angle_deltas_list))/np.total(np.cos(rot_angle_deltas_list))
+        mean_angle = np.arctan2(
+            np.sum(np.sin(rot_angle_deltas_list)),
+            np.sum(np.cos(rot_angle_deltas_list))
         )
         rot_angle_deltas_list = rot_angle_deltas_list - mean_angle
         rot_angle_list += step_size*rot_angle_deltas_list
 
-    # Ensure that the rotation angles are within +/- pi
-    rot_angle_list = np.arctan(np.sin(rot_angle_list)/np.cos(rot_angle_list))
-
-    print rot_angle_list
     eff_rot_angle_start = get_effective_rotation_angles(
         rms_orig, start_freq_mhz, end_freq_mhz
     )
     eff_rot_angle = eff_rot_angle_start + rot_angle_list
+    # Ensure that the rotation angles are within +/- pi
+    eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
 
     # Convert effective rotation angles to RMs
     # Create lookup table:
@@ -402,7 +404,7 @@ def main():
     # Limit search to near the original RM
     search_range = np.pi*((start_freq_mhz+end_freq_mhz)/2*1.e6)**2/(2*c**2)
     new_rm_vals = np.zeros(len(obs_list_1)+len(obs_list_2))
-    for obsind in range(10):
+    for obsind in range(len(obs_list_1)+len(obs_list_2)):
         limited_lookup_indices = np.where(
             np.abs(rms_lookup-rms_orig[obsind]) < search_range/2
         )[0]
@@ -411,9 +413,17 @@ def main():
             rms_lookup[limited_lookup_indices],
             kind='cubic', bounds_error=True
         )
+        print rms_orig[obsind]
+        print eff_rot_angle[obsind]
         new_rm_vals[obsind] = interp_func(eff_rot_angle[obsind])
-        print np.abs((new_rm_vals[obsind]-rms_orig[obsind])/rms_orig[obsind])
 
+    # Save RMs to a CSV file
+    csv_outfile = open(rm_outfile, 'w')
+    outfile_writer = csv.writer(csv_outfile)
+    outfile_writer.writerow(['ObsID', 'RM'])
+    for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+        outfile_writer.writerow([obsid, new_rm_vals[obsind]])
+    csv_outfile.close()
 
 
 if __name__=='__main__':
