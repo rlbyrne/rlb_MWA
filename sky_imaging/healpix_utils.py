@@ -497,7 +497,9 @@ def average_healpix_maps_simple(maps_arr):
 def average_healpix_maps(
     fhd_run_paths, obs_lists=None, obs_weights_list=None, nside=None,
     cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False,
-    apply_rm_correction=False, rm_file=None
+    apply_rm_correction=False,
+    use_rms=None, # List of RMs, only used if apply_rm_correction=True
+    rm_file=None # File for RM lookup, only used if apply_rm_correction=True and use_rms=None
 ):
 
     if isinstance(fhd_run_paths, str): #check if string
@@ -615,7 +617,8 @@ def average_healpix_maps(
 
             if apply_rm_correction:
                 maps = rm_correction(
-                    obsid, maps, use_single_freq_calc=False, rm_file=rm_file
+                    obsid, maps, use_single_freq_calc=False, rm_file=rm_file,
+                    use_rm=use_rms[obs_ind]
                 )
 
             if apply_radial_weighting:  # Restore obs structure if necessary

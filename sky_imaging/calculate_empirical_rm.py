@@ -280,20 +280,14 @@ def test_rot_angle_interp():
 def main():
 
     n_iter = 5
-    step_size = 1
-
-    q_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesQ_average_map_more_obs.fits'
-    u_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesU_average_map_more_obs.fits'
-    q_average_map = healpix_utils.load_map(q_average_map_path)
-    u_average_map = healpix_utils.load_map(u_average_map_path)
-    q_average_map.explicit_to_implicit_ordering()
-    u_average_map.explicit_to_implicit_ordering()
+    step_size = .5
 
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
+    #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
+    rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical_Jul2020.csv'
     start_freq_mhz = 167.
     end_freq_mhz = 198.
 
@@ -305,10 +299,38 @@ def main():
         rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0] for obsid in obs_list_1+obs_list_2
     ])
 
+    # Create lookup table:
+    rot_angles_lookup, rms_lookup = create_rm_lookup_table(
+        start_freq_mhz, end_freq_mhz
+    )
+
     rms_use = np.copy(rms_orig)
-    rot_angle_deltas_list = np.zeros(len(obs_list_1)+len(obs_list_2))
-    rot_angle_list = np.zeros(len(obs_list_1)+len(obs_list_2))
     for iter_ind in range(n_iter):
+        rot_angle_deltas_list = np.zeros(len(obs_list_1)+len(obs_list_2))
+        rot_angle_list = np.zeros(len(obs_list_1)+len(obs_list_2))
+
+        # Create average maps
+        if iter_ind == 0: # Use saved maps
+            q_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesQ_average_map_more_obs.fits'
+            u_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesU_average_map_more_obs.fits'
+            q_average_map = healpix_utils.load_map(q_average_map_path)
+            u_average_map = healpix_utils.load_map(u_average_map_path)
+        else: # Recalculate average maps with new RM values
+            combined_maps, weight_maps = healpix_utils.average_healpix_maps(
+                ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
+                '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
+                obs_lists = [obs_list_1, obs_list_2],
+                nside=128,
+                cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+                weighting='weighted',
+                apply_radial_weighting=True,
+                apply_rm_correction=True,
+                use_rms=rms_use
+            )
+            q_average_map = combined_maps[1]
+            u_average_map = combined_maps[2]
+        q_average_map.explicit_to_implicit_ordering()
+        u_average_map.explicit_to_implicit_ordering()
 
         # Calculate the empirical rotation angles
         for obsind, obsid in enumerate(obs_list_1+obs_list_2):
@@ -389,33 +411,28 @@ def main():
         rot_angle_deltas_list = rot_angle_deltas_list - mean_angle
         rot_angle_list += step_size*rot_angle_deltas_list
 
-    eff_rot_angle_start = get_effective_rotation_angles(
-        rms_orig, start_freq_mhz, end_freq_mhz
-    )
-    eff_rot_angle = eff_rot_angle_start + rot_angle_list
-    # Ensure that the rotation angles are within +/- pi
-    eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
-
-    # Convert effective rotation angles to RMs
-    # Create lookup table:
-    rot_angles_lookup, rms_lookup = create_rm_lookup_table(
-        start_freq_mhz, end_freq_mhz
-    )
-    # Limit search to near the original RM
-    search_range = np.pi*((start_freq_mhz+end_freq_mhz)/2*1.e6)**2/(2*c**2)
-    new_rm_vals = np.zeros(len(obs_list_1)+len(obs_list_2))
-    for obsind in range(len(obs_list_1)+len(obs_list_2)):
-        limited_lookup_indices = np.where(
-            np.abs(rms_lookup-rms_orig[obsind]) < search_range/2
-        )[0]
-        interp_func = scipy.interpolate.interp1d(
-            rot_angles_lookup[limited_lookup_indices],
-            rms_lookup[limited_lookup_indices],
-            kind='cubic', bounds_error=True
+        eff_rot_angle_start = get_effective_rotation_angles(
+            rms_use, start_freq_mhz, end_freq_mhz
         )
-        print rms_orig[obsind]
-        print eff_rot_angle[obsind]
-        new_rm_vals[obsind] = interp_func(eff_rot_angle[obsind])
+        eff_rot_angle = eff_rot_angle_start + rot_angle_list
+        # Ensure that the rotation angles are within +/- pi
+        eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
+        print eff_rot_angle
+
+        # Convert effective rotation angles to RMs
+        # Limit search to near the original RM
+        search_range = np.pi*((start_freq_mhz+end_freq_mhz)/2*1.e6)**2/(2*c**2)
+        for obsind in range(len(obs_list_1)+len(obs_list_2)):
+            limited_lookup_indices = np.where(
+                np.abs(rms_lookup-rms_orig[obsind]) < search_range/2
+            )[0]
+            interp_func = scipy.interpolate.interp1d(
+                rot_angles_lookup[limited_lookup_indices],
+                rms_lookup[limited_lookup_indices],
+                kind='cubic', bounds_error=True
+            )
+            # Update rms_use with the new values
+            rms_use[obsind] = interp_func(eff_rot_angle[obsind])
 
     # Save RMs to a CSV file
     csv_outfile = open(rm_outfile, 'w')
