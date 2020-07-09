@@ -294,8 +294,6 @@ def interpolate_rms(
         rms_lookup_use,
         kind='cubic', bounds_error=True
     )
-    print 'RM: {}'.format(orig_rm)
-    print 'rot angle: {}'.format(rot_angle_use)
     interp_rm_val = interp_func(rot_angle_use)
     return interp_rm_val
 
@@ -426,6 +424,8 @@ def main():
             rot_angle_delta = np.arctan2(tangent_numerator, tangent_denominator)
             rot_angle_deltas_list[obsind] = rot_angle_delta
 
+        print rot_angle_deltas_list
+
         # Ensure that the change in the rotation angles is mean-zero
         mean_angle = np.arctan2(
             np.sum(np.sin(rot_angle_deltas_list)),
@@ -440,7 +440,6 @@ def main():
         eff_rot_angle = eff_rot_angle_start + rot_angle_list
         # Ensure that the rotation angles are within +/- pi
         eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
-        print eff_rot_angle
 
         # Convert effective rotation angles to RMs
         for obsind in range(len(obs_list_1)+len(obs_list_2)):
@@ -455,7 +454,7 @@ def main():
     outfile_writer = csv.writer(csv_outfile)
     outfile_writer.writerow(['ObsID', 'RM'])
     for obsind, obsid in enumerate(obs_list_1+obs_list_2):
-        outfile_writer.writerow([obsid, new_rm_vals[obsind]])
+        outfile_writer.writerow([obsid, rms_use[obsind]])
     csv_outfile.close()
 
 
