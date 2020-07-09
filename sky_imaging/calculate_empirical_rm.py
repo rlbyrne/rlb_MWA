@@ -237,50 +237,73 @@ def get_effective_rotation_angles(rms, start_freq_mhz, end_freq_mhz):
 def create_rm_lookup_table(start_freq_mhz, end_freq_mhz):
 
     min_rm = -4
-    max_rm = 0
+    max_rm = 1
     stepsize = 1e-7
     rms = np.arange(min_rm, max_rm, stepsize)
     rot_angles = get_effective_rotation_angles(rms, start_freq_mhz, end_freq_mhz)
     return rot_angles, rms
 
 
-def test_rot_angle_interp():
+def interpolate_rms(
+    rms_lookup, rot_angles_lookup, orig_rm, rot_angle,
+    start_freq_mhz, end_freq_mhz
+):
 
-    rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    start_freq_mhz = 167.
-    end_freq_mhz = 198.
+    orig_rot_angle = get_effective_rotation_angles(
+        orig_rm, start_freq_mhz, end_freq_mhz
+    )
+    rms_lookup_use = np.copy(rms_lookup)
+    rot_angles_lookup_use = np.copy(rot_angles_lookup)
+    rot_angle_use = rot_angle
 
-    # Get RMs
-    rm_data = np.genfromtxt(
-        rm_file, delimiter=',', dtype=None, names=True, encoding=None
+    # Correct for the branch cut
+    orig_ind = np.min(np.where(rms_lookup_use > orig_rm))
+    low_angle_inds = np.where(
+        rot_angles_lookup_use[orig_ind:] < orig_rot_angle
+    )[0]
+    if np.shape(low_angle_inds)[0] > 0:
+        rot_angles_lookup_use[
+            (np.min(low_angle_inds)+orig_ind):
+        ] += 2*np.pi
+    high_angle_inds = np.where(
+        rot_angles_lookup_use[:orig_ind] > orig_rot_angle
+    )[0]
+    if np.shape(high_angle_inds)[0] > 0:
+        rot_angles_lookup_use[
+            :(np.max(high_angle_inds)+1)
+        ] -= 2*np.pi
+
+    # Cut down the search range
+    min_use_index = np.max(np.concatenate((np.where(
+        rot_angles_lookup_use[:orig_ind] < orig_rot_angle-np.pi
+    )[0], [0])))
+    max_use_index = np.min(np.concatenate((np.where(
+        rot_angles_lookup_use[orig_ind:] > orig_rot_angle+np.pi
+    )[0]+orig_ind, [np.shape(rot_angles_lookup_use)[0]-1])))
+    rms_lookup_use = rms_lookup_use[min_use_index:max_use_index+1]
+    rot_angles_lookup_use = rot_angles_lookup_use[min_use_index:max_use_index+1]
+
+    # Modify rot_angle to be in the correct range
+    if rot_angle_use > orig_rot_angle+np.pi:
+        rot_angle_use -= 2*np.pi
+    elif rot_angle_use < orig_rot_angle-np.pi:
+        rot_angle_use += 2*np.pi
+
+    interp_func = scipy.interpolate.interp1d(
+        rot_angles_lookup_use,
+        rms_lookup_use,
+        kind='cubic', bounds_error=True
     )
-    rms_orig = np.array([
-        rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0] for obsid in obs_list_1+obs_list_2
-    ])
-    rot_angles = get_effective_rotation_angles(
-        rms_orig, start_freq_mhz, end_freq_mhz
-    )
-    rot_angles_lookup, rms_lookup = create_rm_lookup_table(
-        start_freq_mhz, end_freq_mhz
-    )
-    search_range = np.pi*((start_freq_mhz+end_freq_mhz)/2*1.e6)**2/(2*c**2)
-    for obsind in range(10):
-        limited_lookup_indices = np.where(
-            np.abs(rms_lookup-rms_orig[obsind]) < search_range/2
-        )[0]
-        interp_func = scipy.interpolate.interp1d(
-            rot_angles_lookup[limited_lookup_indices],
-            rms_lookup[limited_lookup_indices],
-            kind='cubic', bounds_error=True
-        )
-        interp_rm_val = interp_func(rot_angles[obsind])
-        print np.abs((interp_rm_val-rms_orig[obsind])/rms_orig[obsind])
+    print 'RM: {}'.format(orig_rm)
+    print 'rot angle: {}'.format(rot_angle_use)
+    interp_rm_val = interp_func(rot_angle_use)
+    return interp_rm_val
 
 
 def main():
 
     n_iter = 5
-    step_size = .5
+    step_size = .7
 
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
@@ -420,19 +443,12 @@ def main():
         print eff_rot_angle
 
         # Convert effective rotation angles to RMs
-        # Limit search to near the original RM
-        search_range = np.pi*((start_freq_mhz+end_freq_mhz)/2*1.e6)**2/(2*c**2)
         for obsind in range(len(obs_list_1)+len(obs_list_2)):
-            limited_lookup_indices = np.where(
-                np.abs(rms_lookup-rms_orig[obsind]) < search_range/2
-            )[0]
-            interp_func = scipy.interpolate.interp1d(
-                rot_angles_lookup[limited_lookup_indices],
-                rms_lookup[limited_lookup_indices],
-                kind='cubic', bounds_error=True
+            rms_use[obsind] = interpolate_rms(
+                rms_lookup, rot_angles_lookup,
+                rms_orig[obsind], eff_rot_angle[obsind],
+                start_freq_mhz, end_freq_mhz
             )
-            # Update rms_use with the new values
-            rms_use[obsind] = interp_func(eff_rot_angle[obsind])
 
     # Save RMs to a CSV file
     csv_outfile = open(rm_outfile, 'w')
