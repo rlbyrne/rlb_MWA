@@ -298,17 +298,34 @@ def interpolate_rms(
     return interp_rm_val
 
 
+def calculate_rotation_angle_analytic(
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    weights
+):
+
+    tangent_numerator = np.sum(weights*(
+        q_reference_signal*u_rotated_signal - u_reference_signal*q_rotated_signal
+    ))
+    tangent_denominator = np.sum(weights*(
+        q_reference_signal*q_rotated_signal + u_reference_signal*u_rotated_signal
+    ))
+    rot_angle = np.arctan2(tangent_numerator, tangent_denominator)
+    return rot_angle
+
+
 def main():
 
-    n_iter = 5
-    step_size = .7
+    n_iter = 20
+    step_size = .5
 
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
     #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
-    rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical_Jul2020.csv'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation'
+    rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
     end_freq_mhz = 198.
 
@@ -328,14 +345,17 @@ def main():
     rms_use = np.copy(rms_orig)
     for iter_ind in range(n_iter):
         rot_angle_deltas_list = np.zeros(len(obs_list_1)+len(obs_list_2))
-        rot_angle_list = np.zeros(len(obs_list_1)+len(obs_list_2))
 
         # Create average maps
         if iter_ind == 0: # Use saved maps
             q_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesQ_average_map_more_obs.fits'
             u_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesU_average_map_more_obs.fits'
-            q_average_map = healpix_utils.load_map(q_average_map_path)
-            u_average_map = healpix_utils.load_map(u_average_map_path)
+            q_average_map = healpix_utils.load_map(
+                q_average_map_path, quiet=True
+            )
+            u_average_map = healpix_utils.load_map(
+                u_average_map_path, quiet=True
+            )
         else: # Recalculate average maps with new RM values
             combined_maps, weight_maps = healpix_utils.average_healpix_maps(
                 ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
@@ -346,10 +366,25 @@ def main():
                 weighting='weighted',
                 apply_radial_weighting=True,
                 apply_rm_correction=True,
-                use_rms=rms_use
+                use_rms=rms_use,
+                quiet=True
             )
             q_average_map = combined_maps[1]
             u_average_map = combined_maps[2]
+
+            # Plot
+            colorbar_range = [-2e3, 2e3]
+            plot_healpix_map.plot_filled_pixels(
+                q_average_map,
+                '{}/StokesQ_averaged_iter{}.png'.format(rm_outpath, iter_ind),
+                colorbar_range=colorbar_range
+            )
+            plot_healpix_map.plot_filled_pixels(
+                u_average_map,
+                '{}/StokesU_averaged_iter{}.png'.format(rm_outpath, iter_ind),
+                colorbar_range=colorbar_range
+            )
+
         q_average_map.explicit_to_implicit_ordering()
         u_average_map.explicit_to_implicit_ordering()
 
@@ -377,17 +412,6 @@ def main():
             )
             q_map_rot = maps_rot[1]
             u_map_rot = maps_rot[2]
-            # Apply additional rotation
-            q_map_rot_signal = (
-                np.cos(2*rot_angle_list[obsind])*q_map_rot.signal_arr
-                + np.sin(2*rot_angle_list[obsind])*u_map_rot.signal_arr
-            )
-            u_map_rot_signal = (
-                -np.sin(2*rot_angle_list[obsind])*q_map_rot.signal_arr
-                + np.cos(2*rot_angle_list[obsind])*u_map_rot.signal_arr
-            )
-            q_map_rot.signal_arr = q_map_rot_signal
-            u_map_rot.signal_arr = u_map_rot_signal
 
             # Confirm that pixel ordering matches
             if np.sum(np.abs(q_map_rot.pix_arr-u_map_rot.pix_arr)) != 0:
@@ -415,16 +439,12 @@ def main():
                     hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
 
-            tangent_numerator = np.sum(rad_weights*(
-                q_average_map_signal*u_map_rot.signal_arr - u_average_map_signal*q_map_rot.signal_arr
-            ))
-            tangent_denominator = np.sum(rad_weights*(
-                q_average_map_signal*q_map_rot.signal_arr + u_average_map_signal*u_map_rot.signal_arr
-            ))
-            rot_angle_delta = np.arctan2(tangent_numerator, tangent_denominator)
+            rot_angle_delta = calculate_rotation_angle_analytic(
+                q_average_map_signal, u_average_map_signal,
+                q_map_rot.signal_arr, u_map_rot.signal_arr,
+                rad_weights
+            )
             rot_angle_deltas_list[obsind] = rot_angle_delta
-
-        print rot_angle_deltas_list
 
         # Ensure that the change in the rotation angles is mean-zero
         mean_angle = np.arctan2(
@@ -432,7 +452,9 @@ def main():
             np.sum(np.cos(rot_angle_deltas_list))
         )
         rot_angle_deltas_list = rot_angle_deltas_list - mean_angle
-        rot_angle_list += step_size*rot_angle_deltas_list
+        print rot_angle_deltas_list
+        print np.sum(rot_angle_deltas_list**2.)
+        rot_angle_list = step_size*rot_angle_deltas_list
 
         eff_rot_angle_start = get_effective_rotation_angles(
             rms_use, start_freq_mhz, end_freq_mhz
@@ -448,6 +470,17 @@ def main():
                 rms_orig[obsind], eff_rot_angle[obsind],
                 start_freq_mhz, end_freq_mhz
             )
+
+        # Save each iteration's RMs to a CSV file
+        rm_outfile_iter = '{}/diffuse_survey_rm_empirical_iter{}.csv'.format(
+            rm_outpath, iter_ind+1
+        )
+        csv_outfile = open(rm_outfile_iter, 'w')
+        outfile_writer = csv.writer(csv_outfile)
+        outfile_writer.writerow(['ObsID', 'RM'])
+        for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+            outfile_writer.writerow([obsid, rms_use[obsind]])
+        csv_outfile.close()
 
     # Save RMs to a CSV file
     csv_outfile = open(rm_outfile, 'w')
