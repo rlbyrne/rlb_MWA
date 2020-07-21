@@ -10,6 +10,7 @@ import os
 import healpix_utils
 import plot_healpix_map
 import csv
+import scipy.optimize
 
 obs_list_1 = [
     '1131551744',
@@ -314,6 +315,81 @@ def calculate_rotation_angle_analytic(
     return rot_angle
 
 
+def calculate_rotation_angle_numerical(
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    weights
+):
+
+    method = 'Powell'
+    beta0 = 0.
+    result = scipy.optimize.minimize(
+        cost_function, beta0,
+        args=(
+            q_reference_signal, u_reference_signal,
+            q_rotated_signal, u_rotated_signal,
+            weights
+        ),
+        method=method
+    )
+    return result.x
+
+
+def calculate_rotation_angle_numerical_with_prior(
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    weights, beta_orig
+):
+
+    method = 'Powell'
+    beta0 = 0.
+    prior_weight = np.pi/1000.
+    result = scipy.optimize.minimize(
+        cost_function_with_prior, beta0,
+        args=(
+            q_reference_signal, u_reference_signal,
+            q_rotated_signal, u_rotated_signal,
+            weights, prior_weight, beta_orig
+        ),
+        method=method
+    )
+    return result.x
+
+
+def cost_function(
+    beta,
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    weights
+):
+
+    cost = np.sum(weights*(-2.*np.cos(beta)*(
+        q_reference_signal*q_rotated_signal + u_reference_signal*u_rotated_signal
+    ) - 2.*np.sin(beta)*(
+        q_reference_signal*u_rotated_signal - u_reference_signal*q_rotated_signal
+    )))
+
+    return cost
+
+
+def cost_function_with_prior(
+    beta,
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    weights, prior_weight, beta_orig
+):
+
+    cost = np.sum(weights*(-2.*np.cos(beta)*(
+        q_reference_signal*q_rotated_signal + u_reference_signal*u_rotated_signal
+    ) - 2.*np.sin(beta)*(
+        q_reference_signal*u_rotated_signal - u_reference_signal*q_rotated_signal
+    )))
+    angle_dev_from_orig = np.arctan2(np.sin(beta-beta_orig), np.cos(beta-beta_orig))
+    cost += 0.5*angle_dev_from_orig**2./prior_weight**2.
+
+    return cost
+
+
 def main():
 
     n_iter = 20
@@ -324,7 +400,7 @@ def main():
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
     #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
-    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020'
     rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
     end_freq_mhz = 198.
@@ -345,9 +421,12 @@ def main():
     rms_use = np.copy(rms_orig)
     for iter_ind in range(n_iter):
         rot_angle_deltas_list = np.zeros(len(obs_list_1)+len(obs_list_2))
-
+        eff_rot_angle_start = get_effective_rotation_angles(
+            rms_use, start_freq_mhz, end_freq_mhz
+        )
         # Create average maps
         if iter_ind == 0: # Use saved maps
+            eff_rot_angle_orig = np.copy(eff_rot_angle_start)
             q_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesQ_average_map_more_obs.fits'
             u_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesU_average_map_more_obs.fits'
             q_average_map = healpix_utils.load_map(
@@ -439,10 +518,21 @@ def main():
                     hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
 
-            rot_angle_delta = calculate_rotation_angle_analytic(
+            #rot_angle_delta = calculate_rotation_angle_analytic(
+            #    q_average_map_signal, u_average_map_signal,
+            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
+            #    rad_weights
+            #)
+            #rot_angle_delta = calculate_rotation_angle_numerical(
+            #    q_average_map_signal, u_average_map_signal,
+            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
+            #    rad_weights
+            #)
+            rot_angle_delta = calculate_rotation_angle_numerical_with_prior(
                 q_average_map_signal, u_average_map_signal,
                 q_map_rot.signal_arr, u_map_rot.signal_arr,
-                rad_weights
+                rad_weights,
+                eff_rot_angle_orig[obsind]-eff_rot_angle_start[obsind]
             )
             rot_angle_deltas_list[obsind] = rot_angle_delta
 
@@ -452,13 +542,9 @@ def main():
             np.sum(np.cos(rot_angle_deltas_list))
         )
         rot_angle_deltas_list = rot_angle_deltas_list - mean_angle
-        print rot_angle_deltas_list
-        print np.sum(rot_angle_deltas_list**2.)
         rot_angle_list = step_size*rot_angle_deltas_list
+        print np.sum(rot_angle_deltas_list**2.)
 
-        eff_rot_angle_start = get_effective_rotation_angles(
-            rms_use, start_freq_mhz, end_freq_mhz
-        )
         eff_rot_angle = eff_rot_angle_start + rot_angle_list
         # Ensure that the rotation angles are within +/- pi
         eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
