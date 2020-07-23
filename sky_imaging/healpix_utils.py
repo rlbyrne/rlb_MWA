@@ -499,7 +499,8 @@ def average_healpix_maps(
     cube_names=['Residual_I'], weighting='uniform', apply_radial_weighting=False,
     apply_rm_correction=False,
     use_rms=None, # List of RMs, only used if apply_rm_correction=True
-    rm_file=None # File for RM lookup, only used if apply_rm_correction=True and use_rms=None
+    rm_file=None, # File for RM lookup, only used if apply_rm_correction=True and use_rms=None
+    quiet=False
 ):
 
     if isinstance(fhd_run_paths, str): #check if string
@@ -578,15 +579,17 @@ def average_healpix_maps(
         ])
         obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
 
-        print 'Averaging {} observations from {}'.format(len(obs_list), fhd_run_path)
+        if not quiet:
+            print 'Averaging {} observations from {}'.format(len(obs_list), fhd_run_path)
 
         for obs_ind, obsid in enumerate(obs_list):
-            print 'Loading observation {} of {}'.format(obs_ind+1, len(obs_list))
+            if not quiet:
+                print 'Loading observation {} of {}'.format(obs_ind+1, len(obs_list))
             maps = []
             for cube_ind, cube in enumerate(cube_names):
                 map = load_map('{}/output_data/{}_{}_{}_HEALPix.fits'.format(
                     fhd_run_path, obsid, weighting, cube
-                ))
+                ), quiet=quiet)
                 if obs_ind == 0 and cube_ind == 0 and path_ind == 0:  # Use first map for conventions
                     if nside is None:
                         nside = map.nside
