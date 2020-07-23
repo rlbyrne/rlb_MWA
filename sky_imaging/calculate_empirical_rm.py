@@ -392,7 +392,7 @@ def cost_function_with_prior(
 
 def main():
 
-    n_iter = 20
+    n_iter = 50
     step_size = .5
 
     #obs_list_1 = [obs_list_1[0]]
@@ -400,7 +400,7 @@ def main():
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
     #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
-    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_stronger_prior'
     rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
     end_freq_mhz = 198.
@@ -436,7 +436,7 @@ def main():
                 u_average_map_path, quiet=True
             )
         else: # Recalculate average maps with new RM values
-            combined_maps, weight_maps = healpix_utils.average_healpix_maps(
+            combined_maps, weight_map = healpix_utils.average_healpix_maps(
                 ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
                 '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
                 obs_lists = [obs_list_1, obs_list_2],
@@ -518,16 +518,6 @@ def main():
                     hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
 
-            #rot_angle_delta = calculate_rotation_angle_analytic(
-            #    q_average_map_signal, u_average_map_signal,
-            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
-            #    rad_weights
-            #)
-            #rot_angle_delta = calculate_rotation_angle_numerical(
-            #    q_average_map_signal, u_average_map_signal,
-            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
-            #    rad_weights
-            #)
             rot_angle_delta = calculate_rotation_angle_numerical_with_prior(
                 q_average_map_signal, u_average_map_signal,
                 q_map_rot.signal_arr, u_map_rot.signal_arr,
