@@ -315,6 +315,33 @@ def calculate_rotation_angle_analytic(
     return rot_angle
 
 
+def calculate_rotation_angle_analytic_more_accurate(
+    q_reference_signal, u_reference_signal,
+    q_rotated_signal, u_rotated_signal,
+    rad_weights, total_weights
+):
+
+    weights_ratio = rad_weights/total_weights
+
+    # Subtract the individual obs from the average
+    q_reference_signal_diff = (
+        q_reference_signal - weights_ratio*q_rotated_signal
+    )
+    u_reference_signal_diff = (
+        u_reference_signal - weights_ratio*u_rotated_signal
+    )
+
+    fitting_weights = rad_weights*(1-weights_ratio)
+    tangent_numerator = np.sum(fitting_weights*(
+        q_reference_signal_diff*u_rotated_signal - u_reference_signal_diff*q_rotated_signal
+    ))
+    tangent_denominator = np.sum(fitting_weights*(
+        q_reference_signal_diff*q_rotated_signal + u_reference_signal_diff*u_rotated_signal
+    ))
+    rot_angle = np.arctan2(tangent_numerator, tangent_denominator)
+    return rot_angle
+
+
 def calculate_rotation_angle_numerical(
     q_reference_signal, u_reference_signal,
     q_rotated_signal, u_rotated_signal,
@@ -393,14 +420,14 @@ def cost_function_with_prior(
 def main():
 
     n_iter = 50
-    step_size = .5
+    step_size = .3
 
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
     #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
-    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_stronger_prior'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_new_calculation'
     rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
     end_freq_mhz = 198.
@@ -425,47 +452,37 @@ def main():
             rms_use, start_freq_mhz, end_freq_mhz
         )
         # Create average maps
-        if iter_ind == 0: # Use saved maps
-            eff_rot_angle_orig = np.copy(eff_rot_angle_start)
-            q_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesQ_average_map_more_obs.fits'
-            u_average_map_path = '/Users/rubybyrne/diffuse_survey_plotting_May2020/StokesU_average_map_more_obs.fits'
-            q_average_map = healpix_utils.load_map(
-                q_average_map_path, quiet=True
-            )
-            u_average_map = healpix_utils.load_map(
-                u_average_map_path, quiet=True
-            )
-        else: # Recalculate average maps with new RM values
-            combined_maps, weight_map = healpix_utils.average_healpix_maps(
-                ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
-                '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
-                obs_lists = [obs_list_1, obs_list_2],
-                nside=128,
-                cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
-                weighting='weighted',
-                apply_radial_weighting=True,
-                apply_rm_correction=True,
-                use_rms=rms_use,
-                quiet=True
-            )
-            q_average_map = combined_maps[1]
-            u_average_map = combined_maps[2]
+        combined_maps, weight_map = healpix_utils.average_healpix_maps(
+            ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
+            '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
+            obs_lists = [obs_list_1, obs_list_2],
+            nside=128,
+            cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+            weighting='weighted',
+            apply_radial_weighting=True,
+            apply_rm_correction=True,
+            use_rms=rms_use,
+            quiet=True
+        )
+        q_average_map = combined_maps[1]
+        u_average_map = combined_maps[2]
 
-            # Plot
-            colorbar_range = [-2e3, 2e3]
-            plot_healpix_map.plot_filled_pixels(
-                q_average_map,
-                '{}/StokesQ_averaged_iter{}.png'.format(rm_outpath, iter_ind),
-                colorbar_range=colorbar_range
-            )
-            plot_healpix_map.plot_filled_pixels(
-                u_average_map,
-                '{}/StokesU_averaged_iter{}.png'.format(rm_outpath, iter_ind),
-                colorbar_range=colorbar_range
-            )
+        # Plot
+        colorbar_range = [-2e3, 2e3]
+        plot_healpix_map.plot_filled_pixels(
+            q_average_map,
+            '{}/StokesQ_averaged_iter{}.png'.format(rm_outpath, iter_ind),
+            colorbar_range=colorbar_range
+        )
+        plot_healpix_map.plot_filled_pixels(
+            u_average_map,
+            '{}/StokesU_averaged_iter{}.png'.format(rm_outpath, iter_ind),
+            colorbar_range=colorbar_range
+        )
 
         q_average_map.explicit_to_implicit_ordering()
         u_average_map.explicit_to_implicit_ordering()
+        weight_map.explicit_to_implicit_ordering()
 
         # Calculate the empirical rotation angles
         for obsind, obsid in enumerate(obs_list_1+obs_list_2):
@@ -502,6 +519,9 @@ def main():
             u_average_map_signal = np.array(
                 [u_average_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
             )
+            total_weights = np.array(
+                [weight_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
+            )
 
             #Get radial weighting
             obs_struct = scipy.io.readsav(
@@ -518,12 +538,17 @@ def main():
                     hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
                 )
 
-            rot_angle_delta = calculate_rotation_angle_numerical_with_prior(
+            rot_angle_delta = calculate_rotation_angle_analytic_more_accurate(
                 q_average_map_signal, u_average_map_signal,
                 q_map_rot.signal_arr, u_map_rot.signal_arr,
-                rad_weights,
-                eff_rot_angle_orig[obsind]-eff_rot_angle_start[obsind]
+                rad_weights, total_weights
             )
+            #rot_angle_delta = calculate_rotation_angle_numerical_with_prior(
+            #    q_average_map_signal, u_average_map_signal,
+            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
+            #    rad_weights,
+            #    eff_rot_angle_orig[obsind]-eff_rot_angle_start[obsind]
+            #)
             rot_angle_deltas_list[obsind] = rot_angle_delta
 
         # Ensure that the change in the rotation angles is mean-zero
