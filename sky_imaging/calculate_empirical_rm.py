@@ -419,14 +419,13 @@ def cost_function_with_prior(
 
 def main():
 
-    n_iter = 50
+    n_iter = 1000
     step_size = .3
 
     #obs_list_1 = [obs_list_1[0]]
     #obs_list_2 = []
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    #rm_outfile = '/Users/rubybyrne/diffuse_survey_rm_empirical.csv'
     rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_new_calculation'
     rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
