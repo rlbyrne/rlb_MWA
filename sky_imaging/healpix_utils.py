@@ -619,9 +619,13 @@ def average_healpix_maps(
                 maps.append(map)
 
             if apply_rm_correction:
+                if use_rms is None:
+                    rm_val = None
+                else:
+                    rm_val = use_rms[obs_ind]
                 maps = rm_correction(
                     obsid, maps, use_single_freq_calc=False, rm_file=rm_file,
-                    use_rm=use_rms[obs_ind]
+                    use_rm=rm_val
                 )
 
             if apply_radial_weighting:  # Restore obs structure if necessary
