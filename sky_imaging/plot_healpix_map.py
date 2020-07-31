@@ -17,7 +17,10 @@ from scipy.interpolate import griddata
 def plot_filled_pixels(
     map, save_filename=None, title='', ra_range=[], dec_range=[],
     colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/sr)',
-    ra_cut=None
+    ra_cut=None,
+    overplot_points=False, point_ras=None, point_decs=None, point_values=None,
+    overplot_points_vmin=-np.pi, overplot_points_vmax=np.pi,
+    overplot_points_colormap='seismic'
 ):
 
     if map.coords == '':
@@ -33,6 +36,10 @@ def plot_filled_pixels(
             ra_cut = (ra_range[1]+ra_range[0])/2.+180.
         else:
             ra_cut = 270.
+
+    if overplot_points:
+        point_ras[np.where(point_ras > ra_cut)] -= 360.
+        point_ras[np.where(point_ras < ra_cut-360.)] += 360.
 
     # Limit pixel calculation when axis ranges are set
     if len(ra_range) == 2 or len(dec_range) == 2:
@@ -96,6 +103,13 @@ def plot_filled_pixels(
     plt.ylabel('Dec (deg)')
     plt.axis('equal')
     ax.set_facecolor('gray')  # make plot background gray
+    if overplot_points:
+        cm_overplot_points = plt.cm.get_cmap(overplot_points_colormap)
+        plt.scatter(
+            point_ras, point_decs, c=point_values,
+            vmin=overplot_points_vmin, vmax=overplot_points_vmax, s=30,
+            cmap=cm_overplot_points, edgecolor='black', linewidth=.5
+        )
     plt.axis([ra_range[1], ra_range[0], dec_range[0], dec_range[1]])
     plt.title(title)
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar

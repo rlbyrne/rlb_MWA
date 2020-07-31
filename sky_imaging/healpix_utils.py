@@ -377,7 +377,7 @@ def difference_healpix_maps(map1, map2):
             map1.reorder_nest_to_ring()
         else:
             map2.reorder_nest_to_ring()
-    if map1.pix_arr == map2.pix_arr:
+    if np.max(np.abs(map1.pix_arr-map2.pix_arr)) == 0:
         data_diff = list(np.array(map1.signal_arr) - np.array(map2.signal_arr))
         diff_map = HealpixMap(
             data_diff, map1.pix_arr, map1.nside, nest=map1.nest
