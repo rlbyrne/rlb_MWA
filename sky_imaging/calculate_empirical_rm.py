@@ -301,16 +301,15 @@ def interpolate_rms(
 
 def calculate_rotation_angle_analytic(
     q_reference_signal, u_reference_signal,
-    q_rotated_signal, u_rotated_signal,
-    weights
+    q_rotated_signal, u_rotated_signal
 ):
 
-    tangent_numerator = np.sum(weights*(
+    tangent_numerator = np.sum(
         q_reference_signal*u_rotated_signal - u_reference_signal*q_rotated_signal
-    ))
-    tangent_denominator = np.sum(weights*(
+    )
+    tangent_denominator = np.sum(
         q_reference_signal*q_rotated_signal + u_reference_signal*u_rotated_signal
-    ))
+    )
     rot_angle = np.arctan2(tangent_numerator, tangent_denominator)
     return rot_angle
 
@@ -331,7 +330,7 @@ def calculate_rotation_angle_analytic_more_accurate(
         u_reference_signal - weights_ratio*u_rotated_signal
     )
 
-    fitting_weights = rad_weights*(1-weights_ratio)
+    fitting_weights = 1-weights_ratio
     tangent_numerator = np.sum(fitting_weights*(
         q_reference_signal_diff*u_rotated_signal - u_reference_signal_diff*q_rotated_signal
     ))
@@ -417,7 +416,7 @@ def cost_function_with_prior(
     return cost
 
 
-def main():
+def main_iterative():
 
     n_iter = 1000
     step_size = .3
@@ -426,7 +425,7 @@ def main():
     #obs_list_2 = []
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
-    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_new_calculation'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_vanilla'
     rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
     start_freq_mhz = 167.
     end_freq_mhz = 198.
@@ -481,7 +480,8 @@ def main():
 
         q_average_map.explicit_to_implicit_ordering()
         u_average_map.explicit_to_implicit_ordering()
-        weight_map.explicit_to_implicit_ordering()
+        if False:
+            weight_map.explicit_to_implicit_ordering()
 
         # Calculate the empirical rotation angles
         for obsind, obsid in enumerate(obs_list_1+obs_list_2):
@@ -518,36 +518,31 @@ def main():
             u_average_map_signal = np.array(
                 [u_average_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
             )
-            total_weights = np.array(
-                [weight_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
-            )
-
-            #Get radial weighting
-            obs_struct = scipy.io.readsav(
-                '{}/metadata/{}_obs.sav'.format(path, obsid)
-            )['obs']
-            obs_vec = hp.pixelfunc.ang2vec(
-                float(obs_struct['obsra']), float(obs_struct['obsdec']),
-                lonlat=True
-            )
-            rad_weights = np.ones(np.shape(q_map_rot.pix_arr)[0])
-            for pixind, pix in enumerate(q_map_rot.pix_arr):
-                pix_vec = hp.pix2vec(q_map_rot.nside, pix, nest=q_map_rot.nest)
-                rad_weights[pixind] = healpix_utils.obs_radial_weighting_function(
-                    hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
+            if False:
+                total_weights = np.array(
+                    [weight_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
                 )
 
-            rot_angle_delta = calculate_rotation_angle_analytic_more_accurate(
+            #Get radial weighting
+            if False:
+                obs_struct = scipy.io.readsav(
+                    '{}/metadata/{}_obs.sav'.format(path, obsid)
+                )['obs']
+                obs_vec = hp.pixelfunc.ang2vec(
+                    float(obs_struct['obsra']), float(obs_struct['obsdec']),
+                    lonlat=True
+                )
+                rad_weights = np.ones(np.shape(q_map_rot.pix_arr)[0])
+                for pixind, pix in enumerate(q_map_rot.pix_arr):
+                    pix_vec = hp.pix2vec(q_map_rot.nside, pix, nest=q_map_rot.nest)
+                    rad_weights[pixind] = healpix_utils.obs_radial_weighting_function(
+                        hp.rotator.angdist(pix_vec, obs_vec)*180./np.pi
+                    )
+
+            rot_angle_delta = calculate_rotation_angle_analytic(
                 q_average_map_signal, u_average_map_signal,
-                q_map_rot.signal_arr, u_map_rot.signal_arr,
-                rad_weights, total_weights
+                q_map_rot.signal_arr, u_map_rot.signal_arr
             )
-            #rot_angle_delta = calculate_rotation_angle_numerical_with_prior(
-            #    q_average_map_signal, u_average_map_signal,
-            #    q_map_rot.signal_arr, u_map_rot.signal_arr,
-            #    rad_weights,
-            #    eff_rot_angle_orig[obsind]-eff_rot_angle_start[obsind]
-            #)
             rot_angle_deltas_list[obsind] = rot_angle_delta
 
         # Ensure that the change in the rotation angles is mean-zero
@@ -589,6 +584,181 @@ def main():
     for obsind, obsid in enumerate(obs_list_1+obs_list_2):
         outfile_writer.writerow([obsid, rms_use[obsind]])
     csv_outfile.close()
+
+
+def main():
+
+    rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+    rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg'
+    rm_outfile = '{}/diffuse_survey_rm_empirical_Jul2020.csv'.format(rm_outpath)
+    start_freq_mhz = 167.
+    end_freq_mhz = 198.
+
+    # Get RMs
+    rm_data = np.genfromtxt(
+        rm_file, delimiter=',', dtype=None, names=True, encoding=None
+    )
+    rms_orig = np.array([
+        rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0] for obsid in obs_list_1+obs_list_2
+    ])
+
+    # Create lookup table:
+    rot_angles_lookup, rms_lookup = create_rm_lookup_table(
+        start_freq_mhz, end_freq_mhz
+    )
+
+    rms_use = np.copy(rms_orig)
+
+    rot_angle_deltas_list = np.zeros(len(obs_list_1)+len(obs_list_2))
+    eff_rot_angle_start = get_effective_rotation_angles(
+        rms_use, start_freq_mhz, end_freq_mhz
+    )
+    # Create average maps
+    combined_maps, weight_map = healpix_utils.average_healpix_maps(
+        ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
+        obs_lists = [obs_list_1, obs_list_2],
+        nside=128,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+        weighting='weighted',
+        apply_radial_weighting=True,
+        apply_rm_correction=True,
+        use_rms=rms_use,
+        quiet=True
+    )
+    q_average_map = combined_maps[1]
+    u_average_map = combined_maps[2]
+
+    # Plot
+    colorbar_range = [-2e3, 2e3]
+    plot_healpix_map.plot_filled_pixels(
+        q_average_map,
+        '{}/StokesQ_averaged_initial.png'.format(rm_outpath),
+        colorbar_range=colorbar_range
+    )
+    plot_healpix_map.plot_filled_pixels(
+        u_average_map,
+        '{}/StokesU_averaged_initial.png'.format(rm_outpath),
+        colorbar_range=colorbar_range
+    )
+    # Save maps
+    q_average_map.write_data_to_fits(
+        '{}/StokesQ_averaged_initial.fits'.format(rm_outpath)
+    )
+    u_average_map.write_data_to_fits(
+        '{}/StokesU_averaged_initial.fits'.format(rm_outpath)
+    )
+
+    q_average_map.explicit_to_implicit_ordering()
+    u_average_map.explicit_to_implicit_ordering()
+
+    # Calculate the empirical rotation angles
+    for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+        if obsid in obs_list_1:
+            path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020'
+        elif obsid in obs_list_2:
+            path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'
+
+        q_map = healpix_utils.load_map(
+            '{}/output_data/{}_weighted_Residual_Q_HEALPix.fits'.format(path, obsid),
+            quiet=True
+        )
+        u_map = healpix_utils.load_map(
+            '{}/output_data/{}_weighted_Residual_Q_HEALPix.fits'.format(path, obsid),
+            quiet=True
+        )
+
+        # Apply RM correction to maps
+        maps_rot = healpix_utils.rm_correction(
+            obsid, [None, q_map, u_map, None], rm_file=None,
+            start_freq_mhz=start_freq_mhz, end_freq_mhz=end_freq_mhz,
+            use_single_freq_calc=False, use_rm=rms_use[obsind]
+        )
+        q_map_rot = maps_rot[1]
+        u_map_rot = maps_rot[2]
+
+        # Confirm that pixel ordering matches
+        if np.sum(np.abs(q_map_rot.pix_arr-u_map_rot.pix_arr)) != 0:
+            print 'ERROR: Different pixel ordering.'
+
+        q_average_map_signal = np.array(
+            [q_average_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
+        )
+        u_average_map_signal = np.array(
+            [u_average_map.signal_arr[ind] for ind in q_map_rot.pix_arr]
+        )
+
+        tangent_numerator = np.sum(
+            q_average_map_signal*u_map_rot.signal_arr - u_average_map_signal*q_map_rot.signal_arr
+        )
+        tangent_denominator = np.sum(
+            q_average_map_signal*q_map_rot.signal_arr + u_average_map_signal*u_map_rot.signal_arr
+        )
+        rot_angle_deltas_list[obsind] = np.arctan2(tangent_numerator, tangent_denominator)
+
+    # Ensure that the change in the rotation angles is mean-zero
+    mean_angle = np.arctan2(
+        np.sum(np.sin(rot_angle_deltas_list)),
+        np.sum(np.cos(rot_angle_deltas_list))
+    )
+    rot_angle_deltas_list = rot_angle_deltas_list - mean_angle
+    rot_angle_list = rot_angle_deltas_list
+
+    eff_rot_angle = eff_rot_angle_start + rot_angle_list
+    # Ensure that the rotation angles are within +/- pi
+    eff_rot_angle = np.arctan2(np.sin(eff_rot_angle), np.cos(eff_rot_angle))
+
+    # Convert effective rotation angles to RMs
+    for obsind in range(len(obs_list_1)+len(obs_list_2)):
+        rms_use[obsind] = interpolate_rms(
+            rms_lookup, rot_angles_lookup,
+            rms_orig[obsind], eff_rot_angle[obsind],
+            start_freq_mhz, end_freq_mhz
+        )
+
+    # Save RMs to a CSV file
+    csv_outfile = open(rm_outfile, 'w')
+    outfile_writer = csv.writer(csv_outfile)
+    outfile_writer.writerow(['ObsID', 'RM'])
+    for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+        outfile_writer.writerow([obsid, rms_use[obsind]])
+    csv_outfile.close()
+
+    # Create new average maps
+    combined_maps, weight_map = healpix_utils.average_healpix_maps(
+        ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
+        obs_lists = [obs_list_1, obs_list_2],
+        nside=128,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+        weighting='weighted',
+        apply_radial_weighting=True,
+        apply_rm_correction=True,
+        use_rms=rms_use,
+        quiet=True
+    )
+    q_average_map = combined_maps[1]
+    u_average_map = combined_maps[2]
+
+    # Plot
+    colorbar_range = [-2e3, 2e3]
+    plot_healpix_map.plot_filled_pixels(
+        q_average_map,
+        '{}/StokesQ_averaged_final.png'.format(rm_outpath),
+        colorbar_range=colorbar_range
+    )
+    plot_healpix_map.plot_filled_pixels(
+        u_average_map,
+        '{}/StokesU_averaged_final.png'.format(rm_outpath),
+        colorbar_range=colorbar_range
+    )
+    # Save maps
+    q_average_map.write_data_to_fits(
+        '{}/StokesQ_averaged_final.fits'.format(rm_outpath)
+    )
+    u_average_map.write_data_to_fits(
+        '{}/StokesU_averaged_final.fits'.format(rm_outpath)
+    )
 
 
 if __name__=='__main__':
