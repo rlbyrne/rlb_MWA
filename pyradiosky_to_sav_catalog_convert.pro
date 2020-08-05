@@ -14,15 +14,16 @@ pro pyradiosky_to_sav_catalog_convert, filename_txt, filename_sav
     readf, datafile, file_contents
     free_lun, datafile
 
-    header = strsplit(file_contents[0], /extract)
-    data = strarr(n_elements(header), nsources)
+    ; Assume header has the form:
+    ; SOURCE_ID  RA_J2000 [deg]  Dec_J2000 [deg]  Flux [Jy]  Frequency [Hz]
+    data = strarr(5, nsources)
     for line=0,nsources-1 do data[*, line]=strsplit(file_contents[line+1], /extract)
     undefine, file_contents
-    source_ids = data[where(header eq 'Source_ID'), *]
-    source_ras = float(data[where(header eq 'RA_J2000'), *])*!RaDeg
-    source_decs = float(data[where(header eq 'Dec_J2000'), *])
-    source_freqs = float(data[where(header eq 'Frequency'), *])
-    source_fluxes_I = float(data[where(header eq 'Flux_Density_I_Jy'), *])
+    source_ids = data[0, *]
+    source_ras = float(data[1, *])*!RaDeg
+    source_decs = float(data[2, *])
+    source_fluxes_I = float(data[3, *])
+    source_freqs = float(data[4, *])
     undefine, data
 
     catalog=Replicate(struct_base,nsources>1)
