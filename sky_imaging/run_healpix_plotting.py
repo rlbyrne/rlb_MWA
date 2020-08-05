@@ -2054,7 +2054,303 @@ def write_out_images_Jun3():
     )
 
 
+def plot_variance_maps_Aug4():
+
+    obs_list_1 = [
+        '1131551744',
+        '1130783824',
+        '1131562544',
+        '1131709912',
+        '1130776864',
+        '1131461496',
+        '1130782264',
+        #'1131454176', high power and systematics in Stokes V
+        '1131715432',
+        '1131733552',
+        '1131542624',
+        '1130773144',
+        '1131461376',
+        '1131557144',
+        '1131454296',
+        '1131731752',
+        '1130778664',
+        '1131470496',
+        '1131559064',
+        '1131717232',
+        '1131463536',
+        '1130773264',
+        '1131463416',
+        '1131717352',
+        '1131713632',
+        '1131478056',
+        '1131468936',
+        '1131468696',
+        '1131535424',
+        '1131463296',
+        '1131465216',
+        '1131710032',
+        '1130776624',
+        '1131456096',
+        #'1131456216',
+        '1131540824',
+        '1131711952',
+        '1131459576',
+        '1131477936',
+        '1131733672',
+        '1131564464',
+        '1130787784',
+        #'1131475896',
+        '1131461616',
+        '1131558944',
+        '1131470616',
+        '1131549944',
+        '1131553544',
+        #'1131477816',
+        '1131459696',
+        '1130780464',
+        '1131726352',
+        #'1131715312',
+        '1131470736',
+        '1131548024',
+        '1131710152',
+        '1130785864',
+        #'1131724672',
+        '1131544424'
+    ]
+
+    obs_list_2 = ['1131542504',
+        #'1131717112',
+        '1131733432',
+        '1131735232',
+        '1131553664',
+        '1131724432',
+        '1131542744',
+        '1131455976',
+        '1131719152',
+        '1131454416',
+        #'1131728032',
+        '1130787544',
+        '1130776744',
+        #'1131726472',
+        '1130780224',
+        '1131551624',
+        '1131722632',
+        '1131547904',
+        '1130776624',
+        '1131562664',
+        '1131550064',
+        '1131537104',
+        '1131555224',
+        '1131467136',
+        '1131539024',
+        '1131555344',
+        '1131546104',
+        '1131548144',
+        '1131472416',
+        '1131558824',
+        '1131544304',
+        '1130789584',
+        '1131476136',
+        '1130789344',
+        #'1131728272',
+        '1131722872',
+        '1130785744',
+        '1131730072',
+        '1131459816',
+        '1131564584',
+        '1131457776',
+        '1131724552',
+        '1130787664',
+        '1130778424',
+        '1131728152',
+        '1131722752',
+        '1131538904',
+        '1131544544',
+        '1130778544',
+        '1131467016',
+        '1131546344',
+        '1130789464',
+        '1131713512',
+        '1131546224',
+        '1131474336',
+        '1130782144',
+        '1131735472',
+        '1130775064',
+        '1130774824',
+        '1131720832',
+        '1130774944',
+        '1131557264',
+        '1130783944',
+        #'1131713752',
+        '1131472296',
+        '1131465096',
+        '1131457896',
+        '1131555464',
+        #'1131720712',
+        #'1131711832',
+        '1131562424',
+        '1131551864',
+        '1131540704',
+        '1130780344',
+        '1131731632',
+        '1131468816',
+        #'1131711712',
+        '1131472536',
+        #'1131729832',
+        '1130773024',
+        #'1131720952',
+        #'1131718912',
+        #'1131719032',
+        '1131474096',
+        '1131465336',
+        '1131715552',
+        '1131458016',
+        '1131540944',
+        '1131557024',
+        '1131731872',
+        '1131553424',
+        '1131560864',
+        '1130784064',
+        '1131466896',
+        '1130782024',
+        '1131560624',
+        '1131474216',
+        '1131564344',
+        '1131729952',
+        '1131560744',
+        '1130785624',
+        '1131709432',
+        '1131536624',
+        '1131536384',
+        '1131711112',
+        '1131709192',
+        '1131710992',
+        #'1131709792', stripes in V
+        '1131453456',
+        '1131565304',
+        '1131478776',
+        '1131566504',
+        '1131565184',
+        '1131566624',
+        '1131566744',
+        '1131565064',
+        '1131567944',
+        '1131478656',
+        '1131568544',
+        #'1131740872', excess power
+        '1131739432',
+        '1130788504',
+        '1130788264',
+        '1131740752',
+        #'1131735952', # maybe excess power
+        #'1131739552', excess power
+        '1131455736',
+        '1131710392',
+        '1131708952',
+        '1131457176',
+        '1131716512',
+        #'1131713272', excess power
+        '1131458976',
+        '1131712192',
+        '1131453936',
+        '1131457536',
+        '1131537704',
+        '1131543584'
+    ]
+
+    averaged_maps, variance_maps, snr_maps, weights_map, nsamples_map = healpix_utils.calculate_variance_healpix_maps(
+        ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020',
+        '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'],
+        obs_lists = [obs_list_1, obs_list_2],
+        nside=128,
+        cube_names=['Residual_I', 'Residual_Q', 'Residual_U', 'Residual_V'],
+        weighting='weighted',
+        apply_radial_weighting=True,
+        apply_rm_correction=True,
+        rm_file='/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg/diffuse_survey_rm_empirical_in_eor0_Aug2020.csv'
+    )
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    pols = ['I', 'Q', 'U', 'V']
+    for pol_ind, pol_name in enumerate(pols):
+        averaged_maps[pol_ind].write_data_to_fits(
+            '{}/Stokes{}_average_map_empirical_rm_in_eor0.fits'.format(outdir, pol_name)
+        )
+        variance_maps[pol_ind].write_data_to_fits(
+            '{}/Stokes{}_variance_map_empirical_rm_in_eor0.fits'.format(outdir, pol_name)
+        )
+    weights_map.write_data_to_fits(
+        '{}/weights_map.fits'.format(outdir)
+    )
+    nsamples_map.write_data_to_fits(
+        '{}/nsamples_map.fits'.format(outdir)
+    )
+    for pol_ind, pol_name in enumerate(pols):
+        if pol_name == 'I':
+            colorbar_range = [-1e4, 1e4]
+            var_colorbar_range = [0, 1e4]
+            snr_colorbar_range = [0, 2]
+        else:
+            colorbar_range = [-2e3, 2e3]
+            var_colorbar_range = [0, 2e3]
+            snr_colorbar_range = [0, 2]
+        plot_healpix_map.plot_filled_pixels(
+            averaged_maps[pol_ind],
+            '{}/Stokes{}_average_map_empirical_rm_in_eor0.png'.format(outdir, pol_name),
+            colorbar_range=colorbar_range
+        )
+        variance_maps[pol_ind].signal_arr = np.sqrt(variance_maps[pol_ind].signal_arr)
+        plot_healpix_map.plot_filled_pixels(
+            variance_maps[pol_ind],
+            '{}/Stokes{}_stddev_map_empirical_rm_in_eor0.png'.format(outdir, pol_name),
+            colorbar_range=var_colorbar_range, colorbar_label='Standard Deviation (Jy/sr)'
+        )
+    plot_healpix_map.plot_filled_pixels(
+        weights_map,
+        '{}/weights_map.png'.format(outdir), colorbar_label='Weights'
+    )
+    plot_healpix_map.plot_filled_pixels(
+        nsamples_map,
+        '{}/nsamples_map.png'.format(outdir),
+        colorbar_label='Number of Observations'
+    )
+
+
+def undo_rm_correction_Aug4():
+
+    obsid = '1131454296'
+    rm_file='/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg/diffuse_survey_rm_empirical_in_eor0_Aug2020.csv'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    maps = [None]
+    for pol_name in ['Q', 'U']:
+        map = healpix_utils.load_map(
+            '{}/Stokes{}_average_map_empirical_rm_in_eor0.fits'.format(outdir, pol_name)
+        )
+        maps.append(map)
+    maps.append(None)
+    print np.mean(np.sqrt(maps[1].signal_arr**2+maps[2].signal_arr**2))
+    maps = healpix_utils.undo_rm_correction(
+        obsid, maps, rm_file=rm_file
+    )
+    print np.mean(np.sqrt(maps[1].signal_arr**2+maps[2].signal_arr**2))
+    maps[1].write_data_to_fits(
+        '{}/StokesQ_average_map_{}_rm_undone.fits'.format(outdir, obsid)
+    )
+    maps[2].write_data_to_fits(
+        '{}/StokesU_average_map_{}_rm_undone.fits'.format(outdir, obsid)
+    )
+    colorbar_range = [-2e3, 2e3]
+    plot_healpix_map.plot_filled_pixels(
+        maps[1],
+        '{}/StokesQ_average_map_{}_rm_undone.png'.format(outdir, obsid),
+        colorbar_range=colorbar_range
+    )
+    plot_healpix_map.plot_filled_pixels(
+        maps[2],
+        '{}/StokesU_average_map_{}_rm_undone.png'.format(outdir, obsid),
+        colorbar_range=colorbar_range
+    )
+
 
 if __name__ == '__main__':
 
-    write_out_images_Jun3()
+    undo_rm_correction_Aug4()

@@ -416,7 +416,7 @@ def cost_function_with_prior(
     return cost
 
 
-def main_iterative():
+def calculate_empirical_rm_iterative():
 
     n_iter = 1000
     step_size = .3
@@ -586,7 +586,7 @@ def main_iterative():
     csv_outfile.close()
 
 
-def main():
+def calculate_empirical_rm_no_iteration():
 
     rm_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
     rm_outpath = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg'
@@ -761,5 +761,56 @@ def main():
     )
 
 
+def save_empirical_rm_vals_in_eor0():
+
+    rm_orig_file = '/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+    rm_empirical_file = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg/diffuse_survey_rm_empirical_Jul2020.csv'
+    rm_outfile = '/Users/rubybyrne/rm_empirical_calculation/Jul2020_align_with_avg/diffuse_survey_rm_empirical_in_eor0_Aug2020.csv'
+
+    # Get original RMs
+    rm_orig_data = np.genfromtxt(
+        rm_orig_file, delimiter=',', dtype=None, names=True, encoding=None
+    )
+    rms_orig = np.array([
+        rm_orig_data['RM'][np.where(rm_orig_data['ObsID'] == int(obsid))][0] for obsid in obs_list_1+obs_list_2
+    ])
+
+    # Get empirically calculated RMs
+    rm_empirical_data = np.genfromtxt(
+        rm_empirical_file, delimiter=',', dtype=None, names=True, encoding=None
+    )
+    rms_empirical = np.array([
+        rm_empirical_data['RM'][np.where(rm_empirical_data['ObsID'] == int(obsid))][0] for obsid in obs_list_1+obs_list_2
+    ])
+
+    use_rms = np.copy(rms_orig)
+    eor0_obslist = []
+    eor0_decrange = [-30, -10]
+    eor0_rarange = [-11, 10]
+    for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+        if obsid in obs_list_1:
+            path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Feb2020'
+        elif obsid in obs_list_2:
+            path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_baseline_cut_optimal_weighting_Mar2020'
+        obs_struct = scipy.io.readsav(
+            '{}/metadata/{}_obs.sav'.format(path, obsid)
+        )['obs']
+        if eor0_decrange[0] < float(obs_struct['obsdec']) < eor0_decrange[1]:
+            if (
+                eor0_rarange[0] < float(obs_struct['obsra']) < eor0_rarange[1]
+                or eor0_rarange[0] < float(obs_struct['obsra'])+360. < eor0_rarange[1]
+                or eor0_rarange[0] < float(obs_struct['obsra'])-360. < eor0_rarange[1]
+            ):
+                eor0_obslist.append(obsid)
+                use_rms[obsind] = rms_empirical[obsind]
+
+    csv_outfile = open(rm_outfile, 'w')
+    outfile_writer = csv.writer(csv_outfile)
+    outfile_writer.writerow(['ObsID', 'RM'])
+    for obsind, obsid in enumerate(obs_list_1+obs_list_2):
+        outfile_writer.writerow([obsid, use_rms[obsind]])
+    csv_outfile.close()
+
+
 if __name__=='__main__':
-    main()
+    save_empirical_rm_vals_in_eor0()
