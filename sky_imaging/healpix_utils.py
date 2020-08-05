@@ -722,23 +722,90 @@ def rm_correction(
         wl_min = c/(end_freq_mhz*1.e6)
         fresS_min, fresC_min = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_min)
         fresS_max, fresC_max = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_max)
-        cos_int = (
+        cos_int = np.real(
             np.cos(2.*rm*wl_min**2.)/wl_min
             - np.cos(2.*rm*wl_max**2.)/wl_max
             + 2*np.sqrt(np.pi*rm+0j)*(fresS_min-fresS_max)
         )
-        sin_int = (
+        sin_int = np.real(
             np.sin(2.*rm*wl_min**2.)/wl_min
             - np.sin(2.*rm*wl_max**2.)/wl_max
             - 2*np.sqrt(np.pi*rm+0j)*(fresC_min-fresC_max)
         )
-        const = (1/wl_min - 1/wl_max)/(cos_int**2 + sin_int**2)
-        new_q = np.real(const*(
-            cos_int*maps[1].signal_arr + sin_int*maps[2].signal_arr
-        ))
-        new_u = np.real(const*(
-            -sin_int*maps[1].signal_arr + cos_int*maps[2].signal_arr
-        ))
+        eff_rot_angle = np.arctan2(sin_int, cos_int)
+        const = (1/wl_min - 1/wl_max)/np.sqrt(cos_int**2 + sin_int**2)
+        new_q = const*(
+            np.cos(eff_rot_angle)*maps[1].signal_arr
+            + np.sin(eff_rot_angle)*maps[2].signal_arr
+        )
+        new_u = const*(
+            -np.sin(eff_rot_angle)*maps[1].signal_arr
+            + np.cos(eff_rot_angle)*maps[2].signal_arr
+        )
+
+    maps[1].signal_arr = new_q
+    maps[2].signal_arr = new_u
+    return maps
+
+
+def undo_rm_correction(
+    obsid, maps, rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv',
+    start_freq_mhz=167., end_freq_mhz=198., use_single_freq_calc=False,
+    use_rm=None
+):
+
+    if rm_file is None:
+        rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
+
+    if len(maps) < 3:
+        print 'ERROR: RM correction requires Stokes Q and U maps.'
+        sys.exit(1)
+    if use_rm is None: # Look up RM if none is provided explicitly
+        rm_data = np.genfromtxt(
+            rm_file, delimiter=',', dtype=None, names=True, encoding=None
+        )
+        if int(obsid) not in rm_data['ObsID']:
+            print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
+            sys.exit(1)
+        rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
+    else:
+        rm = use_rm
+
+    c = 3.e8
+    if start_freq_mhz == end_freq_mhz:
+        use_single_freq_calc = True
+
+    if use_single_freq_calc:
+        reference_freq_mhz = np.mean([start_freq_mhz, end_freq_mhz])
+        wavelength = c/(reference_freq_mhz*1.e6)
+        rot_angle = rm * wavelength**2.
+        new_q = np.cos(2*rot_angle)*maps[1].signal_arr + np.sin(2*rot_angle)*maps[2].signal_arr
+        new_u = -np.sin(2*rot_angle)*maps[1].signal_arr + np.cos(2*rot_angle)*maps[2].signal_arr
+    else:
+        wl_max = c/(start_freq_mhz*1.e6)
+        wl_min = c/(end_freq_mhz*1.e6)
+        fresS_min, fresC_min = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_min)
+        fresS_max, fresC_max = scipy.special.fresnel(2*np.sqrt(rm/np.pi+0j)*wl_max)
+        cos_int = np.real(
+            np.cos(2.*rm*wl_min**2.)/wl_min
+            - np.cos(2.*rm*wl_max**2.)/wl_max
+            + 2*np.sqrt(np.pi*rm+0j)*(fresS_min-fresS_max)
+        )
+        sin_int = np.real(
+            np.sin(2.*rm*wl_min**2.)/wl_min
+            - np.sin(2.*rm*wl_max**2.)/wl_max
+            - 2*np.sqrt(np.pi*rm+0j)*(fresC_min-fresC_max)
+        )
+        eff_rot_angle = np.arctan2(sin_int, cos_int)
+        const = (1/wl_min - 1/wl_max)/np.sqrt(cos_int**2 + sin_int**2)
+        new_q = (
+            np.cos(eff_rot_angle)*maps[1].signal_arr
+            - np.sin(eff_rot_angle)*maps[2].signal_arr
+        )/const
+        new_u = (
+            np.sin(eff_rot_angle)*maps[1].signal_arr
+            + np.cos(eff_rot_angle)*maps[2].signal_arr
+        )/const
 
     maps[1].signal_arr = new_q
     maps[2].signal_arr = new_u
@@ -748,7 +815,8 @@ def rm_correction(
 def calculate_variance_healpix_maps(
     fhd_run_paths, obs_lists=None, obs_weights_list=None,
     saved_averaged_maps=None, nside=None, cube_names=['Residual_I'],
-    weighting='uniform', apply_radial_weighting=False, apply_rm_correction=False
+    weighting='uniform', apply_radial_weighting=False,
+    apply_rm_correction=False, rm_file=None
 ):
 
     if isinstance(fhd_run_paths, str): #check if string
@@ -772,7 +840,7 @@ def calculate_variance_healpix_maps(
             obs_weights_list=obs_weights_list, nside=nside,
             cube_names=cube_names, weighting=weighting,
             apply_radial_weighting=apply_radial_weighting,
-            apply_rm_correction=apply_rm_correction
+            apply_rm_correction=apply_rm_correction, rm_file=rm_file
         )
     else:
         if len(saved_averaged_maps) != len(cube_names):
@@ -782,7 +850,7 @@ def calculate_variance_healpix_maps(
                 obs_weights_list=obs_weights_list, nside=nside,
                 cube_names=cube_names, weighting=weighting,
                 apply_radial_weighting=apply_radial_weighting,
-                apply_rm_correction=apply_rm_correction
+                apply_rm_correction=apply_rm_correction, rm_file=rm_file
             )
         else:
             print 'Loading saved data averages.'
@@ -888,6 +956,9 @@ def calculate_variance_healpix_maps(
                         print 'ERROR: Map coordinates do not match. Exiting.'
                         sys.exit(1)
                 maps.append(map)
+
+            if apply_rm_correction:
+                maps = rm_correction(obsid, maps, rm_file=rm_file)
 
             if apply_radial_weighting:  # Restore obs structure if necessary
                 obs_struct = scipy.io.readsav(
