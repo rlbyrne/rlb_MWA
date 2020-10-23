@@ -3,10 +3,12 @@ pro rlb_versions_gillyweed
   !except=0
   heap_gc
   
-  obs_id = '1061316296'
-  vis_file_list = '/Users/Shared/uvfits/4.1/'+obs_id+'.uvfits'
+  ;obs_id = '1061316296'
+  ;vis_file_list = '/Users/Shared/uvfits/4.1/'+obs_id+'.uvfits'
+  obs_id = 'GLEAM_MWA_uvbeam_time10_freqs384'
+  vis_file_list = '/Users/rubybyrne/Downloads/GLEAM_MWA_uvbeam_time10_freqs384.uvfits'
   output_directory = '/Volumes/Bilbo/rlb_fhd_outputs'
-  version = 'rlb_get_uvf_cubes_Apr2020'
+  version = 'rlb_test_for_daniya'
 
   case version of
 
@@ -25,6 +27,27 @@ pro rlb_versions_gillyweed
       debug_region_grow = 0
       n_pol = 2
       time_cut = -4 ;flag an extra 4 seconds from the end of each obs
+      save_uvf = 1
+    end
+    
+    'rlb_test_for_daniya': begin
+      calibrate_visibilities=0
+      model_visibilities=0
+    end
+    
+    'rlb_test_hpx_inds': begin
+      recalculate_all = 0
+      calibration_flux_threshold = .5
+      calibration_catalog_file_path = filepath('GLEAM_v2_plus_rlb2019.sav',root=rootdir('FHD'),subdir='catalog_data')
+      subtract_sidelobe_catalog = filepath('GLEAM_v2_plus_rlb2019.sav',root=rootdir('FHD'),subdir='catalog_data')
+      pad_uv_image = 1
+      diffuse_calibrate = 0
+      diffuse_model = 0
+      return_sidelobe_catalog = 1
+      ring_radius = 0
+      debug_region_grow = 0
+      n_pol = 4
+      cal_bp_transfer = 0
       save_uvf = 1
     end
 
