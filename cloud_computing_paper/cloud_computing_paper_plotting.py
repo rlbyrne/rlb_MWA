@@ -129,6 +129,8 @@ def plot_ram_usage():
     data_sorted = data[sort_inds]
     plt.figure()
     plt.plot(times_sorted/60., data_sorted/1024., "-", markersize=1)
+    max_ram = np.full(2, 64.)
+    plt.plot([0, 700], max_ram, '--', color='black', markersize=.5)
     plt.xlabel("time (m)")
     plt.ylabel("RAM usage (GB)")
 
@@ -141,5 +143,5 @@ def plot_ram_usage():
 
 
 if __name__ == '__main__':
-    plot_iops()
+    plot_ram_usage()
     
