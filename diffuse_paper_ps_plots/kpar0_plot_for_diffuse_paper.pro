@@ -7,20 +7,29 @@ pro kpar0_plot_for_diffuse_paper
   pols = ['xx', 'yy']
   yrange = [1.e11, 3.e15]
   
-  plot_by_versions = 0
-  plot_all_models = 0
-  plot_all_residuals = 0
+  plot_by_versions = 1
+  plot_all_models = 1
+  plot_all_residuals = 1
   plot_ratios = 0
-  plot_ratios_liny = 1
+  plot_ratios_liny = 0
+  use_log_binned = 1
   
   for pol_ind=0,n_elements(pols)-1 do begin
     pol = pols[pol_ind]
        
     if keyword_set(plot_by_versions) then begin
       for run_ind =0,n_elements(names)-1 do begin
-        datafiles = [path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_dencorr_k0power.idlsave', $
-          path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_dencorr_k0power.idlsave', $
-          path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+        
+        if keyword_set(use_log_binned) then begin
+          datafiles = [path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave', $
+            path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave', $
+            path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+        endif else begin
+          datafiles = [path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_dencorr_k0power.idlsave', $
+            path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_dencorr_k0power.idlsave', $
+            path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+        endelse
+        
         colors = ['blue', 'red', 'orange']
         linestyles = [0,0,0]
       
@@ -61,7 +70,11 @@ pro kpar0_plot_for_diffuse_paper
     if keyword_set(plot_all_models) then begin
       
       datafiles = []
-      for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+      if keyword_set(use_log_binned) then begin
+        for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+      endif else begin
+        for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+      endelse
       
       colors = ['black', 'blue', 'red', 'orange']
       linestyles = [0,0,0,0]
@@ -102,7 +115,11 @@ pro kpar0_plot_for_diffuse_paper
     if keyword_set(plot_all_residuals) then begin
   
       datafiles = []
-      for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+      if keyword_set(use_log_binned) then begin
+        for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+      endif else begin
+        for run_ind=0,n_elements(names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_dencorr_k0power.idlsave']
+      endelse
   
       colors = ['black', 'blue', 'red', 'orange']
       linestyles = [0,0,0,0]
