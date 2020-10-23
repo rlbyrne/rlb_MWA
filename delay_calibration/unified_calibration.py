@@ -8,10 +8,28 @@ import scipy
 import scipy.optimize
 import scipy.stats
 sys.path.append('/Users/ruby/EoR/pyuvdata')
-from pyuvdata import UVData
+import pyuvdata
 
 
-def calc_negloglikelihood(
+def calc_negloglikelihood_sky_cal(
+    gains, data_visibilities, model_visibilities,
+    a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    data_stddev
+):
+
+    model_visibilities_expanded = np.matmul(a_mat, model_visibilities)
+    gains_expanded = (
+        np.matmul(gains_exp_mat_1, gains)
+        * np.matmul(gains_exp_mat_2, np.conj(gains))
+    )
+    prob = np.sum(np.abs(
+        data_visibilities - gains_expanded*model_visibilities_expanded
+    )**2)
+
+    return (prob/data_stddev**2.)
+
+
+def calc_negloglikelihood_unified_cal(
     gains, fitted_visibilities, data_visibilities, model_visibilities,
     baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
     data_stddev, model_stddev
@@ -22,22 +40,32 @@ def calc_negloglikelihood(
         np.dot(np.matmul(np.conj(vis_diff), baseline_cov_inv), vis_diff)
     )
 
-    fitted_visibilities_expanded = np.matmul(a_mat, fitted_visibilities)
-    gains_expanded = (
-        np.matmul(gains_exp_mat_1, gains)
-        * np.matmul(gains_exp_mat_2, np.conj(gains))
+    term1 = calc_negloglikelihood_sky_cal(
+        gains, data_visibilities, fitted_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
     )
-    prob = np.sum(np.abs(
-        data_visibilities - gains_expanded*fitted_visibilities_expanded
-    )**2)
 
-    return (prob/data_stddev**2. + prior/model_stddev**2.)
+    return (term1 + prior/model_stddev**2.)
+
+
+def calc_negloglikelihood_relative_cal(
+    gains, fitted_visibilities, data_visibilities,
+    a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    data_stddev
+):
+
+    return calc_negloglikelihood_sky_cal(
+        gains, data_visibilities, fitted_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
+    )
 
 
 def calc_gains_grad(
     gains, fitted_visibilities, data_visibilities,
     a_mat, gains_exp_mat_1, gains_exp_mat_2,
-    data_stddev, model_stddev
+    data_stddev
 ):
 
     gains1_expanded = np.matmul(gains_exp_mat_1, gains)
@@ -60,7 +88,7 @@ def calc_gains_grad(
     return gains_grad
 
 
-def calc_vis_grad(
+def calc_vis_grad_unified_cal(
     gains, fitted_visibilities, data_visibilities, model_visibilities,
     baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
     data_stddev, model_stddev
@@ -85,10 +113,38 @@ def calc_vis_grad(
     return vis_grad
 
 
-def cost_function(
+def calc_vis_grad_relative_cal(
+    gains, fitted_visibilities, data_visibilities,
+    a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    data_stddev
+):
+
+    gains1_expanded = np.matmul(gains_exp_mat_1, gains)
+    gains2_expanded = np.matmul(gains_exp_mat_2, gains)
+    gains_expanded = gains1_expanded*np.conj(gains2_expanded)
+
+    vis_grad_term_1 = (2./data_stddev**2.) * (
+        np.matmul(np.abs(gains_expanded)**2, a_mat**2.)*fitted_visibilities
+    )
+    vis_grad_term_2 = (-2./data_stddev**2.) * (
+        np.matmul(data_visibilities*np.conj(gains_expanded), a_mat)
+    )
+    vis_grad = vis_grad_term_1 + vis_grad_term_2
+
+    return vis_grad
+
+
+def cost_function_unified_cal(
     x,
-    N_red_baselines, N_ants, baseline_cov_inv, model_visibilities, a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
+    N_red_baselines,
+    N_ants,
+    baseline_cov_inv,
+    model_visibilities,
+    a_mat,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev,
     model_stddev
 ):
 
@@ -97,7 +153,7 @@ def cost_function(
     )
     gains = x[:N_ants]+1j*x[N_ants:2*N_ants]
 
-    cost = calc_negloglikelihood(
+    cost = calc_negloglikelihood_unified_cal(
         gains, fitted_visibilities, data_visibilities, model_visibilities,
         baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
         data_stddev, model_stddev
@@ -105,10 +161,17 @@ def cost_function(
     return cost
 
 
-def jac_function(
+def jac_function_unified_cal(
     x,
-    N_red_baselines, N_ants, baseline_cov_inv, model_visibilities, a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
+    N_red_baselines,
+    N_ants,
+    baseline_cov_inv,
+    model_visibilities,
+    a_mat,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev,
     model_stddev
 ):
 
@@ -120,9 +183,9 @@ def jac_function(
     gains_grad = calc_gains_grad(
         gains, fitted_visibilities, data_visibilities,
         a_mat, gains_exp_mat_1, gains_exp_mat_2,
-        data_stddev, model_stddev
+        data_stddev
     )
-    vis_grad = calc_vis_grad(
+    vis_grad = calc_vis_grad_unified_cal(
         gains, fitted_visibilities, data_visibilities, model_visibilities,
         baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
         data_stddev, model_stddev
@@ -136,87 +199,143 @@ def jac_function(
     return grads
 
 
-def gains_cost_function(  # This function is currently not used
-    gains_expanded,
-    fitted_visibilities, N_red_baselines, N_ants, baseline_cov_inv,
-    model_visibilities, a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
-    model_stddev
+def cost_function_sky_cal(
+    x,
+    N_ants,
+    model_visibilities,
+    a_mat,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev
 ):
 
-    gains = gains_expanded[:N_ants]+1j*gains_expanded[N_ants:]
+    gains = x[:N_ants]+1j*x[N_ants:2*N_ants]
 
-    cost = calc_negloglikelihood(
-        gains, fitted_visibilities, data_visibilities, model_visibilities,
-        baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
-        data_stddev, model_stddev
+    cost = calc_negloglikelihood_sky_cal(
+        gains, data_visibilities, model_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
     )
     return cost
 
 
-def vis_cost_function(  # This function is currently not used
-    vis_expanded,
-    gains, N_red_baselines, N_ants, baseline_cov_inv, model_visibilities,
+def jac_function_sky_cal(
+    x,
+    N_ants,
+    model_visibilities,
     a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
-    model_stddev
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev
+):
+
+    gains = x[:N_ants]+1j*x[N_ants:2*N_ants]
+
+    gains_grad = calc_gains_grad(
+        gains, model_visibilities, data_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
+    )
+
+    grads = np.zeros(N_ants*2)
+    grads[:N_ants] = np.real(gains_grad)
+    grads[N_ants:2*N_ants] = np.imag(gains_grad)
+    return grads
+
+
+def cost_function_relative_cal(
+    x,
+    N_red_baselines,
+    N_ants,
+    a_mat,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev
 ):
 
     fitted_visibilities = (
-        vis_expanded[:N_red_baselines] + 1j*vis_expanded[N_red_baselines:]
+        x[-2*N_red_baselines:-N_red_baselines] + 1j*x[-N_red_baselines:]
     )
-    cost = calc_negloglikelihood(
-        gains, fitted_visibilities, data_visibilities, model_visibilities,
-        baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
-        data_stddev, model_stddev
+    gains = x[:N_ants]+1j*x[N_ants:2*N_ants]
+
+    cost = calc_negloglikelihood_relative_cal(
+        gains, fitted_visibilities, data_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
     )
     return cost
 
 
-def gains_jac_function(  # This function is currently not used
-    gains_expanded,
-    fitted_visibilities, N_red_baselines, N_ants, baseline_cov_inv,
-    model_visibilities, a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
-    model_stddev
+def jac_function_relative_cal(
+    x,
+    N_red_baselines,
+    N_ants,
+    a_mat,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev
 ):
 
-    gains = gains_expanded[:N_ants]+1j*gains_expanded[N_ants:]
+    fitted_visibilities = (
+        x[-2*N_red_baselines:-N_red_baselines] + 1j*x[-N_red_baselines:]
+    )
+    gains = x[:N_ants]+1j*x[N_ants:2*N_ants]
+
     gains_grad = calc_gains_grad(
         gains, fitted_visibilities, data_visibilities,
         a_mat, gains_exp_mat_1, gains_exp_mat_2,
-        data_stddev, model_stddev
+        data_stddev
     )
-    gains_grad_expanded = np.concatenate(
-        (np.real(gains_grad), np.imag(gains_grad))
+    vis_grad = calc_vis_grad_relative_cal(
+        gains, fitted_visibilities, data_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
     )
-    return gains_grad_expanded
+
+    grads = np.zeros(N_ants*2+N_red_baselines*2)
+    grads[:N_ants] = np.real(gains_grad)
+    grads[N_ants:2*N_ants] = np.imag(gains_grad)
+    grads[-2*N_red_baselines:-N_red_baselines] = np.real(vis_grad)
+    grads[-N_red_baselines:] = np.imag(vis_grad)
+    return grads
 
 
-def vis_jac_function(  # This function is currently not used
-    vis_expanded,
-    gains, N_red_baselines, N_ants, baseline_cov_inv, model_visibilities,
+def cost_function_absolute_cal(
+    x,
+    gains_fit,
+    ant_locs,
+    model_visibilities,
     a_mat,
-    gains_exp_mat_1, gains_exp_mat_2, data_visibilities, data_stddev,
-    model_stddev
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev
 ):
 
-    fitted_visibilities = (
-        vis_expanded[:N_red_baselines] + 1j*vis_expanded[N_red_baselines:]
+    amp = x[0]
+    phase_grad_1 = x[1]
+    phase_grad_2 = x[2]
+
+    phase_offsets = phase_grad_1*ant_locs[:, 0] + phase_grad_2*ant_locs[:, 1]
+    gains = amp*(np.cos(phase_offsets) + 1j*np.sin(phase_offsets))*gains_fit
+
+    cost = calc_negloglikelihood_sky_cal(
+        gains, data_visibilities, model_visibilities,
+        a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev
     )
-    vis_grad = calc_vis_grad(
-        gains, fitted_visibilities, data_visibilities, model_visibilities,
-        baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
-        data_stddev, model_stddev
-    )
-    vis_grad_expanded = np.concatenate((np.real(vis_grad), np.imag(vis_grad)))
-    return vis_grad_expanded
+    return cost
 
 
-def optimize_with_scipy_simple(
+def optimize_unified_cal_simple(
     data_visibilities, model_visibilities,
     baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
     N_red_baselines, N_ants, data_stddev, model_stddev,
+    ant_locs,  # Not used
     gains_init=None, fitted_visibilities_init=None, quiet=True
 ):
 
@@ -238,7 +357,7 @@ def optimize_with_scipy_simple(
 
     # Minimize the cost function
     result = scipy.optimize.minimize(
-        cost_function, x0,
+        cost_function_unified_cal, x0,
         args=(
             N_red_baselines, N_ants, baseline_cov_inv,
             model_visibilities, a_mat, gains_exp_mat_1, gains_exp_mat_2,
@@ -264,10 +383,11 @@ def optimize_with_scipy_simple(
     return gains_fit, vis_fit
 
 
-def optimize_with_scipy_jac(
+def optimize_unified_cal(
     data_visibilities, model_visibilities,
     baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
     N_red_baselines, N_ants, data_stddev, model_stddev,
+    ant_locs,  # Not used
     gains_init=None, fitted_visibilities_init=None, quiet=True
 ):
 
@@ -287,7 +407,7 @@ def optimize_with_scipy_jac(
 
     # Minimize the cost function
     result = scipy.optimize.minimize(
-        cost_function, x0, jac=jac_function,
+        cost_function_unified_cal, x0, jac=jac_function_unified_cal,
         args=(
             N_red_baselines, N_ants, baseline_cov_inv,
             model_visibilities, a_mat, gains_exp_mat_1, gains_exp_mat_2,
@@ -309,6 +429,133 @@ def optimize_with_scipy_jac(
         np.mean(np.cos(np.angle(gains_fit)))
     )
     gains_fit *= np.cos(avg_angle) - 1j*np.sin(avg_angle)
+
+    return gains_fit, vis_fit
+
+
+def optimize_sky_cal(
+    data_visibilities, model_visibilities,
+    baseline_cov_inv,  # Not used
+    a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    N_red_baselines, N_ants, data_stddev,
+    model_stddev,  # Not used
+    ant_locs,  # Not used
+    gains_init=None, fitted_visibilities_init=None, quiet=True
+):
+
+    method = 'CG'
+    maxiter = 100000
+
+    if gains_init is None:  # Initialize the gains to 1
+        gains_init = np.full(N_ants, 1.+0.j)
+    # Expand the initialized values
+    x0 = np.concatenate((
+        np.real(gains_init), np.imag(gains_init)
+    ))
+
+    # Minimize the cost function
+    result = scipy.optimize.minimize(
+        cost_function_sky_cal, x0, jac=jac_function_sky_cal,
+        args=(
+            N_ants, model_visibilities, a_mat,
+            gains_exp_mat_1, gains_exp_mat_2,
+            data_visibilities, data_stddev
+        ),
+        method=method, options={'disp': True, 'maxiter': maxiter}
+    )
+    if not quiet:
+        print(result.message)
+
+    gains_fit = result.x[:N_ants]+1j*result.x[N_ants:2*N_ants]
+    # Ensure that the angle of the gains is mean-zero
+    avg_angle = np.arctan2(
+        np.mean(np.sin(np.angle(gains_fit))),
+        np.mean(np.cos(np.angle(gains_fit)))
+    )
+    gains_fit *= np.cos(avg_angle) - 1j*np.sin(avg_angle)
+    vis_fit = None
+
+    return gains_fit, vis_fit
+
+
+def optimize_redundant_cal(
+    data_visibilities, model_visibilities,
+    baseline_cov_inv,  # Not used
+    a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    N_red_baselines, N_ants, data_stddev,
+    model_stddev,  # Not used
+    ant_locs,
+    gains_init=None, fitted_visibilities_init=None, quiet=True
+):
+
+    method = 'CG'
+    maxiter = 100000
+
+    if gains_init is None:  # Initialize the gains to 1
+        gains_init = np.full(N_ants, 1.+0.j)
+    # Initialize the fitted visibilities to the model visibilities
+    if fitted_visibilities_init is None:
+        fitted_visibilities_init = model_visibilities
+    # Expand the initialized values
+    x0 = np.concatenate((
+        np.real(gains_init), np.imag(gains_init),
+        np.real(fitted_visibilities_init), np.imag(fitted_visibilities_init)
+    ))
+
+    # Relative calibration
+    result = scipy.optimize.minimize(
+        cost_function_relative_cal, x0, jac=jac_function_relative_cal,
+        args=(
+            N_red_baselines, N_ants,
+            a_mat, gains_exp_mat_1, gains_exp_mat_2,
+            data_visibilities, data_stddev
+        ),
+        method=method, options={'disp': True, 'maxiter': maxiter}
+    )
+    if not quiet:
+        print(result.message)
+
+    gains_fit = result.x[:N_ants]+1j*result.x[N_ants:2*N_ants]
+    vis_fit = (
+        result.x[-2*N_red_baselines:-N_red_baselines]
+        + 1j*result.x[-N_red_baselines:]
+    )
+    # Ensure that the angle of the gains is mean-zero
+    avg_angle = np.arctan2(
+        np.mean(np.sin(np.angle(gains_fit))),
+        np.mean(np.cos(np.angle(gains_fit)))
+    )
+    gains_fit *= np.cos(avg_angle) - 1j*np.sin(avg_angle)
+
+    # Absolute calibration
+    x0 = np.array([1., 0., 0.])  # Amp, phase_grad_1, phase_grad_2
+    method = 'Powell'
+    result = scipy.optimize.minimize(
+        cost_function_absolute_cal, x0,
+        args=(
+            gains_fit, ant_locs,
+            model_visibilities,
+            a_mat, gains_exp_mat_1, gains_exp_mat_2,
+            data_visibilities, data_stddev
+        ),
+        method=method
+    )
+    if not quiet:
+        print(result.message)
+        print(result.x)
+    abs_cal_params = result.x
+    phase_offset = (
+        abs_cal_params[1]*ant_locs[:, 0] + abs_cal_params[2]*ant_locs[:, 1]
+    )
+    shift_phase = np.cos(phase_offset) + 1j*np.sin(phase_offset)
+    gains_fit *= abs_cal_params[0]*shift_phase
+    vis_shift_phase = np.matmul(
+        np.linalg.pinv(a_mat), (
+            np.matmul(gains_exp_mat_1, shift_phase)
+            * np.matmul(gains_exp_mat_2, shift_phase)
+        )
+    )
+    vis_fit /= (abs_cal_params[0]**2. * vis_shift_phase)
 
     return gains_fit, vis_fit
 
@@ -427,22 +674,52 @@ def histogram_plot_2d(
             plt.savefig(savepath, dpi=600)
 
 
-def unified_cal(
+def calibrate(
     data_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_sim__results.uvh5',
     model_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_100mjy_sim_results.uvh5',
     n_trials=100, data_stddev=.2,
     model_stddev_scaling=None,  # Can be list
-    use_covariances=False,
+    calibration_style='unified',
+    use_covariances=True,
     simple_optimization=False,
     create_model_errors_plot=True,
     model_errors_plot_savepath=None,
     quiet=False
 ):
 
+    if calibration_style == 'sky':
+        optimize_function_name = optimize_sky_cal
+    elif calibration_style == 'unified':
+        if simple_optimization:
+            optimize_function_name = optimize_unified_cal_simple
+        else:
+            optimize_function_name = optimize_unified_cal
+    elif calibration_style == 'redundant':
+        optimize_function_name = optimize_redundant_cal
+    else:
+        print(
+            'ERROR: calibration_style options are "sky", "unified", and '
+            '"redundant". Exiting.'
+        )
+        sys.exit(1)
+
+    if calibration_style != 'unified':
+        if use_covariances:
+            print(
+                'WARNING: Not using unified calibration. '
+                'No covariances applied.'
+            )
+            use_covariances = False
+        if simple_optimization:
+            print(
+                'WARNING: Simple optimization is implemented for unified '
+                'calibration only.'
+            )
+
     uvw_match_tolerance = 1e-12
 
     # Load data from pyuvsim simulation:
-    data_sim_compact = UVData()
+    data_sim_compact = pyuvdata.UVData()
     data_sim_compact.read_uvh5(data_path)
 
     # Remove autos
@@ -489,7 +766,7 @@ def unified_cal(
     N_vis = data_sim_expanded.Nbls
 
     # Load data with missing sources from pyuvsim simulation:
-    model_sim = UVData()
+    model_sim = pyuvdata.UVData()
     model_sim.read_uvh5(model_path)
 
     # Remove autos
@@ -558,6 +835,18 @@ def unified_cal(
         gains_exp_mat_1[baseline, data_sim_expanded.ant_1_array[baseline]] = 1
         gains_exp_mat_2[baseline, data_sim_expanded.ant_2_array[baseline]] = 1
 
+    if calibration_style == 'redundant':  # Calculate antenna positions
+        ant_locs = (
+            data_sim_expanded.antenna_positions
+            + data_sim_expanded.telescope_location
+        )
+        ant_locs = pyuvdata.utils.ENU_from_ECEF(
+            ant_locs, *data_sim_expanded.telescope_location_lat_lon_alt
+        )
+        ant_locs = ant_locs[:, :2]  # Discard altitude information
+    else:
+        ant_locs = None
+
     # Calculate deviation between model and true data
     model_stddev_sim = np.sqrt(np.mean(np.abs(
         model_sim_visibilities-data_sim_vis_no_noise
@@ -602,16 +891,12 @@ def unified_cal(
                     '***Version {}, Trial {}***'.format(stddev_ind+1, trial+1)
                 )
             data_visibilities = data_vis_noisy[:, trial]
-            
-            if simple_optimization:
-                optimize_function_name = optimize_with_scipy_simple
-            else:
-                optimize_function_name = optimize_with_scipy_jac
 
             gains_fit, vis_fit = optimize_function_name(
                 data_visibilities, model_sim_visibilities,
                 baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
                 N_red_baselines, N_ants, data_stddev, model_stddev_use,
+                ant_locs,
                 gains_init=None,
                 fitted_visibilities_init=np.matmul(
                     np.linalg.pinv(a_mat), data_visibilities
@@ -620,13 +905,14 @@ def unified_cal(
             )
 
             gain_vals[:, trial, stddev_ind] = gains_fit-1
-            vis_fit_diff = vis_fit-data_sim_vis_no_noise
-            vis_diff_vals[:, trial, stddev_ind] = vis_fit_diff
+            if vis_fit is not None:
+                vis_fit_diff = vis_fit-data_sim_vis_no_noise
+                vis_diff_vals[:, trial, stddev_ind] = vis_fit_diff
 
     return gain_vals, vis_diff_vals
 
 
 if __name__ == '__main__':
-    gain_vals, vis_diff_vals = unified_cal(n_trials=10)
+    gain_vals, vis_diff_vals = calibrate(n_trials=10, calibration_style='redundant')
     histogram_plot_2d(gain_vals, gains=True)
     histogram_plot_2d(vis_diff_vals, gains=False)
