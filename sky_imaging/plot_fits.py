@@ -203,7 +203,7 @@ def divide_images(image1, image2):
 
 
 def plot_fits_image(
-    fits_image, save_filename='', title='', ra_range=None, dec_range=None,
+    fits_image, save_filename=None, title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
     colorbar_label='Flux Density (Jy/sr)', plot_grid=True,
     xlabel='RA (deg.)', ylabel='Dec. (deg.)'
@@ -233,7 +233,7 @@ def plot_fits_image(
     cbar = plt.colorbar()
     # Label colorbar:
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
-    if save_filename == '':
+    if save_filename is None:
         plt.show()
     else:
         print 'Saving figure to {}'.format(save_filename)

@@ -41,6 +41,12 @@ def plot_filled_pixels(
         point_ras[np.where(point_ras > ra_cut)] -= 360.
         point_ras[np.where(point_ras < ra_cut-360.)] += 360.
 
+    map.get_ra_dec(ra_cut=ra_cut)
+    print np.min(map.ra_arr)
+    print np.max(map.ra_arr)
+    print np.min(map.dec_arr)
+    print np.max(map.dec_arr)
+
     # Limit pixel calculation when axis ranges are set
     if len(ra_range) == 2 or len(dec_range) == 2:
         map.get_ra_dec(ra_cut=ra_cut)
@@ -81,7 +87,9 @@ def plot_filled_pixels(
             np.amax(use_map.pix_corner_decs_arr)
         ]
 
-    collection = PatchCollection(patches, cmap='Greys_r', lw=0.05)
+    cm_use = 'Greys_r'
+    #cm_use = 'viridis'
+    collection = PatchCollection(patches, cmap=cm_use, lw=0.05)
     collection.set_array(np.array(colors))  # set the data colors
     collection.set_edgecolor('face')  # make the face and edge colors match
     if log:  # set the color bar to a log scale
@@ -96,7 +104,7 @@ def plot_filled_pixels(
             vmax=min([max(colors), signal_mean+5*signal_std])
         )
 
-    fig, ax = plt.subplots(figsize=(10, 8), dpi=500)
+    fig, ax = plt.subplots(figsize=(10, 4), dpi=500)
     ax.add_collection(collection)  # plot data
 
     plt.xlabel('RA (deg)')
