@@ -20,7 +20,7 @@ pro pyradiosky_to_sav_catalog_convert, filename_txt, filename_sav
     for line=0,nsources-1 do data[*, line]=strsplit(file_contents[line+1], /extract)
     undefine, file_contents
     source_ids = data[0, *]
-    source_ras = float(data[1, *])*!RaDeg
+    source_ras = float(data[1, *])
     source_decs = float(data[2, *])
     source_fluxes_I = float(data[3, *])
     source_freqs = float(data[4, *])
