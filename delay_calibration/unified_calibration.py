@@ -331,6 +331,46 @@ def cost_function_absolute_cal(
     return cost
 
 
+def cost_function_absolute_cal_for_unified_cal(
+    x,
+    gains_fit,
+    ant_locs,
+    fitted_visibilities,
+    model_visibilities,
+    a_mat,
+    baseline_cov_inv,
+    gains_exp_mat_1,
+    gains_exp_mat_2,
+    data_visibilities,
+    data_stddev,
+    model_stddev
+):
+
+    amp = x[0]
+    phase_grad_1 = x[1]
+    phase_grad_2 = x[2]
+
+    phase_offset = (
+        phase_grad_1*ant_locs[:, 0] + phase_grad_2*ant_locs[:, 1]
+    )
+    shift_phase = np.cos(phase_offset) + 1j*np.sin(phase_offset)
+    gains = gains_fit*amp*shift_phase
+    vis_shift_phase = np.matmul(
+        np.linalg.pinv(a_mat), (
+            np.matmul(gains_exp_mat_1, shift_phase)
+            * np.matmul(gains_exp_mat_2, shift_phase)
+        )
+    )
+    vis = fitted_visibilities/(amp**2. * vis_shift_phase)
+
+    cost = calc_negloglikelihood_unified_cal(
+        gains, vis, data_visibilities, model_visibilities,
+        baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
+        data_stddev, model_stddev
+    )
+    return cost
+
+
 def optimize_unified_cal_simple(
     data_visibilities, model_visibilities,
     baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
@@ -537,6 +577,86 @@ def optimize_redundant_cal(
             model_visibilities,
             a_mat, gains_exp_mat_1, gains_exp_mat_2,
             data_visibilities, data_stddev
+        ),
+        method=method
+    )
+    if not quiet:
+        print(result.message)
+        print(result.x)
+    abs_cal_params = result.x
+    phase_offset = (
+        abs_cal_params[1]*ant_locs[:, 0] + abs_cal_params[2]*ant_locs[:, 1]
+    )
+    shift_phase = np.cos(phase_offset) + 1j*np.sin(phase_offset)
+    gains_fit *= abs_cal_params[0]*shift_phase
+    vis_shift_phase = np.matmul(
+        np.linalg.pinv(a_mat), (
+            np.matmul(gains_exp_mat_1, shift_phase)
+            * np.matmul(gains_exp_mat_2, shift_phase)
+        )
+    )
+    vis_fit /= (abs_cal_params[0]**2. * vis_shift_phase)
+
+    return gains_fit, vis_fit
+
+
+def optimize_unified_cal_with_abs_cal(
+    data_visibilities, model_visibilities,
+    baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2,
+    N_red_baselines, N_ants, data_stddev, model_stddev,
+    ant_locs,
+    gains_init=None, fitted_visibilities_init=None, quiet=True
+):
+
+    method = 'CG'
+    maxiter = 100000
+
+    if gains_init is None:  # Initialize the gains to 1
+        gains_init = np.full(N_ants, 1.+0.j)
+    # Initialize the fitted visibilities to the model visibilities
+    if fitted_visibilities_init is None:
+        fitted_visibilities_init = model_visibilities
+    # Expand the initialized values
+    x0 = np.concatenate((
+        np.real(gains_init), np.imag(gains_init),
+        np.real(fitted_visibilities_init), np.imag(fitted_visibilities_init)
+    ))
+
+    # Minimize the cost function
+    result = scipy.optimize.minimize(
+        cost_function_unified_cal, x0, jac=jac_function_unified_cal,
+        args=(
+            N_red_baselines, N_ants, baseline_cov_inv,
+            model_visibilities, a_mat, gains_exp_mat_1, gains_exp_mat_2,
+            data_visibilities, data_stddev, model_stddev
+        ),
+        method=method, options={'disp': True, 'maxiter': maxiter}
+    )
+    if not quiet:
+        print(result.message)
+
+    gains_fit = result.x[:N_ants]+1j*result.x[N_ants:2*N_ants]
+    vis_fit = (
+        result.x[-2*N_red_baselines:-N_red_baselines]
+        + 1j*result.x[-N_red_baselines:]
+    )
+    # Ensure that the angle of the gains is mean-zero
+    avg_angle = np.arctan2(
+        np.mean(np.sin(np.angle(gains_fit))),
+        np.mean(np.cos(np.angle(gains_fit)))
+    )
+    gains_fit *= np.cos(avg_angle) - 1j*np.sin(avg_angle)
+
+    # Absolute calibration
+    x0 = np.array([1., 0., 0.])  # Amp, phase_grad_1, phase_grad_2
+    method = 'Powell'
+    result = scipy.optimize.minimize(
+        cost_function_absolute_cal_for_unified_cal, x0,
+        args=(
+            gains_fit, ant_locs, vis_fit,
+            model_visibilities,
+            a_mat, baseline_cov_inv, gains_exp_mat_1, gains_exp_mat_2,
+            data_visibilities, data_stddev, model_stddev
         ),
         method=method
     )
@@ -925,6 +1045,7 @@ def calibrate(
                     optimize_function_name = optimize_unified_cal_simple
                 else:
                     optimize_function_name = optimize_unified_cal
+                    #optimize_function_name = optimize_unified_cal_with_abs_cal
             elif cal_style == 'redundant':
                 optimize_function_name = optimize_redundant_cal
             else:
@@ -969,5 +1090,5 @@ if __name__ == '__main__':
     )
     histogram_plot_2d(
         gain_vals[:, :, :, 0], gains=True,
-        savepath='/Users/ruby/EoR/unified_calibration_plotting_oct2020/test_abs_cal/gains_regular_unified_cal.png'
+        savepath='/Users/ruby/EoR/unified_calibration_plotting_oct2020/test_abs_cal/gains_unified_cal_with_abs_cal.png'
     )
