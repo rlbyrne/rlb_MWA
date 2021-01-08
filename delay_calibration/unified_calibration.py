@@ -810,6 +810,161 @@ def histogram_plot_2d(
         plt.close()
 
 
+def load_data(
+    data_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_sim__results.uvh5',
+    uvw_match_tolerance=1e-12
+):
+
+    # Load data from pyuvsim simulation:
+    data_sim_compact = pyuvdata.UVData()
+    data_sim_compact.read_uvh5(data_path)
+
+    # Remove autos
+    data_sim_compact.select(ant_str='cross')
+    # Use only XX polarizations
+    data_sim_compact.select(polarizations=[-5])
+
+    # Convert baselines to have u>0
+    data_sim_compact.conjugate_bls(
+        convention='u>0', use_enu=False, uvw_tol=0.01
+    )
+
+    baseline_groups, bl_group_uvw, lengths, conjugates = (
+        data_sim_compact.get_redundancies(
+            tol=0.1, use_antpos=False, include_conjugates=True,
+            include_autos=True, conjugate_bls=False
+        )
+    )
+
+    # Define constants
+    N_red_baselines = np.shape(baseline_groups)[0]
+
+    # Reorder visibilities
+    data_sim_vis = np.zeros(N_red_baselines, dtype=np.complex_)
+    for red_group in range(N_red_baselines):
+        found_group = False
+        for red_group_2 in range(N_red_baselines):
+            if np.abs(np.sum(
+                data_sim_compact.uvw_array[red_group]
+                - bl_group_uvw[red_group_2]
+            )) < uvw_match_tolerance:
+                data_sim_vis[red_group] = (
+                    data_sim_compact.data_array[red_group_2, 0, 0, 0]
+                )
+                found_group = True
+                break
+        if not found_group:
+            print('ERROR: Visibility not found.')
+
+    # Make noiseless data
+    data_sim_expanded = data_sim_compact.copy()
+    data_sim_expanded.inflate_by_redundancy()
+
+    return data_sim_expanded, data_sim_vis, bl_group_uvw
+
+
+def load_model(
+    data_sim_expanded, bl_group_uvw,
+    model_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_100mjy_sim_results.uvh5',
+    uvw_match_tolerance=1e-12
+):
+
+    # Define constant
+    N_red_baselines = np.shape(bl_group_uvw)[0]
+
+    # Load data with missing sources from pyuvsim simulation:
+    model_sim = pyuvdata.UVData()
+    model_sim.read_uvh5(model_path)
+
+    # Remove autos
+    model_sim.select(ant_str='cross')
+    # Use only XX polarizations
+    model_sim.select(polarizations=[-5])
+
+    # Convert baselines to have u>0
+    model_sim.conjugate_bls(convention='u>0', use_enu=False, uvw_tol=0.01)
+
+    model_sim_visibilities = np.zeros(N_red_baselines, dtype=np.complex_)
+    for red_group in range(N_red_baselines):
+        found_group = False
+        for red_group_2 in range(N_red_baselines):
+            if np.abs(np.sum(
+                model_sim.uvw_array[red_group]-bl_group_uvw[red_group_2]
+            )) < uvw_match_tolerance:
+                model_sim_visibilities[red_group] = (
+                    model_sim.data_array[red_group_2, 0, 0, 0]
+                )
+                found_group = True
+                break
+        if not found_group:
+            print('ERROR: Visibility not found.')
+
+    return model_sim_visibilities
+
+
+def calc_calibration_components(
+    data_sim_expanded, bl_group_uvw, uvw_match_tolerance=1e-12
+):
+
+    # Define constants
+    N_red_baselines = np.shape(bl_group_uvw)[0]
+    N_ants = data_sim_expanded.Nants_data
+    N_vis = data_sim_expanded.Nbls
+
+    # Create the baseline covariance matrix
+    # Assumes close-packed square array with circular aperature antennas
+    baseline_cov_array = np.diag(np.full(N_red_baselines, 1.))
+    min_bl_length = 14.
+    tolerance = .01
+    for bl_1 in range(N_red_baselines):
+        for bl_2 in [ind for ind in range(N_red_baselines) if ind != bl_1]:
+            bl_separation_sq = (
+                (bl_group_uvw[bl_1, 0]-bl_group_uvw[bl_2, 0])**2
+                + (bl_group_uvw[bl_1, 1]-bl_group_uvw[bl_2, 1])**2
+            )
+            if (
+                (min_bl_length-tolerance)**2 <= bl_separation_sq
+                <= (min_bl_length+tolerance)**2
+            ):
+                baseline_cov_array[bl_1, bl_2] = 0.1617
+            elif (
+                2*(min_bl_length-tolerance)**2 <= bl_separation_sq
+                <= 2*(min_bl_length+tolerance)**2
+            ):
+                baseline_cov_array[bl_1, bl_2] = 0.0176
+    # Invert the matrix
+    baseline_cov_inv = np.linalg.inv(baseline_cov_array)
+
+    # Create the A matrix
+    a_mat = np.zeros((N_vis, N_red_baselines))
+    for vis_ind in range(N_vis):
+        for red_group in range(N_red_baselines):
+            if np.abs(np.sum(
+                data_sim_expanded.uvw_array[vis_ind]-bl_group_uvw[red_group]
+            )) < uvw_match_tolerance:
+                a_mat[vis_ind, red_group] = 1
+                break
+
+    # Create gains expand matrices
+    gains_exp_mat_1 = np.zeros((N_vis, N_ants), dtype=np.int)
+    gains_exp_mat_2 = np.zeros((N_vis, N_ants), dtype=np.int)
+    for baseline in range(N_vis):
+        gains_exp_mat_1[baseline, data_sim_expanded.ant_1_array[baseline]] = 1
+        gains_exp_mat_2[baseline, data_sim_expanded.ant_2_array[baseline]] = 1
+
+    # Calculate antenna locations (used only in absolute calibration)
+    ant_locs = (
+        data_sim_expanded.antenna_positions
+        + data_sim_expanded.telescope_location
+    )
+    ant_locs = pyuvdata.utils.ENU_from_ECEF(
+        ant_locs, *data_sim_expanded.telescope_location_lat_lon_alt
+    )
+    ant_locs = ant_locs[:, :2]  # Discard altitude information
+
+    return baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2, ant_locs
+
+
 def calibrate(
     data_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_sim__results.uvh5',
     model_path='/Users/ruby/EoR/compact_redundant_array_sim_May2020/square_grid_100mjy_sim_results.uvh5',
@@ -853,138 +1008,20 @@ def calibrate(
             )
         model_path = data_path
 
-    uvw_match_tolerance = 1e-12
-
-    # Load data from pyuvsim simulation:
-    data_sim_compact = pyuvdata.UVData()
-    data_sim_compact.read_uvh5(data_path)
-
-    # Remove autos
-    data_sim_compact.select(ant_str='cross')
-    # Use only XX polarizations
-    data_sim_compact.select(polarizations=[-5])
-
-    # Convert baselines to have u>0
-    data_sim_compact.conjugate_bls(
-        convention='u>0', use_enu=False, uvw_tol=0.01
+    data_sim_expanded, data_sim_vis_no_noise, bl_group_uvw = load_data(
+        data_path=data_path
     )
-
-    baseline_groups, vec_bin_centers, lengths, conjugates = (
-        data_sim_compact.get_redundancies(
-            tol=0.1, use_antpos=False, include_conjugates=True,
-            include_autos=True, conjugate_bls=False
-        )
+    model_sim_visibilities = load_model(
+        data_sim_expanded, bl_group_uvw, model_path=model_path
+    )
+    baseline_cov_inv, a_mat, gains_exp_mat_1, gains_exp_mat_2, ant_locs = calc_calibration_components(
+        data_sim_expanded, bl_group_uvw
     )
 
     # Define constants
-    N_red_baselines = np.shape(baseline_groups)[0]
-    N_ants = data_sim_compact.Nants_data
-
-    # Reorder visibilities
-    data_sim_vis_no_noise = np.zeros(N_red_baselines, dtype=np.complex_)
-    for red_group in range(N_red_baselines):
-        found_group = False
-        for red_group_2 in range(N_red_baselines):
-            if np.abs(np.sum(
-                data_sim_compact.uvw_array[red_group]
-                - vec_bin_centers[red_group_2]
-            )) < uvw_match_tolerance:
-                data_sim_vis_no_noise[red_group] = (
-                    data_sim_compact.data_array[red_group_2, 0, 0, 0]
-                )
-                found_group = True
-                break
-        if not found_group:
-            print('ERROR: Visibility not found.')
-
-    # Make noiseless data
-    data_sim_expanded = data_sim_compact.copy()
-    data_sim_expanded.inflate_by_redundancy()
-
-    # Define constant
+    N_red_baselines = np.shape(bl_group_uvw)[0]
+    N_ants = data_sim_expanded.Nants_data
     N_vis = data_sim_expanded.Nbls
-
-    # Load data with missing sources from pyuvsim simulation:
-    model_sim = pyuvdata.UVData()
-    model_sim.read_uvh5(model_path)
-
-    # Remove autos
-    model_sim.select(ant_str='cross')
-    # Use only XX polarizations
-    model_sim.select(polarizations=[-5])
-
-    # Convert baselines to have u>0
-    model_sim.conjugate_bls(convention='u>0', use_enu=False, uvw_tol=0.01)
-
-    model_sim_visibilities = np.zeros(N_red_baselines, dtype=np.complex_)
-    for red_group in range(N_red_baselines):
-        found_group = False
-        for red_group_2 in range(N_red_baselines):
-            if np.abs(np.sum(
-                model_sim.uvw_array[red_group]-vec_bin_centers[red_group_2]
-            )) < uvw_match_tolerance:
-                model_sim_visibilities[red_group] = (
-                    model_sim.data_array[red_group_2, 0, 0, 0]
-                )
-                found_group = True
-                break
-        if not found_group:
-            print('ERROR: Visibility not found.')
-
-    # Create the baseline covariance matrix
-    baseline_cov_array = np.diag(np.full(N_red_baselines, 1.))
-    if use_covariances:
-        min_bl_length = 14.
-        tolerance = .01
-        for bl_1 in range(N_red_baselines):
-            for bl_2 in [ind for ind in range(N_red_baselines) if ind != bl_1]:
-                bl_separation_sq = (
-                    (vec_bin_centers[bl_1, 0]-vec_bin_centers[bl_2, 0])**2
-                    + (vec_bin_centers[bl_1, 1]-vec_bin_centers[bl_2, 1])**2
-                )
-                if (
-                    (min_bl_length-tolerance)**2 <= bl_separation_sq
-                    <= (min_bl_length+tolerance)**2
-                ):
-                    baseline_cov_array[bl_1, bl_2] = 0.1617
-                elif (
-                    2*(min_bl_length-tolerance)**2 <= bl_separation_sq
-                    <= 2*(min_bl_length+tolerance)**2
-                ):
-                    baseline_cov_array[bl_1, bl_2] = 0.0176
-        # Invert the matrix
-        baseline_cov_inv = np.linalg.inv(baseline_cov_array)
-    else:  # Identity matrix
-        baseline_cov_inv = baseline_cov_array
-
-    # Create the A matrix
-    a_mat = np.zeros((N_vis, N_red_baselines))
-    for vis_ind in range(N_vis):
-        for red_group in range(N_red_baselines):
-            if np.abs(np.sum(
-                data_sim_expanded.uvw_array[vis_ind]-vec_bin_centers[red_group]
-            )) < uvw_match_tolerance:
-                a_mat[vis_ind, red_group] = 1
-                break
-
-    # Create gains expand matrices
-    gains_exp_mat_1 = np.zeros((N_vis, N_ants), dtype=np.int)
-    gains_exp_mat_2 = np.zeros((N_vis, N_ants), dtype=np.int)
-    for baseline in range(N_vis):
-        gains_exp_mat_1[baseline, data_sim_expanded.ant_1_array[baseline]] = 1
-        gains_exp_mat_2[baseline, data_sim_expanded.ant_2_array[baseline]] = 1
-
-    if 'redundant' in calibration_styles:  # Calculate antenna positions
-        ant_locs = (
-            data_sim_expanded.antenna_positions
-            + data_sim_expanded.telescope_location
-        )
-        ant_locs = pyuvdata.utils.ENU_from_ECEF(
-            ant_locs, *data_sim_expanded.telescope_location_lat_lon_alt
-        )
-        ant_locs = ant_locs[:, :2]  # Discard altitude information
-    else:
-        ant_locs = None
 
     if (
         model_injected_noise_stddev_jy != 0
@@ -1086,9 +1123,8 @@ def calibrate(
 
 if __name__ == '__main__':
     gain_vals, vis_diff_vals = calibrate(
-        n_trials=100
+        n_trials=10
     )
     histogram_plot_2d(
-        gain_vals[:, :, :, 0], gains=True,
-        savepath='/Users/ruby/EoR/unified_calibration_plotting_oct2020/test_abs_cal/gains_unified_cal_with_abs_cal.png'
+        gain_vals[:, :, :, 0], gains=True
     )
