@@ -20,7 +20,9 @@ def plot_filled_pixels(
     ra_cut=None,
     overplot_points=False, point_ras=None, point_decs=None, point_values=None,
     overplot_points_vmin=-np.pi, overplot_points_vmax=np.pi,
-    overplot_points_colormap='seismic'
+    overplot_points_colormap='seismic',
+    overplot_mwa_beam_contours=False,
+    mwa_beam_center_ras=[0, 60], mwa_beam_center_decs=[-27, -27]
 ):
 
     if map.coords == '':
@@ -33,29 +35,24 @@ def plot_filled_pixels(
     # Set branch cut location
     if ra_cut is None:
         if len(ra_range) == 2:
-            ra_cut = (ra_range[1]+ra_range[0])/2.+180.
+            ra_cut = (ra_range[1]+ra_range[0])/2.+12.
         else:
-            ra_cut = 270.
+            ra_cut = 18.
 
     if overplot_points:
-        point_ras[np.where(point_ras > ra_cut)] -= 360.
-        point_ras[np.where(point_ras < ra_cut-360.)] += 360.
+        point_ras[np.where(point_ras > ra_cut)] -= 24.
+        point_ras[np.where(point_ras < ra_cut-24.)] += 24.
 
-    map.get_ra_dec(ra_cut=ra_cut)
-    print np.min(map.ra_arr)
-    print np.max(map.ra_arr)
-    print np.min(map.dec_arr)
-    print np.max(map.dec_arr)
+    map.get_ra_dec(ra_cut=ra_cut*15.)
 
     # Limit pixel calculation when axis ranges are set
     if len(ra_range) == 2 or len(dec_range) == 2:
-        map.get_ra_dec(ra_cut=ra_cut)
         if len(ra_range) != 2:
-            ra_range = [np.min(map.ra_arr), np.max(map.ra_arr)]
+            ra_range = np.array([np.min(map.ra_arr), np.max(map.ra_arr)])/15.
         if len(dec_range) != 2:
             dec_range = [np.min(map.dec_arr), np.max(map.dec_arr)]
         use_indices = np.arange(len(map.signal_arr))[
-            (map.ra_arr>ra_range[0]) & (map.ra_arr<ra_range[1])
+            (map.ra_arr/15.>ra_range[0]) & (map.ra_arr/15.<ra_range[1])
             & (map.dec_arr>dec_range[0]) & (map.dec_arr<dec_range[1])
         ]
         use_map = healpix_utils.HealpixMap(
@@ -65,11 +62,11 @@ def plot_filled_pixels(
     else:
         use_map = map
 
-    use_map.get_pixel_corners(ra_cut=ra_cut)
+    use_map.get_pixel_corners(ra_cut=ra_cut*15.)
     patches = []
     for ind in range(len(use_map.signal_arr)):
         polygon = Polygon(
-            zip(use_map.pix_corner_ras_arr[ind],
+            zip(use_map.pix_corner_ras_arr[ind]/15.,
                 use_map.pix_corner_decs_arr[ind])
             )
         patches.append(polygon)
@@ -77,15 +74,15 @@ def plot_filled_pixels(
 
     # Establish axis ranges
     if len(ra_range) != 2:
-        ra_range = [
+        ra_range = np.array([
             np.amin(use_map.pix_corner_ras_arr),
             np.amax(use_map.pix_corner_ras_arr)
-        ]
+        ])/15.
     if len(dec_range) != 2:
-        dec_range = [
+        dec_range = np.array([
             np.amin(use_map.pix_corner_decs_arr),
             np.amax(use_map.pix_corner_decs_arr)
-        ]
+        ])
 
     cm_use = 'Greys_r'
     #cm_use = 'viridis'
@@ -107,9 +104,10 @@ def plot_filled_pixels(
     fig, ax = plt.subplots(figsize=(10, 4), dpi=500)
     ax.add_collection(collection)  # plot data
 
-    plt.xlabel('RA (deg)')
-    plt.ylabel('Dec (deg)')
-    plt.axis('equal')
+    plt.xlabel('RA (hours)')
+    plt.ylabel('Dec (degrees)')
+    #plt.axis('equal')
+    ax.set_aspect(1./15.)
     ax.set_facecolor('gray')  # make plot background gray
     if overplot_points:
         cm_overplot_points = plt.cm.get_cmap(overplot_points_colormap)
@@ -118,6 +116,9 @@ def plot_filled_pixels(
             vmin=overplot_points_vmin, vmax=overplot_points_vmax, s=30,
             cmap=cm_overplot_points, edgecolor='black', linewidth=.5
         )
+    #if overplot_mwa_beam_contour:
+
+    print [ra_range[1], ra_range[0], dec_range[0], dec_range[1]]
     plt.axis([ra_range[1], ra_range[0], dec_range[0], dec_range[1]])
     plt.title(title)
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
