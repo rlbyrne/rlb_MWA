@@ -10,8 +10,47 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
+from astropy.io import fits
 import healpix_utils
 from scipy.interpolate import griddata
+
+def get_mwa_beam(
+    beam_filepath='/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_subtract_GLEAM_and_diffuse_Jun2020/output_data',
+    beam_obsid = '1061316296'
+):
+
+    beam_xx_filepath = '{}/{}_Beam_XX.fits'.format(beam_filepath, beam_obsid)
+    beam_yy_filepath = '{}/{}_Beam_YY.fits'.format(beam_filepath, beam_obsid)
+
+    contents = fits.open(beam_xx_filepath)
+    use_hdu = 0
+    beam_xx_vals = contents[use_hdu].data.T  # transpose so convention is [RA, Dec]
+    header = contents[use_hdu].header
+
+    cdelt1 = header['CD1_1']
+    cdelt2 = header['CD2_2']
+
+    ra_axis = np.array([
+        header['crval1'] +
+        cdelt1*(i-header['crpix1'])
+        for i in range(header['naxis1'])
+        ])
+    dec_axis = np.array([
+        header['crval2'] +
+        cdelt2*(i-header['crpix2'])
+        for i in range(header['naxis2'])
+        ])
+
+    contents = fits.open(beam_yy_filepath)
+    beam_yy_vals = contents[use_hdu].data.T
+
+    beam_ras, beam_decs = np.meshgrid(ra_axis, dec_axis)
+    beam_amp = np.real((beam_xx_vals+beam_yy_vals)/2.)
+    beam_peak = np.where(beam_amp == np.max(beam_amp))
+    beam_ras -= (beam_ras[beam_peak])[0]
+    beam_decs -= (beam_decs[beam_peak])[0]
+
+    return beam_ras, beam_decs, beam_amp
 
 
 def plot_filled_pixels(
@@ -22,7 +61,10 @@ def plot_filled_pixels(
     overplot_points_vmin=-np.pi, overplot_points_vmax=np.pi,
     overplot_points_colormap='seismic',
     overplot_mwa_beam_contours=False,
-    mwa_beam_center_ras=[0, 60], mwa_beam_center_decs=[-27, -27]
+    mwa_beam_center_ras=[0, 60], mwa_beam_center_decs=[-27, -27],
+    overplot_hera_band=False,
+    overplot_bright_sources=False,
+    big=False
 ):
 
     if map.coords == '':
@@ -101,7 +143,11 @@ def plot_filled_pixels(
             vmax=min([max(colors), signal_mean+5*signal_std])
         )
 
-    fig, ax = plt.subplots(figsize=(10, 4), dpi=500)
+    plt.rcParams.update({'font.size': 9})
+    if big:
+        fig, ax = plt.subplots(figsize=(10, 4), dpi=600)
+    else:
+        fig, ax = plt.subplots(figsize=(6, 0.6*4), dpi=600)
     ax.add_collection(collection)  # plot data
 
     plt.xlabel('RA (hours)')
@@ -116,9 +162,46 @@ def plot_filled_pixels(
             vmin=overplot_points_vmin, vmax=overplot_points_vmax, s=30,
             cmap=cm_overplot_points, edgecolor='black', linewidth=.5
         )
-    #if overplot_mwa_beam_contour:
+    if overplot_mwa_beam_contours:
+        beam_ras, beam_decs, beam_val = get_mwa_beam()
+        for beam_ind, use_beam_center_ra in enumerate(mwa_beam_center_ras):
+            use_beam_center_dec = mwa_beam_center_decs[beam_ind]
+            plt.contour(
+                (beam_ras+use_beam_center_ra)/15., beam_decs+use_beam_center_dec,
+                beam_val, levels=[.5],
+                colors='cyan', linestyles=['solid'], linewidths=1
+            )
+    if overplot_hera_band:
+        hera_band_center = -30.
+        hera_band_width = 11.
+        plt.plot(
+            ra_range, np.full(2, hera_band_center+hera_band_width/2),
+            '--', color='cyan', linewidth=1
+        )
+        plt.plot(
+            ra_range, np.full(2, hera_band_center-hera_band_width/2),
+            '--', color='cyan', linewidth=1
+        )
+    if overplot_bright_sources:
+        source_names = [
+            'Pictor A', 'Fornax A'
+        ]
+        named_source_ras = np.array([
+            79.9572, 50.6738
+        ])/15.
+        named_source_decs = np.array([
+            -45.7788, -37.2083
+        ])
+        plt.plot(
+            named_source_ras, named_source_decs, 'x',
+            color='yellow', markersize=3
+        )
+        for source_ind, name in enumerate(source_names):
+            plt.annotate(
+                name, (named_source_ras[source_ind]-2/15., named_source_decs[source_ind]+1.),
+                fontsize=8.
+            )
 
-    print [ra_range[1], ra_range[0], dec_range[0], dec_range[1]]
     plt.axis([ra_range[1], ra_range[0], dec_range[0], dec_range[1]])
     plt.title(title)
     cbar = fig.colorbar(collection, ax=ax, extend='both')  # add colorbar
@@ -126,7 +209,7 @@ def plot_filled_pixels(
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
     if save_filename is not None:
         print 'Saving plot to {}'.format(save_filename)
-        plt.savefig(save_filename, format='png', dpi=300)
+        plt.savefig(save_filename, format='png', dpi=600)
         plt.close()
     else:
         plt.show()
@@ -200,12 +283,12 @@ def plot_projection(
         plt.close()
 
 
-if __name__ == '__main__':
+#if __name__ == '__main__':
 
-    map = healpix_utils.load_map(
-        '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged.fits'
-    )
-    plot_projection(
-        map, title='Stokes I', colorbar_range=[-1.5,5],
-        save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged_alt_colorbar_mollweide.png'
-    )
+    #map = healpix_utils.load_map(
+    #    '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged.fits'
+    #)
+    #plot_projection(
+    #    map, title='Stokes I', colorbar_range=[-1.5,5],
+    #    save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Dec2019/StokesI_averaged_alt_colorbar_mollweide.png'
+    #)

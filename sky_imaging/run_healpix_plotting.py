@@ -2716,7 +2716,7 @@ def replot_maps_Sep23():
         plot_healpix_map.plot_filled_pixels(
             map,
             '{}/Stokes{}_average_map.png'.format(outdir, pol_name),
-            colorbar_range=colorbar_range
+            colorbar_range=colorbar_range, big=True
         )
 
 
@@ -2734,6 +2734,27 @@ def save_maps_Sep25():
     healpix_utils.write_data_to_standard_fits(maps, save_filename)
 
 
+def plot_maps_with_contours_Feb4():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020'
+    pols = ['I', 'Q', 'U', 'V']
+    for pol_ind, pol_name in enumerate(pols):
+        if pol_ind == 0:
+            colorbar_range = [-5e4, 5e4]
+        else:
+            colorbar_range = [-5e3, 5e3]
+        map = healpix_utils.load_map(
+            '{}/Stokes{}_average_map_empirical_rm_in_eor0.fits'.format(sourcedir, pol_name)
+        )
+        plot_healpix_map.plot_filled_pixels(
+            map,
+            '{}/Stokes{}_average_map_with_annotations.png'.format(outdir, pol_name),
+            colorbar_range=colorbar_range, overplot_mwa_beam_contours=True,
+            overplot_hera_band=True, overplot_bright_sources=True
+        )
+
+
 if __name__ == '__main__':
 
-    replot_maps_Sep23()
+    plot_maps_with_contours_Feb4()
