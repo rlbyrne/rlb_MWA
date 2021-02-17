@@ -2755,6 +2755,35 @@ def plot_maps_with_contours_Feb4():
         )
 
 
+def plot_variance_maps_Feb11():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020'
+    pols = ['I', 'Q', 'U', 'V']
+    for pol_ind, pol_name in enumerate(pols):
+        if pol_ind == 3:
+            colorbar_range = [0, 5e5]
+        else:
+            colorbar_range = [0, 1e7]
+        map = healpix_utils.load_map(
+            '{}/Stokes{}_variance_map_empirical_rm_in_eor0.fits'.format(sourcedir, pol_name)
+        )
+        plot_healpix_map.plot_filled_pixels(
+            map,
+            '{}/Stokes{}_variance_map.png'.format(outdir, pol_name),
+            colorbar_range=colorbar_range, colorbar_label='Flux Density Variance (Jy/sr)${^2}$'
+        )
+
+    map = healpix_utils.load_map(
+        '{}/nsamples_map.fits'.format(sourcedir)
+    )
+    plot_healpix_map.plot_filled_pixels(
+        map,
+        '{}/nsamples.png'.format(outdir),
+        colorbar_range=[0, 25], colorbar_label='Number of Observations'
+    )
+
+
 if __name__ == '__main__':
 
-    plot_maps_with_contours_Feb4()
+    plot_variance_maps_Feb11()
