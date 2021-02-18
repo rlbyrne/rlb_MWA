@@ -47,6 +47,6 @@ pro plot_uv_coverage
 
   quick_image, yes_no_image, xvals, yvals, data_range=[0,1], $
     xtitle='U (wavelengths)', ytitle = 'V (wavelengths)', cb_title='UV Weight',$
-    savefile='/Users/rubybyrne//plot_uv_coverate_May2020/uv_nonzero', /png
+    savefile='/Users/rubybyrne/plot_uv_coverate_May2020/uv_nonzero', /png
 
 end
