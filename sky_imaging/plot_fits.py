@@ -70,7 +70,7 @@ def load_image(data_filename):
 
     contents = fits.open(data_filename)
     use_hdu = 0
-    data = contents[use_hdu].data.T  # transpose so convention is [RA, Dec]
+    data = contents[use_hdu].data
     header = contents[use_hdu].header
 
     if 'CD1_1' in header.keys() and 'CD2_2' in header.keys():  # FHD convention
@@ -214,7 +214,7 @@ def plot_fits_image(
 
     fig, ax = plt.subplots()
     plt.imshow(
-        fits_image.signal_arr.T, origin='lower', interpolation='none',
+        fits_image.signal_arr, origin='lower', interpolation='none',
         cmap='Greys_r',
         extent=[
             fits_image.ra_axis[0], fits_image.ra_axis[-1],
