@@ -42,7 +42,7 @@ pro kpar0_compare_models
         cgplot, plot_x, plot_y, /xlog, /ylog, yrange=yrange, xrange=xrange, $
           linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], title='', Charsize=1.5,$
           ytitle=textoidl('k-parallel=0 Power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
-          xstyle=8, /nodata
+          xstyle=8, /nodata, Position=[0.1, 0.22, 0.97, 0.9]
           cgcolorfill, [xrange[0], bl_range[0]*1e-3, bl_range[0]*1e-3, xrange[0]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
           color='BLK2'
         cgcolorfill, [xrange[1], bl_range[1]*1e-3, bl_range[1]*1e-3, xrange[1]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
@@ -55,14 +55,20 @@ pro kpar0_compare_models
         xstyle=8 ;draw only the main axis, don't draw the top axis
     endfor
     ; Draw and redraw axes
-    cgAxis, xaxis=0, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5
-    cgaxis, yaxis=0, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5
-    cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)"
-    cgAxis, XAxis=1.0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl(''), Charsize=1.5
+   
+    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=[1,10], xstyle=1, Charsize=1.5, xlog=1,$
+      xtickv = [1, 10], xticks=2, xtickname=['first', 'second']
+
+    cgAxis, xaxis=0, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5, /xlog
+    cgaxis, yaxis=0, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, /xlog
+    cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)", /xlog
+    cgAxis, XAxis=1.0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl(''), Charsize=1.5, /xlog
     xlocation = (!X.Window[1] - !X.Window[0]) / 2  + !X.Window[0]
     ylocation = !Y.Window[1] + 2.75 * (!D.Y_CH_Size / Float(!D.Y_Size))
     cgText, xlocation, ylocation+.01, 'baseline length (wavelengths)', $
       /Normal, Alignment=0.5, Charsize=1.5
+    cgAxis, .5, 0.5, XAxis=1.0, XRange=xrange, $
+       Charsize=1.25;, XTickFormat='WaveNumberFormat'
     legend_ordering = [3,0,1,2]
     cglegend, title=legend_labels[legend_ordering], $
       linestyle=linestyles[legend_ordering], thick=6, $
