@@ -55,10 +55,28 @@ pro kpar0_compare_models
         xstyle=8 ;draw only the main axis, don't draw the top axis
     endfor
     ; Draw and redraw axes
-   
-    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=[1,10], xstyle=1, Charsize=1.5, xlog=1,$
-      xtickv = [1, 10], xticks=2, xtickname=['first', 'second']
-
+    
+    tick_angles_to_label = [0.4, 0.6, 0.8, 1, 2, 3, 4, 5, 6, 8, 10, 20, 30, 40, 60]
+    tick_angles = [.1*findgen(9, start=1), indgen(9, start=1), 10*indgen(9, start=1), 100, 180]
+    tick_angles = reverse(tick_angles)
+    tick_names = []
+    for tick_ind=0,n_elements(tick_angles)-1 do begin
+      null = where(tick_angles_to_label eq tick_angles[tick_ind], count)
+      if count eq 0 then begin
+        tick_names = [tick_names, ' ']
+      endif else begin
+        if tick_angles[tick_ind] ge 1 then use_string=strtrim(fix(tick_angles[tick_ind]), 1) $
+          else use_string=STRING(tick_angles[tick_ind], FORMAT='(F3.1)')
+        tick_names = [tick_names, use_string]
+      endelse
+    endfor
+    tick_pos = 1/sin(tick_angles/180.*!Pi) 
+    
+    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
+      xtickv=tick_pos, xticks=n_elements(tick_angles), xtickname=tick_names
+    
+    ;cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1
+      
     cgAxis, xaxis=0, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5, /xlog
     cgaxis, yaxis=0, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, /xlog
     cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)", /xlog
@@ -72,7 +90,7 @@ pro kpar0_compare_models
     legend_ordering = [3,0,1,2]
     cglegend, title=legend_labels[legend_ordering], $
       linestyle=linestyles[legend_ordering], thick=6, $
-      color=colors[legend_ordering], length=0.03, /center_sym, location=[.5,.87], charsize=1.2, /box, background='white', vspace=1.5
+      color=colors[legend_ordering], length=0.03, /center_sym, location=[.6,.87], charsize=1.2, /box, background='white', vspace=1.5
     cgControl, Resize=[800,800]
     cgps_close, /png, /delete_ps, density=800
     
