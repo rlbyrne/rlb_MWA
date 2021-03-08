@@ -216,12 +216,28 @@ pro pol_leakage_calc, $
     endfor
     
     if keyword_set(plot) then begin
+
+      min_point_size = .3
+      max_point_size = 2.
+      max_flux_plot = 10.
+      min_flux_plot = .4
+      plot_point_sizes = (pol_fluxes[*, 0]-min_flux_plot)*(max_point_size-min_point_size)/(max_flux_plot-min_flux_plot)+min_point_size
+      small_points = where(plot_point_sizes lt min_point_size, count)
+      if count gt 0 then plot_point_sizes[small_points] = min_point_size
+      large_points = where(plot_point_sizes gt max_point_size, count)
+      if count gt 0 then plot_point_sizes[large_points] = max_point_size
+      
+      source_ravals = (((source_xvals-mean(source_xvals))*obs.degpix)+obs.obsra)/15.
+      source_decvals = ((source_yvals-mean(source_yvals))*obs.degpix)+obs.obsdec
+      
       for pol = 0, 2 do begin
         print, 'Saving plot to '+save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
         cgPS_Open, save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
         ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
         colorbar_extent = .3
-        plot_range = [1024-400, 1024+400]
+        plot_range_pixels = [1024-400, 1024+400]
+        plot_decrange = [-400*obs.degpix+obs.obsdec, 400*obs.degpix+obs.obsdec]
+        plot_rarange = [(-400*obs.degpix+obs.obsra)/15., (400*obs.degpix+obs.obsra)/15.]
         colorbar_scale_factor = 127./colorbar_extent
         colors = reform(frac_pol_leakage[*,pol])*colorbar_scale_factor+127.
         for color_ind = 0,n_elements(colors)-1 do begin
@@ -230,13 +246,13 @@ pro pol_leakage_calc, $
           endelse
         endfor
         cgLoadCT, 70
-        cgplot, source_xvals, source_yvals, /nodata, xtitle='RA (pixel)', ytitle='Dec (pixel)', title='Stokes '+polarizations[pol]+' Leakage', $
-          aspect=1.0, xrange=[plot_range[0], plot_range[1]], yrange=[plot_range[0], plot_range[1]], position=pos
+        cgplot, source_ravals, source_decvals, /nodata, xtitle='RA (hours)', ytitle='Dec (degrees)', title='Stokes '+polarizations[pol], $
+          aspect=1.0, xrange=[plot_rarange[1], plot_rarange[0]], yrange=[plot_decrange[0], plot_decrange[1]], position=pos
         if pol ne 2 then begin
           resolution=200
-          pixel_size = (plot_range[1]-plot_range[0])/float(200)
-          image_xvals = findgen(resolution, start=plot_range[0]+pixel_size/2., increment=pixel_size)
-          image_yvals = findgen(resolution, start=plot_range[0]+pixel_size/2., increment=pixel_size)
+          pixel_size = (plot_range_pixels[1]-plot_range_pixels[0])/float(resolution)
+          image_xvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
+          image_yvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
           fit_image = make_array(resolution, resolution, /float, value=0.)
           for xind = 0, resolution-1 do begin
             for yind = 0, resolution-1 do begin
@@ -249,13 +265,23 @@ pro pol_leakage_calc, $
               fit_image[xind, yind] = fit_color
             endfor
           endfor
-          cgimage, fit_image, position=pos, /noerase
+          cgimage, reverse(fit_image, 1), position=pos, /noerase
         endif
-        for j=0,fit_sources_number-1 do cgplots, source_xvals[j], source_yvals[j], psym=16, color=fix(colors[j])
-        cgplot, source_xvals, source_yvals, psym=9, color='black', thick=0.1, /overplot
+        for source_ind=0,fit_sources_number-1 do begin
+          cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=16, color=fix(colors[source_ind]), symsize=plot_point_sizes[source_ind], /overplot
+          cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=9, color='black', thick=0.5, symsize=plot_point_sizes[source_ind], /overplot
+        endfor
         cgcolorbar, range=[-colorbar_extent, colorbar_extent], /vertical, $
           title = 'Fractional Polarization Leakage'
-        cgps_close, /delete_ps, width=1200  ; width determines the image resolution
+        legend_labels = ['> '+STRING(max_flux_plot, FORMAT='(F4.1)')+' Jy', '7.5 Jy', '5.0 Jy', '2.5 Jy', '< '+STRING(min_flux_plot, FORMAT='(F3.1)')+' Jy']
+        legend_symsizes = ([max_flux_plot, 7.5, 5., 2.5, min_flux_plot]-min_flux_plot)*(max_point_size-min_point_size)/(max_flux_plot-min_flux_plot)+min_point_size
+        legend_loc = [.02, .5]
+        for legend_ind=0,n_elements(legend_symsizes)-1 do begin
+          cglegend, title=legend_labels[legend_ind], $
+            psym=16, color='black', length=0, /center_sym, symsize=legend_symsizes[legend_ind], thick=0.2, $
+            location=[legend_loc[0], legend_loc[1]-.04*legend_ind], charsize=1.1, vspace=1.5
+        endfor
+        cgps_close, /delete_ps, width=1200, density=2000
       endfor
     endif
       
