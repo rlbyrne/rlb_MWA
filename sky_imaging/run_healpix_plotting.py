@@ -2841,6 +2841,44 @@ def rm_correct_maps_Mar18():
         )
 
 
+def replot_weights_Apr21():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020'
+    map = healpix_utils.load_map(
+        '{}/weights_map.fits'.format(sourcedir)
+    )
+    plot_healpix_map.plot_filled_pixels(
+        map,
+        '{}/weights_map.png'.format(outdir),
+        colorbar_range=[.001, 10], big=False, colorbar_label='Weight'
+    )
+
+
+def make_fits_files_Apr22():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020/diffuse_map.fits'
+    pols = ['I', 'Q', 'U', 'V']
+    maps = []
+    for pol_ind, pol_name in enumerate(pols):
+        new_map = healpix_utils.load_map(
+            '{}/Stokes{}_average_map_empirical_rm_in_eor0.fits'.format(sourcedir, pol_name)
+        )
+        maps.append(new_map)
+    healpix_utils.write_data_to_standard_fits(maps, save_filename)
+
+    save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020/standard_deviation.fits'
+    maps = []
+    for pol_ind, pol_name in enumerate(pols):
+        new_map = healpix_utils.load_map(
+            '{}/Stokes{}_variance_map_empirical_rm_in_eor0.fits'.format(sourcedir, pol_name)
+        )
+        new_map.signal_arr = np.sqrt(new_map.signal_arr)
+        maps.append(new_map)
+    healpix_utils.write_data_to_standard_fits(maps, save_filename, history_str='map standard deviations')
+
+
 if __name__ == '__main__':
 
-    rm_correct_maps_Mar18()
+    make_fits_files_Apr22()
