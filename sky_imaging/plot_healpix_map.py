@@ -7,6 +7,7 @@ import os
 import matplotlib
 #matplotlib.use('Agg')  # use this if you don't have display access
 import matplotlib.pyplot as plt
+import matplotlib.patheffects as patheffects
 from matplotlib.patches import Polygon
 from matplotlib.collections import PatchCollection
 from matplotlib.colors import LogNorm
@@ -169,18 +170,18 @@ def plot_filled_pixels(
             plt.contour(
                 (beam_ras+use_beam_center_ra)/15., beam_decs+use_beam_center_dec,
                 beam_val, levels=[.5],
-                colors='cyan', linestyles=['solid'], linewidths=1
+                colors='cyan', linestyles=['solid'], linewidths=0.7
             )
     if overplot_hera_band:
         hera_band_center = -30.
         hera_band_width = 11.
         plt.plot(
             ra_range, np.full(2, hera_band_center+hera_band_width/2),
-            '--', color='cyan', linewidth=1
+            '--', color='cyan', linewidth=0.7
         )
         plt.plot(
             ra_range, np.full(2, hera_band_center-hera_band_width/2),
-            '--', color='cyan', linewidth=1
+            '--', color='cyan', linewidth=0.7
         )
     if overplot_bright_sources:
         source_names = [
@@ -198,9 +199,20 @@ def plot_filled_pixels(
         )
         for source_ind, name in enumerate(source_names):
             plt.annotate(
-                name, (named_source_ras[source_ind]-2/15., named_source_decs[source_ind]+1.),
-                fontsize=8.
+                name, (named_source_ras[source_ind]-2/15., named_source_decs[source_ind]),
+                fontsize=8., color='black',
+                path_effects=[patheffects.withStroke(linewidth=0.5, foreground="white")]
             )
+        sgp_ra = 0.857222
+        sgp_dec = -27.1283
+        plt.plot(
+            [sgp_ra], [sgp_dec], '+', color='red', markersize=6
+        )
+        plt.annotate(
+            'SGP', (sgp_ra, sgp_dec-8), fontsize=8,
+            horizontalalignment='center', color='black',
+            path_effects=[patheffects.withStroke(linewidth=0.5, foreground="white")]
+        )
 
     plt.axis([ra_range[1], ra_range[0], dec_range[0], dec_range[1]])
     plt.title(title)

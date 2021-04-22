@@ -2784,6 +2784,63 @@ def plot_variance_maps_Feb11():
     )
 
 
+def plot_stddev_maps_Mar8():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Sept2020'
+    pols = ['I', 'Q', 'U', 'V']
+    for pol_ind, pol_name in enumerate(pols):
+        if pol_ind == 3:
+            colorbar_range = [0, 1e3]
+        else:
+            colorbar_range = [0, 5e3]
+        map = healpix_utils.load_map(
+            '{}/Stokes{}_variance_map_empirical_rm_in_eor0.fits'.format(sourcedir, pol_name)
+        )
+        map.signal_arr = np.sqrt(map.signal_arr)
+        plot_healpix_map.plot_filled_pixels(
+            map,
+            '{}/Stokes{}_stddev_map.png'.format(outdir, pol_name),
+            colorbar_range=colorbar_range, colorbar_label='Flux Density Std. Dev. (Jy/sr)'
+        )
+
+def explore_map_Mar16():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    map = healpix_utils.load_map(
+        '{}/StokesI_average_map_empirical_rm_in_eor0.fits'.format(sourcedir)
+    )
+    print(np.shape(map.signal_arr))
+    print(map.nside)
+
+
+def rm_correct_maps_Mar18():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Aug2020/rm_corrected/fits_files'
+    rm_file = '/Users/rubybyrne/mwa_2013_rm.csv'
+    mapQ = healpix_utils.load_map(
+        '{}/StokesQ_average_map_empirical_rm_in_eor0.fits'.format(sourcedir)
+    )
+    mapU = healpix_utils.load_map(
+        '{}/StokesU_average_map_empirical_rm_in_eor0.fits'.format(sourcedir)
+    )
+    maps = ['', mapQ, mapU, '']
+
+    rm_data = np.genfromtxt(
+        rm_file, delimiter=',', dtype=None, names=True, encoding=None
+    )
+    obsids = rm_data['ObsID']
+    for obsid in obsids:
+        rotated_maps = healpix_utils.undo_rm_correction(obsid, maps, rm_file=rm_file)
+        rotated_maps[1].write_data_to_fits(
+            '{}/{}_RMcorrected_StokesQ.fits'.format(outdir, obsid)
+        )
+        rotated_maps[2].write_data_to_fits(
+            '{}/{}_RMcorrected_StokesU.fits'.format(outdir, obsid)
+        )
+
+
 if __name__ == '__main__':
 
-    plot_variance_maps_Feb11()
+    rm_correct_maps_Mar18()

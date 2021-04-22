@@ -230,58 +230,74 @@ pro pol_leakage_calc, $
       source_ravals = (((source_xvals-mean(source_xvals))*obs.degpix)+obs.obsra)/15.
       source_decvals = ((source_yvals-mean(source_yvals))*obs.degpix)+obs.obsdec
       
-      for pol = 0, 2 do begin
-        print, 'Saving plot to '+save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
-        cgPS_Open, save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage.png'
-        ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
-        colorbar_extent = .3
-        plot_range_pixels = [1024-400, 1024+400]
-        plot_decrange = [-400*obs.degpix+obs.obsdec, 400*obs.degpix+obs.obsdec]
-        plot_rarange = [(-400*obs.degpix+obs.obsra)/15., (400*obs.degpix+obs.obsra)/15.]
-        colorbar_scale_factor = 127./colorbar_extent
-        colors = reform(frac_pol_leakage[*,pol])*colorbar_scale_factor+127.
-        for color_ind = 0,n_elements(colors)-1 do begin
-          if colors[color_ind] gt 255 then colors[color_ind]=255 else begin
-            if colors[color_ind] lt 0 then colors[color_ind]=0
-          endelse
-        endfor
-        cgLoadCT, 70
-        cgplot, source_ravals, source_decvals, /nodata, xtitle='RA (hours)', ytitle='Dec (degrees)', title='Stokes '+polarizations[pol], $
-          aspect=1.0, xrange=[plot_rarange[1], plot_rarange[0]], yrange=[plot_decrange[0], plot_decrange[1]], position=pos
-        if pol ne 2 then begin
-          resolution=200
-          pixel_size = (plot_range_pixels[1]-plot_range_pixels[0])/float(resolution)
-          image_xvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
-          image_yvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
-          fit_image = make_array(resolution, resolution, /float, value=0.)
-          for xind = 0, resolution-1 do begin
-            for yind = 0, resolution-1 do begin
-              fit_val = fit_params[0,pol]*image_xvals[xind]^2. + fit_params[1,pol]*image_yvals[yind]^2. + fit_params[2,pol]*image_xvals[xind]*image_yvals[yind] $
-                + fit_params[3,pol]*image_xvals[xind] + fit_params[4,pol]*image_yvals[yind] + fit_params[5,pol]
-              fit_color = fit_val*colorbar_scale_factor+127.
-              if fit_color gt 255 then fit_color=255 else begin
-                if fit_color lt 0 then fit_color=0
-              endelse
-              fit_image[xind, yind] = fit_color
-            endfor
+      plot_names = ['points', 'surface', 'surface_and_points']
+      plot_points = [1, 0, 1]
+      plot_surface = [0, 1, 1]
+      
+      for plot_style_ind=0,n_elements(plot_names)-1 do begin
+      
+        for pol = 0, 2 do begin
+          print, 'Saving plot to '+save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage_'+plot_names[plot_style_ind]+'.png'
+          cgPS_Open, save_path+obsid+'_stokes_'+polarizations[pol]+'_source_leakage_'+plot_names[plot_style_ind]+'.png'
+          ;colorbar_extent = max(abs(frac_pol_leakage[*,pol]))  ; autoscaling color bar
+          colorbar_extent = .4
+          plot_width_deg = 38.
+          plot_width_pixels = round(plot_width_deg/obs.degpix/2)*2
+          plot_range_pixels = [1024-plot_width_pixels/2, 1024+plot_width_pixels/2]
+          plot_decrange = [-plot_width_pixels/2*obs.degpix+obs.obsdec, plot_width_pixels/2*obs.degpix+obs.obsdec]
+          plot_rarange = [(-plot_width_pixels/2*obs.degpix+obs.obsra)/15., (plot_width_pixels/2*obs.degpix+obs.obsra)/15.]
+          colorbar_scale_factor = 127./colorbar_extent
+          colors = reform(frac_pol_leakage[*,pol])*colorbar_scale_factor+127.
+          for color_ind = 0,n_elements(colors)-1 do begin
+            if colors[color_ind] gt 255 then colors[color_ind]=255 else begin
+              if colors[color_ind] lt 0 then colors[color_ind]=0
+            endelse
           endfor
-          cgimage, reverse(fit_image, 1), position=pos, /noerase
-        endif
-        for source_ind=0,fit_sources_number-1 do begin
-          cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=16, color=fix(colors[source_ind]), symsize=plot_point_sizes[source_ind], /overplot
-          cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=9, color='black', thick=0.5, symsize=plot_point_sizes[source_ind], /overplot
+          ;cgLoadCT, 70
+          cgLoadCT, 25, /brewer
+          cgplot, source_ravals, source_decvals, /nodata, xtitle='RA (hours)', ytitle='Dec (degrees)', title='Stokes '+polarizations[pol], $
+            aspect=1.0, xrange=[plot_rarange[1], plot_rarange[0]], yrange=[plot_decrange[0], plot_decrange[1]], position=pos, background='white'
+          if pol ne 2 and keyword_set(plot_surface[plot_style_ind]) then begin
+            resolution=200
+            pixel_size = (plot_range_pixels[1]-plot_range_pixels[0])/float(resolution)
+            image_xvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
+            image_yvals = findgen(resolution, start=plot_range_pixels[0]+pixel_size/2., increment=pixel_size)
+            fit_image = make_array(resolution, resolution, /float, value=0.)
+            for xind = 0, resolution-1 do begin
+              for yind = 0, resolution-1 do begin
+                fit_val = fit_params[0,pol]*image_xvals[xind]^2. + fit_params[1,pol]*image_yvals[yind]^2. + fit_params[2,pol]*image_xvals[xind]*image_yvals[yind] $
+                  + fit_params[3,pol]*image_xvals[xind] + fit_params[4,pol]*image_yvals[yind] + fit_params[5,pol]
+                fit_color = fit_val*colorbar_scale_factor+127.
+                if fit_color gt 255 then fit_color=255 else begin
+                  if fit_color lt 0 then fit_color=0
+                endelse
+                fit_image[xind, yind] = fit_color
+              endfor
+            endfor
+            cgimage, reverse(fit_image, 1), position=pos, /noerase
+          endif else begin
+            cgcolorfill, [pos[0],pos[0],pos[2],pos[2],pos[0]], $
+              [pos[1],pos[3],pos[3],pos[1],pos[1]], $
+              COLOR='grey', /NORMAL
+          endelse
+          if keyword_set(plot_points[plot_style_ind]) then begin
+            for source_ind=0,fit_sources_number-1 do begin
+              cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=16, color=fix(colors[source_ind]), symsize=plot_point_sizes[source_ind], /overplot
+              cgplot, source_ravals[source_ind], source_decvals[source_ind], psym=9, color='black', thick=0.5, symsize=plot_point_sizes[source_ind], /overplot
+            endfor
+          endif
+          cgcolorbar, range=[-colorbar_extent, colorbar_extent], /vertical, $
+            title = 'Fractional Polarization Leakage'
+          legend_labels = ['> '+STRING(max_flux_plot, FORMAT='(F4.1)')+' Jy', '7.5 Jy', '5.0 Jy', '2.5 Jy', '< '+STRING(min_flux_plot, FORMAT='(F3.1)')+' Jy']
+          legend_symsizes = ([max_flux_plot, 7.5, 5., 2.5, min_flux_plot]-min_flux_plot)*(max_point_size-min_point_size)/(max_flux_plot-min_flux_plot)+min_point_size
+          legend_loc = [.02, .5]
+          for legend_ind=0,n_elements(legend_symsizes)-1 do begin
+            cglegend, title=legend_labels[legend_ind], $
+              psym=16, color='black', length=0, /center_sym, symsize=legend_symsizes[legend_ind], thick=0.2, $
+              location=[legend_loc[0], legend_loc[1]-.04*legend_ind], charsize=1.1, vspace=1.5
+          endfor
+          cgps_close, /delete_ps, width=1200, density=2000
         endfor
-        cgcolorbar, range=[-colorbar_extent, colorbar_extent], /vertical, $
-          title = 'Fractional Polarization Leakage'
-        legend_labels = ['> '+STRING(max_flux_plot, FORMAT='(F4.1)')+' Jy', '7.5 Jy', '5.0 Jy', '2.5 Jy', '< '+STRING(min_flux_plot, FORMAT='(F3.1)')+' Jy']
-        legend_symsizes = ([max_flux_plot, 7.5, 5., 2.5, min_flux_plot]-min_flux_plot)*(max_point_size-min_point_size)/(max_flux_plot-min_flux_plot)+min_point_size
-        legend_loc = [.02, .5]
-        for legend_ind=0,n_elements(legend_symsizes)-1 do begin
-          cglegend, title=legend_labels[legend_ind], $
-            psym=16, color='black', length=0, /center_sym, symsize=legend_symsizes[legend_ind], thick=0.2, $
-            location=[legend_loc[0], legend_loc[1]-.04*legend_ind], charsize=1.1, vspace=1.5
-        endfor
-        cgps_close, /delete_ps, width=1200, density=2000
       endfor
     endif
       

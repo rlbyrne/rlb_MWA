@@ -7,9 +7,9 @@ pro kpar0_compare_models
   path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/'
   pols = ['xx', 'yy']
   yrange = [1e11, 3.e15]
-  xrange=[2e-3, 2e-1]
+  xrange=[2.5e-3, 1e-1]
   split_xloc_wl = 10.
-  bl_range = [4.25194, 50.]
+  bl_range = [6.1, 50.]
 
   colors = ['black', 'blue', 'turquoise', 'black']
   linestyles = [1,0,0,2]
@@ -71,12 +71,9 @@ pro kpar0_compare_models
       endelse
     endfor
     tick_pos = 1/sin(tick_angles/180.*!Pi) 
-    
     cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
       xtickv=tick_pos, xticks=n_elements(tick_angles), xtickname=tick_names
-    
-    ;cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1
-      
+          
     cgAxis, xaxis=0, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5, /xlog
     cgaxis, yaxis=0, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, /xlog
     cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)", /xlog
