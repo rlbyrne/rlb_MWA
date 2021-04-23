@@ -16,25 +16,25 @@ class HealpixMap:
                  coords='equitorial', quiet=False):
         if len(pix_arr) == 0:
             if not quiet:
-                print 'No pixel values supplied. Assuming implicit ordering.'
+                print('No pixel values supplied. Assuming implicit ordering.')
         else:
             if len(signal_arr) != len(pix_arr):
-                print 'ERROR: Pixel index and data lengths do not match. Exiting.'
+                print('ERROR: Pixel index and data lengths do not match. Exiting.')
                 sys.exit(1)
         if nest == 'nested' or nest == 'nest' or nest is True:
             nest = True
         elif nest == 'ring' or nest is False:
             nest = False
         else:
-            print 'ERROR: Invalid nest parameter. Exiting.'
+            print('ERROR: Invalid nest parameter. Exiting.')
             sys.exit(1)
         if (
             coords is not None and coords != 'equitorial'
             and coords != 'galactic' and coords != 'ecliptic'
         ):
-            print 'ERROR: Invalid coords parameter.'
-            print 'Valid options are equitorial, galactic, or ecliptic.'
-            print 'Exiting.'
+            print('ERROR: Invalid coords parameter.')
+            print('Valid options are equitorial, galactic, or ecliptic.')
+            print('Exiting.')
             sys.exit(1)
         self.signal_arr = np.array(signal_arr)
         self.pix_arr = np.array(pix_arr, dtype=int)
@@ -64,7 +64,7 @@ class HealpixMap:
                 self.nside, self.pix_arr, nest=self.nest, lonlat=True
                 )
         else:
-            print 'ERROR: Coordinates must be galactic or equitorial.'
+            print('ERROR: Coordinates must be galactic or equitorial.')
             sys.exit(1)
         ra_arr[np.where(ra_arr > ra_cut)] = ra_arr[
             np.where(ra_arr > ra_cut)
@@ -115,7 +115,7 @@ class HealpixMap:
             ras = np.array(ras)
             decs = np.array(decs)
         else:
-            print 'ERROR: Coordinates must be galactic or equitorial.'
+            print('ERROR: Coordinates must be galactic or equitorial.')
             sys.exit(1)
         self.pix_corner_ras_arr = ras
         self.pix_corner_decs_arr = decs
@@ -127,7 +127,7 @@ class HealpixMap:
             self.signal_arr = signal_vals_implicit
             self.pix_arr = np.empty(0, dtype=int)
         elif len(self.signal_arr) != 12*self.nside**2:
-            print 'ERROR: Wrong number of pixels for implicit ordering. Exiting.'
+            print('ERROR: Wrong number of pixels for implicit ordering. Exiting.')
             sys.exit(1)
 
     def implicit_to_explicit_ordering(self):
@@ -154,7 +154,7 @@ class HealpixMap:
 
     def resample(self, nside, quiet=False):
         if not quiet:
-            print 'Resampling map: nside {} to {}'.format(self.nside, nside)
+            print('Resampling map: nside {} to {}'.format(self.nside, nside))
         if self.nest:
             ordering = 'nested'
         else:
@@ -262,7 +262,7 @@ class HealpixMap:
             header=header
             )
         hdu_list = fits.HDUList([hdu_0, hdu_1])
-        print 'Saving data to {}'.format(save_filename)
+        print('Saving data to {}'.format(save_filename))
         hdu_list.writeto(save_filename, overwrite=True)
 
 
@@ -270,7 +270,7 @@ def load_map(data_filename, quiet=False):
     # Load a HEALPix map formatted with FHD image conventions
 
     if not quiet:
-        print 'Loading HEALPix map {}'.format(data_filename)
+        print('Loading HEALPix map {}'.format(data_filename))
     contents = fits.open(data_filename)
     nside = int(contents[1].header['nside'])
     ordering = contents[1].header['ordering']
@@ -285,8 +285,8 @@ def load_map(data_filename, quiet=False):
     elif ordering.lower() == 'nested':
         nest = True
     else:
-        print 'ERROR: Invalid ordering parameter.'
-        print 'Ordering must be "ring" or "nested". Exiting.'
+        print('ERROR: Invalid ordering parameter.')
+        print('Ordering must be "ring" or "nested". Exiting.')
         sys.exit(1)
 
     healpix_map = HealpixMap(
@@ -309,8 +309,8 @@ def load_global_map(data_filename):
     elif ordering.lower() == 'nested':
         nest = True
     else:
-        print 'ERROR: Invalid ordering parameter.'
-        print 'Ordering must be "ring" or "nested". Exiting.'
+        print('ERROR: Invalid ordering parameter.')
+        print('Ordering must be "ring" or "nested". Exiting.')
         sys.exit(1)
 
     signal_vals = data.field('TEMPERATURE')
@@ -328,8 +328,8 @@ def load_fhd_output_map(data_filename, cube='model', freq_index=0):
         cube != 'model' and cube != 'data'
         and cube != 'variance' and cube != 'weights'
     ):
-        print 'ERROR: Invalid cube option.'
-        print 'Cube must be "model", "dirty", "variance", or "weights". Exiting.'
+        print('ERROR: Invalid cube option.')
+        print('Cube must be "model", "dirty", "variance", or "weights". Exiting.')
     if cube == 'model':
         cube_name = 'model_cube'
     if cube == 'dirty':
@@ -369,10 +369,10 @@ def load_fhd_input_map(data_filename, cube_ind=0):
 def difference_healpix_maps(map1, map2):
 
     if map1.nside != map2.nside:
-        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        print('ERROR: Healpix map nsides do not match. Exiting.')
         sys.exit(1)
     if map1.nest != map2.nest:
-        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        print('WARNING: Healpix map orderings do not match. Reordering.')
         if map1.nest:
             map1.reorder_nest_to_ring()
         else:
@@ -398,10 +398,10 @@ def difference_healpix_maps(map1, map2):
 def multiply_healpix_maps(map1, map2):
 
     if map1.nside != map2.nside:
-        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        print('ERROR: Healpix map nsides do not match. Exiting.')
         sys.exit(1)
     if map1.nest != map2.nest:
-        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        print('WARNING: Healpix map orderings do not match. Reordering.')
         if map1.nest:
             map1.reorder_nest_to_ring()
         else:
@@ -427,10 +427,10 @@ def multiply_healpix_maps(map1, map2):
 def divide_healpix_maps(map1, map2):
 
     if map1.nside != map2.nside:
-        print 'ERROR: Healpix map nsides do not match. Exiting.'
+        print('ERROR: Healpix map nsides do not match. Exiting.')
         sys.exit(1)
     if map1.nest != map2.nest:
-        print 'WARNING: Healpix map orderings do not match. Reordering.'
+        print('WARNING: Healpix map orderings do not match. Reordering.')
         if map1.nest:
             map1.reorder_nest_to_ring()
         else:
@@ -462,10 +462,10 @@ def average_healpix_maps_simple(maps_arr):
     nest = maps_arr[0].nest
     for map in maps_arr:
         if map.nside != nside:
-            print 'ERROR: Healpix map nsides do not match. Exiting.'
+            print('ERROR: Healpix map nsides do not match. Exiting.')
             sys.exit(1)
         if map.nest != nest:
-            print 'ERROR: Healpix map orderings do not match. Exiting.'
+            print('ERROR: Healpix map orderings do not match. Exiting.')
             sys.exit(1)
     pixelnum_use = list(set(
         [pixelnum for map in maps_arr for pixelnum in map.pix_arr]
@@ -509,13 +509,13 @@ def average_healpix_maps(
         if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
             obs_lists = [obs_lists]
         elif len(fhd_run_paths) != len(obs_lists):
-            print 'ERROR: obs_list not provided for each path'
+            print('ERROR: obs_list not provided for each path')
             sys.exit(1)
     if obs_weights_list is not None:
         if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
             obs_weights_list = [obs_weights_list]
         elif len(fhd_run_paths) != len(obs_weights_list):
-            print 'ERROR: obs_weights_list not provided for each path'
+            print('ERROR: obs_weights_list not provided for each path')
             sys.exit(1)
 
     for path_ind, fhd_run_path in enumerate(fhd_run_paths):
@@ -534,7 +534,7 @@ def average_healpix_maps(
 
         if obs_list is None:  # use all obs in the data directory
             if obs_weights is not None:
-                print 'WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.'
+                print('WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.')
                 obs_weights = None
             data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
             for cube_ind, cube in enumerate(cube_names):
@@ -542,8 +542,8 @@ def average_healpix_maps(
                     file for file in data_files
                     if '_{}_{}_HEALPix.fits'.format(weighting, cube) in file
                 ]
-                print data_files
-                print '_{}_{}_HEALPix.fits'.format(weighting, cube)
+                print(data_files)
+                print('_{}_{}_HEALPix.fits'.format(weighting, cube))
                 obs_list_cube = [file[0:10] for file in data_files_cube]
                 if cube_ind == 0:
                     obs_list = obs_list_cube
@@ -553,11 +553,11 @@ def average_healpix_maps(
                     ]
 
         if obs_weights is None or len(obs_weights) == 0:
-            print 'Observation weights not provided. Using equal weighting.'
+            print('Observation weights not provided. Using equal weighting.')
             obs_weights = np.array([1.]*len(obs_list))
         else:
             if len(obs_weights) != len(obs_list):
-                print 'ERROR: Invalid obs_weights. Exiting.'
+                print('ERROR: Invalid obs_weights. Exiting.')
                 sys.exit(1)
             obs_weights = np.array(obs_weights)
         if fhd_run_path[-1] == '/':
@@ -568,9 +568,9 @@ def average_healpix_maps(
         for obs in obs_list:
             for cube in cube_names:
                 if '{}_{}_{}_HEALPix.fits'.format(obs, weighting, cube) not in data_files:
-                    print 'WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
+                    print('WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
                         fhd_run_path, obs, weighting, cube, obs
-                    )
+                    ))
                     exclude_obs_list.append(obs)
                     continue
         obs_weights = np.array([
@@ -580,11 +580,11 @@ def average_healpix_maps(
         obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
 
         if not quiet:
-            print 'Averaging {} observations from {}'.format(len(obs_list), fhd_run_path)
+            print('Averaging {} observations from {}'.format(len(obs_list), fhd_run_path))
 
         for obs_ind, obsid in enumerate(obs_list):
             if not quiet:
-                print 'Loading observation {} of {}'.format(obs_ind+1, len(obs_list))
+                print('Loading observation {} of {}'.format(obs_ind+1, len(obs_list)))
             maps = []
             for cube_ind, cube in enumerate(cube_names):
                 map = load_map('{}/output_data/{}_{}_{}_HEALPix.fits'.format(
@@ -593,7 +593,7 @@ def average_healpix_maps(
                 if obs_ind == 0 and cube_ind == 0 and path_ind == 0:  # Use first map for conventions
                     if nside is None:
                         nside = map.nside
-                        print 'nside is not specified. Using nside {}.'.format(nside)
+                        print('nside is not specified. Using nside {}.'.format(nside))
                     else:
                         if map.nside != nside:
                             map.resample(nside)
@@ -608,13 +608,13 @@ def average_healpix_maps(
                     if map.nside != nside:
                         map.resample(nside)
                     if map.nest != nest:
-                        print 'Map nesting conventions do not match. Converting.'
+                        print('Map nesting conventions do not match. Converting.')
                         if nest:
                             map.reorder_ring_to_nest()
                         else:
                             map.reorder_nest_to_ring()
                     if map.coords != coords:
-                        print 'ERROR: Map coordinates do not match. Exiting.'
+                        print('ERROR: Map coordinates do not match. Exiting.')
                         sys.exit(1)
                 maps.append(map)
 
@@ -694,14 +694,14 @@ def rm_correction(
         rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
 
     if len(maps) < 3:
-        print 'ERROR: RM correction requires Stokes Q and U maps.'
+        print('ERROR: RM correction requires Stokes Q and U maps.')
         sys.exit(1)
     if use_rm is None: # Look up RM if none is provided explicitly
         rm_data = np.genfromtxt(
             rm_file, delimiter=',', dtype=None, names=True, encoding=None
         )
         if int(obsid) not in rm_data['ObsID']:
-            print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
+            print('ERROR: Obsid {} not found in {}'.format(obsid, rm_file))
             sys.exit(1)
         rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
     else:
@@ -758,14 +758,14 @@ def undo_rm_correction(
         rm_file='/Users/rubybyrne/diffuse_survey_rm_tot.csv'
 
     if len(maps) < 3:
-        print 'ERROR: RM correction requires Stokes Q and U maps.'
+        print('ERROR: RM correction requires Stokes Q and U maps.')
         sys.exit(1)
     if use_rm is None: # Look up RM if none is provided explicitly
         rm_data = np.genfromtxt(
             rm_file, delimiter=',', dtype=None, names=True, encoding=None
         )
         if int(obsid) not in rm_data['ObsID']:
-            print 'ERROR: Obsid {} not found in {}'.format(obsid, rm_file)
+            print('ERROR: Obsid {} not found in {}'.format(obsid, rm_file))
             sys.exit(1)
         rm = rm_data['RM'][np.where(rm_data['ObsID'] == int(obsid))][0]
     else:
@@ -825,13 +825,13 @@ def calculate_variance_healpix_maps(
         if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
             obs_lists = [obs_lists]
         elif len(fhd_run_paths) != len(obs_lists):
-            print 'ERROR: obs_list not provided for each path'
+            print('ERROR: obs_list not provided for each path')
             sys.exit(1)
     if obs_weights_list is not None:
         if len(fhd_run_paths) == 1 and isinstance(obs_lists[0], str):
             obs_weights_list = [obs_weights_list]
         elif len(fhd_run_paths) != len(obs_weights_list):
-            print 'ERROR: obs_weights_list not provided for each path'
+            print('ERROR: obs_weights_list not provided for each path')
             sys.exit(1)
 
     if saved_averaged_maps is None:
@@ -844,7 +844,7 @@ def calculate_variance_healpix_maps(
         )
     else:
         if len(saved_averaged_maps) != len(cube_names):
-            print 'WARNING: Invalid saved_averaged_maps paths provided. Recalculating data average.'
+            print('WARNING: Invalid saved_averaged_maps paths provided. Recalculating data average.')
             averaged_maps, null = average_healpix_maps(
                 fhd_run_paths, obs_lists=obs_lists,
                 obs_weights_list=obs_weights_list, nside=nside,
@@ -853,7 +853,7 @@ def calculate_variance_healpix_maps(
                 apply_rm_correction=apply_rm_correction, rm_file=rm_file
             )
         else:
-            print 'Loading saved data averages.'
+            print('Loading saved data averages.')
             averaged_maps = []
             for cube_ind in range(len(cube_names)):
                 map = load_map(saved_averaged_maps[cube_ind])
@@ -877,7 +877,7 @@ def calculate_variance_healpix_maps(
 
         if obs_list is None:  # use all obs in the data directory
             if obs_weights is not None:
-                print 'WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.'
+                print('WARNING: No obs_list provided. Disregarding obs_weights and using equal weighting.')
                 obs_weights = None
             data_files = os.listdir('{}/output_data/'.format(fhd_run_path))
             for cube_ind, cube in enumerate(cube_names):
@@ -894,11 +894,11 @@ def calculate_variance_healpix_maps(
                     ]
 
         if obs_weights is None or len(obs_weights) == 0:
-            print 'Observation weights not provided. Using equal weighting.'
+            print('Observation weights not provided. Using equal weighting.')
             obs_weights = np.array([1.]*len(obs_list))
         else:
             if len(obs_weights) != len(obs_list):
-                print 'ERROR: Invalid obs_weights. Exiting.'
+                print('ERROR: Invalid obs_weights. Exiting.')
                 sys.exit(1)
             obs_weights = np.array(obs_weights)
         if fhd_run_path[-1] == '/':
@@ -909,9 +909,9 @@ def calculate_variance_healpix_maps(
         for obs in obs_list:
             for cube in cube_names:
                 if '{}_{}_{}_HEALPix.fits'.format(obs, weighting, cube) not in data_files:
-                    print 'WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
+                    print('WARNING: File {}/output_data/{}_{}_{}_HEALPix.fits not found. Excluding observation {} from the average.'.format(
                         fhd_run_path, obs, weighting, cube, obs
-                    )
+                    ))
                     exclude_obs_list.append(obs)
                     continue
         obs_weights = np.array([
@@ -920,7 +920,7 @@ def calculate_variance_healpix_maps(
         ])
         obs_list = [obs for obs in obs_list if obs not in exclude_obs_list]
 
-        print 'Calculating variance for {} observations'.format(len(obs_list))
+        print('Calculating variance for {} observations'.format(len(obs_list)))
 
         for obs_ind, obsid in enumerate(obs_list):
             maps = []
@@ -931,7 +931,7 @@ def calculate_variance_healpix_maps(
                 if obs_ind == 0 and cube_ind == 0 and path_ind == 0:  # Use first map for conventions
                     if nside is None:
                         nside = map.nside
-                        print 'nside is not specified. Using nside {}.'.format(nside)
+                        print('nside is not specified. Using nside {}.'.format(nside))
                     else:
                         if map.nside != nside:
                             map.resample(nside)
@@ -947,13 +947,13 @@ def calculate_variance_healpix_maps(
                     if map.nside != nside:
                         map.resample(nside)
                     if map.nest != nest:
-                        print 'Map nesting conventions do not match. Converting.'
+                        print('Map nesting conventions do not match. Converting.')
                         if nest:
                             map.reorder_ring_to_nest()
                         else:
                             map.reorder_nest_to_ring()
                     if map.coords != coords:
-                        print 'ERROR: Map coordinates do not match. Exiting.'
+                        print('ERROR: Map coordinates do not match. Exiting.')
                         sys.exit(1)
                 maps.append(map)
 
@@ -1093,7 +1093,7 @@ def combine_maps_nearest_data(
             # remove duplicates
             obs_list = list(set(obs_list))
 
-    print 'Combining {} observations'.format(len(obs_list))
+    print('Combining {} observations'.format(len(obs_list)))
 
     obs_centers = []
     for obsid in obs_list:
@@ -1115,7 +1115,7 @@ def combine_maps_nearest_data(
             if obs_ind == 0 and cube_ind == 0:  # Use first map for conventions
                 if nside is None:
                     nside = map.nside
-                    print 'nside is not specified. Using nside {}.'.format(nside)
+                    print('nside is not specified. Using nside {}.'.format(nside))
                 else:
                     if map.nside != nside:
                         map.resample(nside)
@@ -1130,13 +1130,13 @@ def combine_maps_nearest_data(
                 if map.nside != nside:
                     map.resample(nside)
                 if map.nest != nest:
-                    print 'Map nesting conventions do not match. Converting.'
+                    print('Map nesting conventions do not match. Converting.')
                     if nest:
                         map.reorder_ring_to_nest()
                     else:
                         map.reorder_nest_to_ring()
                 if map.coords != coords:
-                    print 'ERROR: Map coordinates do not match. Exiting.'
+                    print('ERROR: Map coordinates do not match. Exiting.')
                     sys.exit(1)
             maps.append(map)
 
@@ -1183,7 +1183,7 @@ def combine_maps_nearest_data(
 def write_data_to_standard_fits(maps, save_filename, history_str=''):
 
     if len(maps) != 4:
-        print 'ERROR: Must provide Stokes I,Q,U,V maps.'
+        print('ERROR: Must provide Stokes I,Q,U,V maps.')
         sys.exit()
 
     data = np.zeros((len(maps[0].signal_arr), 1, 4))
@@ -1191,19 +1191,19 @@ def write_data_to_standard_fits(maps, save_filename, history_str=''):
 
     for map_ind in range(1, 4):
         if maps[map_ind].nside != maps[0].nside:
-            print 'ERROR: Map nsides do not match.'
+            print('ERROR: Map nsides do not match.')
             sys.exit()
         if maps[map_ind].nest != maps[0].nest:
-            print 'ERROR: Map nest conventions do not match.'
+            print('ERROR: Map nest conventions do not match.')
             sys.exit()
         if maps[map_ind].coords != maps[0].coords:
-            print 'ERROR: Map coordinate system conventions do not match.'
+            print('ERROR: Map coordinate system conventions do not match.')
             sys.exit()
         if len(maps[map_ind].pix_arr) != len(maps[0].pix_arr):
-            print 'ERROR: Maps have different numbers of pixels.'
+            print('ERROR: Maps have different numbers of pixels.')
             sys.exit()
         if not np.array_equal(maps[map_ind].pix_arr, maps[0].pix_arr):
-            print 'WARNING: Pixel ordering does not match. Reordering.'
+            print('WARNING: Pixel ordering does not match. Reordering.')
             new_signal_arr = np.zeros((len(maps[map_ind].pix_arr)))
             for pix_ind in range(len(maps[map_ind].pix_arr)):
                 new_signal_arr[pix_ind] = maps[map_ind].signal_arr[
