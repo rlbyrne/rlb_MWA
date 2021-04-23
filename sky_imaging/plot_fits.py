@@ -2,9 +2,7 @@
 
 from astropy.io import fits
 import numpy as np
-import healpy as hp
 import sys
-import math
 import matplotlib.pyplot as plt
 import scipy.io
 from scipy.interpolate import griddata
@@ -18,21 +16,21 @@ class ImageFromFits:
         if ra_axis is not None:
             ra_axis = list(ra_axis)
             if len(ra_axis) != n_ra_vals:
-                print 'ERROR: Number of axis elements does not match data axis. Exiting.'
+                print('ERROR: Number of axis elements does not match data axis. Exiting.')
                 sys.exit(1)
         if dec_axis is not None:
             dec_axis = list(dec_axis)
             if len(dec_axis) != n_dec_vals:
-                print 'ERROR: Number of axis elements does not match data axis. Exiting.'
+                print('ERROR: Number of axis elements does not match data axis. Exiting.')
                 sys.exit(1)
         if ra_axis is None and ra_range is not None:
             if len(ra_range) != 2:
-                print 'ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.'
+                print('ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.')
                 sys.exit(1)
             ra_axis = list(np.linspace(ra_range[0], ra_range[1], n_ra_vals))
         if dec_axis is None and dec_range is not None:
             if len(dec_range) != 2:
-                print 'ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.'
+                print('ERROR: parameters ra_range and dec_range must have the form [min, max]. Exiting.')
                 sys.exit(1)
             dec_axis = list(
                 np.linspace(dec_range[0], dec_range[1], n_dec_vals)
@@ -76,12 +74,12 @@ def load_image(data_filename):
     if 'CD1_1' in header.keys() and 'CD2_2' in header.keys():  # FHD convention
         cdelt1 = header['CD1_1']
         cdelt2 = header['CD2_2']
-        print 'WARNING: Ignoring curved sky effects.'
+        print('WARNING: Ignoring curved sky effects.')
     elif 'CDELT1' in header.keys() and 'CDELT2' in header.keys():
         cdelt1 = header['CDELT1']
         cdelt2 = header['CDELT2']
     else:
-        'ERROR: Header format not recognized.'
+        print('ERROR: Header format not recognized.')
         sys.exit(1)
 
     ra_axis = [
@@ -131,7 +129,7 @@ def load_gaussian_source_model_as_image(
     source_dec = source['dec']
     components = source['extend']
     if len(components) == 0:
-        print 'WARNING: Source is not extended.'
+        print('WARNING: Source is not extended.')
 
     total_flux = 0.
     for comp in components:
@@ -169,7 +167,7 @@ def difference_images(image1, image2):
             ra_axis=image1.ra_axis, dec_axis=image1.dec_axis
             )
     else:
-        print 'WARNING: Image axes do not match. Interpolating image2 to image1 axes.'
+        print('WARNING: Image axes do not match. Interpolating image2 to image1 axes.')
         image2_signal_array_interp = griddata(  # This doesn't work
             (image2.ra_axis, image2.dec_axis),
             image2.signal_arr,
@@ -187,7 +185,7 @@ def divide_images(image1, image2):
     if image1.ra_axis == image2.ra_axis and image1.dec_axis == image2.dec_axis:
         image2_use = image2.signal_arr
     else:
-        print 'WARNING: Image axes do not match. Interpolating image2 to image1 axes.'
+        print('WARNING: Image axes do not match. Interpolating image2 to image1 axes.')
         image2_use = griddata(  # This doesn't work
             (image2.ra_axis, image2.dec_axis),
             image2.signal_arr,
@@ -236,7 +234,7 @@ def plot_fits_image(
     if save_filename is None:
         plt.show()
     else:
-        print 'Saving figure to {}'.format(save_filename)
+        print('Saving figure to {}'.format(save_filename))
         plt.savefig(save_filename, format='png', dpi=500)
         plt.close()
 
@@ -247,8 +245,9 @@ if __name__ == '__main__':
     branch = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Nov2019/fhd_rlb_diffuse_subtract_Nov2019/output_data/1061316296_uniform_Model_Q.fits')
     diff = difference_images(master, branch)
     print np.max(np.abs(diff.signal_arr))"""
-    image1 = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Oct2019/fhd_rlb_single_source_test_master_onefreq_Nov2019/output_data/1130773144_natural_Model_V.fits')
-    plot_fits_image(image1, colorbar_range=[-10,10])
+    image1 = load_image('/Users/ruby/Downloads/1061316296_Beam_YY.fits')
+    print(np.max(image1.signal_arr))
+    #plot_fits_image(image1, colorbar_range=[-10,10])
     """source_ra = 50.405659
     source_dec = -37.149250
     image_range = 5
