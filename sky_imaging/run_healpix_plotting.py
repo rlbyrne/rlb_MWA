@@ -2771,7 +2771,7 @@ def plot_variance_maps_Feb11():
         plot_healpix_map.plot_filled_pixels(
             map,
             '{}/Stokes{}_variance_map.png'.format(outdir, pol_name),
-            colorbar_range=colorbar_range, colorbar_label='Flux Density Variance (Jy/sr)${^2}$'
+            colorbar_range=colorbar_range, colorbar_label='Surface Brightness Variance (Jy/sr)${^2}$'
         )
 
     map = healpix_utils.load_map(
@@ -2801,7 +2801,7 @@ def plot_stddev_maps_Mar8():
         plot_healpix_map.plot_filled_pixels(
             map,
             '{}/Stokes{}_stddev_map.png'.format(outdir, pol_name),
-            colorbar_range=colorbar_range, colorbar_label='Flux Density Std. Dev. (Jy/sr)'
+            colorbar_range=colorbar_range, colorbar_label='Surface Brightness Std. Dev. (Jy/sr)'
         )
 
 def explore_map_Mar16():

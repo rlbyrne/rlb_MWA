@@ -161,7 +161,11 @@ def load_gaussian_source_model_as_image(
 
 def difference_images(image1, image2):
 
-    if image1.ra_axis == image2.ra_axis and image1.dec_axis == image2.dec_axis:
+    tolerance = .000001
+    if (
+        np.max(np.abs(np.array(image1.ra_axis)-np.array(image2.ra_axis))) < tolerance
+        and np.max(np.abs(np.array(image1.dec_axis)-np.array(image2.dec_axis))) < tolerance
+    ):
         data_diff = ImageFromFits(
             np.subtract(image1.signal_arr, image2.signal_arr),
             ra_axis=image1.ra_axis, dec_axis=image1.dec_axis
@@ -203,7 +207,7 @@ def divide_images(image1, image2):
 def plot_fits_image(
     fits_image, save_filename=None, title='', ra_range=None, dec_range=None,
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/sr)', plot_grid=True,
+    colorbar_label='Surface Brightness (Jy/sr)', plot_grid=True,
     xlabel='RA (deg.)', ylabel='Dec. (deg.)'
 ):
 
@@ -241,20 +245,12 @@ def plot_fits_image(
 
 if __name__ == '__main__':
 
-    """master = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Nov2019/fhd_rlb_master_reference_Nov2019/output_data/1061316296_uniform_Model_Q.fits')
-    branch = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Nov2019/fhd_rlb_diffuse_subtract_Nov2019/output_data/1061316296_uniform_Model_Q.fits')
-    diff = difference_images(master, branch)
-    print np.max(np.abs(diff.signal_arr))"""
-    image1 = load_image('/Users/ruby/Downloads/1061316296_Beam_YY.fits')
-    print(np.max(image1.signal_arr))
-    #plot_fits_image(image1, colorbar_range=[-10,10])
-    """source_ra = 50.405659
-    source_dec = -37.149250
-    image_range = 5
-    image1.limit_data_range(ra_range=[source_ra-image_range,source_ra+image_range], dec_range=[source_dec-image_range,source_dec+image_range])
-    #image2 = load_image('/Volumes/Bilbo/rlb_fhd_outputs/fhd_bug_testing_Oct2019/fhd_rlb_single_source_ofcent_flipped_beam_branch_real_part_Oct2019/output_data/1130773144_uniform_Model_Q.fits')
-    #diff = difference_images(image1, image2)
-    print np.max(image1.signal_arr)
-    print np.where(image1.signal_arr==np.max(image1.signal_arr))
-    print image1.signal_arr[32,76]
-    plot_fits_image(image1, colorbar_range=[-50,50])"""
+    path = '/Volumes/Bilbo/rlb_fhd_outputs/check_crosspol_phase_calc_May2021'
+    version1 = 'fhd_rlb_pol_test_old_crosspol_phase_calc_May2021'
+    version2 = 'fhd_rlb_pol_test_new_crosspol_phase_calc_May2021'
+    obsids = ['1131454296', '1131713632', '1131710032', '1131456096', '1131540824']
+    obsind = 0
+    image1 = load_image('{}/{}/output_data/{}_uniform_Residual_U.fits'.format(
+        path, version1, obsids[3]
+    ))
+    plot_fits_image(image1, colorbar_range=[-100000,100000])

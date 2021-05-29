@@ -56,7 +56,7 @@ def get_mwa_beam(
 
 def plot_filled_pixels(
     map, save_filename=None, title='', ra_range=[], dec_range=[],
-    colorbar_range=[], log=False, colorbar_label='Flux Density (Jy/sr)',
+    colorbar_range=[], log=False, colorbar_label='Surface Brightness (Jy/sr)',
     ra_cut=None,
     overplot_points=False, point_ras=None, point_decs=None, point_values=None,
     overplot_points_vmin=-np.pi, overplot_points_vmax=np.pi,
@@ -230,7 +230,7 @@ def plot_filled_pixels(
 def plot_grid_interp(
     map, save_filename=None, resolution=.1, title='', ra_range=[], dec_range=[],
     colorbar_range=[None, None], log=False,
-    colorbar_label='Flux Density (Jy/sr)'
+    colorbar_label='Surface Brightness (Jy/sr)'
 ):
     # resolution is in degrees
 
