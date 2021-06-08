@@ -1,4 +1,4 @@
-pro kpar0_compare_models
+pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=plot_diffuse
 
   ;version_names = ['fhd_rlb_GLEAM_calibration_reference_Aug2020', 'fhd_rlb_subtract_StokesI_diffuse_and_GLEAM_Aug2020', $
   ;  'fhd_rlb_subtract_diffuse_and_GLEAM_Aug2020', 'fhd_rlb_subtract_diffuse_only_Aug2020']
@@ -9,11 +9,25 @@ pro kpar0_compare_models
   yrange = [1e11, 3.e15]
   xrange=[2.5e-3, 2.5e-1]
   bl_range = [6.1, 50.]
+  
+  if n_elements(mark_trusted_region) eq 0 then mark_trusted_region=1
+  if n_elements(plot_diffuse) eq 0 then plot_diffuse=1
 
   colors = ['black', 'blue', 'turquoise', 'black']
   linestyles = [1,0,0,2]
   linewidths = [6,6,6,6]
   legend_labels = ['Compact Model', 'Diffuse Model', 'Compact and Diffuse Models', 'Data']
+  legend_ordering = [3,0,1,2]
+  plotting_order = [1, 2, 0, 3]
+  if ~keyword_set(plot_diffuse) then begin
+    colors = colors[[0,3]]
+    linestyles = linestyles[[0,3]]
+    linewidths = linewidths[[0,3]]
+    legend_labels = legend_labels[[0,3]]
+    legend_ordering = [1,0]
+    plotting_order = [0,1]
+    version_names = version_names[[0]]
+  endif
 
   for pol_ind=0,n_elements(pols)-1 do begin
     pol = pols[pol_ind]
@@ -24,7 +38,6 @@ pro kpar0_compare_models
 
     cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Sept2020/models_'+pol+'.png'
     cgDisplay, 900, 650
-    plotting_order = [1, 2, 0, 3]
     for ind = 0,n_elements(datafiles)-1 do begin
       file_ind = plotting_order[ind]
       k_edges = getvar_savefile(datafiles[file_ind], 'k_edges')
@@ -42,10 +55,12 @@ pro kpar0_compare_models
           linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], title='', Charsize=1.5,$
           ytitle=textoidl('k-parallel=0 Power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
           xstyle=4, /nodata, Position=[0.1, 0.22, 0.97, 0.9]
+        if keyword_set(mark_trusted_region) then begin
           cgcolorfill, [xrange[0], bl_range[0]*1e-3, bl_range[0]*1e-3, xrange[0]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
-          color='BLK2'
-        cgcolorfill, [xrange[1], bl_range[1]*1e-3, bl_range[1]*1e-3, xrange[1]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
-          color='BLK2'
+            color='BLK2'
+          cgcolorfill, [xrange[1], bl_range[1]*1e-3, bl_range[1]*1e-3, xrange[1]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
+            color='BLK2'
+        endif
       endif
       
       cgplot, plot_x, plot_y, /xlog, /ylog, yrange=yrange, xrange=xrange, $
@@ -81,7 +96,8 @@ pro kpar0_compare_models
     cgText, xlocation, ylocation+.01, textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
       /Normal, Alignment=0.5, Charsize=1.5
 
-    legend_ordering = [3,0,1,2]
+    
+    
     cglegend, title=legend_labels[legend_ordering], $
       linestyle=linestyles[legend_ordering], thick=6, $
       color=colors[legend_ordering], length=0.03, /center_sym, location=[.6,.87], charsize=1.2, /box, background='white', vspace=1.5
