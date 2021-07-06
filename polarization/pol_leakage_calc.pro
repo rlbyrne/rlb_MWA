@@ -6,16 +6,14 @@ pro pol_leakage_calc, $
   image_units_jy_per_sr=image_units_jy_per_sr, $ ; set this keyword if the FHD outputs are in units Jy/sr (i.e. created after Feb 2020)
   obs_list=obs_list ; optional list of obsids or path to a list of obsids. If unset, code will use all available observations.
   
-  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
-  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Mar2020/'
+  ;fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_Aug2019/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_diffuse_survey_decon_4pol_May2021/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Jun2021/'
   
   ; Find obsids where all files are present
   if ~keyword_set(obs_list) then begin
     decon_filenames = file_search(fhd_path+'deconvolution/*') 
-    obsids_decon = []
-    for file=0,n_elements(decon_filenames)-1 do begin
-      obsids_decon = [obsids_decon, strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
-    endfor
+    obsids_decon = [strmid(decon_filenames, strlen(fhd_path+'deconvolution/'), 10)]
   endif else begin
     if isa(obs_list, /array) then begin ;obs_list is an array
       obsids_decon = obs_list
