@@ -2,9 +2,9 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
 
   ;version_names = ['fhd_rlb_GLEAM_calibration_reference_Aug2020', 'fhd_rlb_subtract_StokesI_diffuse_and_GLEAM_Aug2020', $
   ;  'fhd_rlb_subtract_diffuse_and_GLEAM_Aug2020', 'fhd_rlb_subtract_diffuse_only_Aug2020']
-  version_names = ['fhd_rlb_GLEAM_calibration_reference_Aug2020', $
-    'fhd_rlb_subtract_diffuse_only_Aug2020', 'fhd_rlb_subtract_diffuse_and_GLEAM_Aug2020']
-  path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/'
+  version_names = ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/fhd_rlb_GLEAM_calibration_reference_Aug2020', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_subtract_diffuse_only_Jul2021', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_subtract_diffuse_and_GLEAM_Jul2021']
   pols = ['xx', 'yy']
   yrange = [1e11, 3.e15]
   xrange=[2.5e-3, 2.5e-1]
@@ -33,10 +33,10 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
     pol = pols[pol_ind]
 
     datafiles = []
-    for run_ind=0,n_elements(version_names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
-    datafiles = [datafiles, path+'fhd_rlb_GLEAM_calibration_reference_Aug2020/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+    for run_ind=0,n_elements(version_names)-1 do datafiles = [datafiles, version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+    datafiles = [datafiles, '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/fhd_rlb_GLEAM_calibration_reference_Aug2020/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
 
-    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Sept2020/models_'+pol+'.png'
+    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Jul2021/fractional_power_'+pol+'.png'
     cgDisplay, 900, 650
     for ind = 0,n_elements(datafiles)-1 do begin
       file_ind = plotting_order[ind]

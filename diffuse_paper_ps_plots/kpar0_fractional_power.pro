@@ -1,8 +1,8 @@
 pro kpar0_fractional_power
 
-  version_names = ['fhd_rlb_GLEAM_calibration_reference_Aug2020', 'fhd_rlb_subtract_StokesI_diffuse_and_GLEAM_Aug2020', $
-    'fhd_rlb_subtract_diffuse_and_GLEAM_Aug2020']
-  path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/'
+  version_names = ['/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/fhd_rlb_GLEAM_calibration_reference_Aug2020', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_subtract_StokesI_diffuse_and_GLEAM_Jul2021', $
+    '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_subtract_diffuse_and_GLEAM_Jul2021']
   pols = ['xx', 'yy']
   yrange = [0,100]
   ;xrange=[2e-3, 2e-1]
@@ -17,13 +17,13 @@ pro kpar0_fractional_power
   for pol_ind=0,n_elements(pols)-1 do begin
     pol = pols[pol_ind]
     
-    dirty_file = path+'fhd_rlb_GLEAM_calibration_reference_Aug2020/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave'
+    dirty_file = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/fhd_rlb_GLEAM_calibration_reference_Aug2020/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave'
     dirty_power = getvar_savefile(dirty_file, 'power')
  
     datafiles = []
-    for run_ind=0,n_elements(version_names)-1 do datafiles = [datafiles, path+version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
+    for run_ind=0,n_elements(version_names)-1 do datafiles = [datafiles, version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_res_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
 
-    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Sept2020/frac_power_recovered_'+pol+'.png'
+    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Jul2021/frac_power_recovered_'+pol+'.png'
     cgDisplay, 900, 650
     for file_ind = 0,n_elements(datafiles)-1 do begin
       k_edges = getvar_savefile(datafiles[file_ind], 'k_edges')

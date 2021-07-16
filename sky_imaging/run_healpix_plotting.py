@@ -3342,6 +3342,40 @@ def rm_correct_maps_Jul6():
     )
 
 
+def plot_maps_Jul15():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Jun2021'
+    outdir = '/Users/rubybyrne/diffuse_survey_plotting_Jun2021'
+    for pol in ['I', 'Q', 'U', 'V']:
+        if pol == 'I':
+            colorbar_range = [-5e4, 5e4]
+        else:
+            colorbar_range = [-5e3, 5e3]
+        if pol == 'V':
+            var_colorbar_range = [0, 1e3]
+        else:
+            var_colorbar_range = [0, 5e3]
+        avg_map = healpix_utils.load_map(
+            '{}/Stokes{}_average_map.fits'.format(sourcedir, pol)
+        )
+        plot_healpix_map.plot_filled_pixels(
+            avg_map,
+            '{}/Stokes{}_average_map_annotated.png'.format(outdir, pol),
+            colorbar_range=colorbar_range, overplot_mwa_beam_contours=True,
+            overplot_hera_band=True,
+            overplot_bright_sources=True
+        )
+        var_map = healpix_utils.load_map(
+            '{}/Stokes{}_variance_map.fits'.format(sourcedir, pol)
+        )
+        var_map.signal_arr = np.sqrt(var_map.signal_arr)
+        plot_healpix_map.plot_filled_pixels(
+            var_map,
+            '{}/Stokes{}_stddev_map.png'.format(outdir, pol),
+            colorbar_range=var_colorbar_range, colorbar_label='Standard Deviation (Jy/sr)'
+        )
+
+
 if __name__ == '__main__':
 
-    combine_maps_with_variance_calculation_Jun14()
+    plot_maps_Jul15()
