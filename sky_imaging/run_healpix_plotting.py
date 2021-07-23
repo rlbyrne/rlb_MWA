@@ -3376,6 +3376,31 @@ def plot_maps_Jul15():
         )
 
 
+def make_fits_files_Jul23():
+
+    sourcedir = '/Users/rubybyrne/diffuse_survey_plotting_Jun2021'
+    save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Jun2021/diffuse_map.healfits'
+    pols = ['I', 'Q', 'U', 'V']
+    maps = []
+    for pol_ind, pol_name in enumerate(pols):
+        new_map = healpix_utils.load_map(
+            '{}/Stokes{}_average_map.fits'.format(sourcedir, pol_name)
+        )
+        maps.append(new_map)
+    healpix_utils.write_data_to_standard_fits(maps, save_filename)
+
+    save_filename = '/Users/rubybyrne/diffuse_survey_plotting_Jun2021/standard_deviation.healfits'
+    maps = []
+    for pol_ind, pol_name in enumerate(pols):
+        new_map = healpix_utils.load_map(
+            '{}/Stokes{}_variance_map.fits'.format(sourcedir, pol_name)
+        )
+        new_map.signal_arr = np.sqrt(new_map.signal_arr)
+        maps.append(new_map)
+    healpix_utils.write_data_to_standard_fits(maps, save_filename, history_str='map standard deviations')
+
+
+
 if __name__ == '__main__':
 
-    plot_maps_Jul15()
+    make_fits_files_Jul23()
