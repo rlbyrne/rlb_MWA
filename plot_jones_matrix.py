@@ -16,36 +16,79 @@ def main():
     obs_path = '/Users/ruby/Astro/jones_matrix_plotting/1131454296_obs.sav'
     obs_struct = scipy.io.readsav(obs_path)['obs']
     degpix = obs_struct['degpix'][0]
-    deg_extent = 153.5
+    deg_extent = 153.5  # Calculated by looking at the Dec. extent of the image
     dim = np.shape(jones_struct[0, 0])[0]
 
     jones_p_amp = np.sqrt(
-        np.abs(jones_struct[0, 0])**2. + np.abs(jones_struct[0, 1])**2.
+        np.real(jones_struct[0, 0])**2. + np.real(jones_struct[0, 1])**2.
     )
     jones_p_amp[np.where(jones_p_amp == 0.)] = np.nan
     jones_q_amp = np.sqrt(
-        np.abs(jones_struct[1, 0])**2. + np.abs(jones_struct[1, 1])**2.
+        np.real(jones_struct[1, 0])**2. + np.real(jones_struct[1, 1])**2.
     )
     jones_q_amp[np.where(jones_q_amp == 0.)] = np.nan
     k_mat = np.zeros((2, 2, dim, dim))
     for ind in range(2):
-        k_mat[0, ind, :, :] = np.abs((jones_struct[0, ind])/jones_p_amp)
-        k_mat[1, ind, :, :] = np.abs((jones_struct[1, ind])/jones_q_amp)
+        k_mat[0, ind, :, :] = np.real((jones_struct[0, ind])/jones_p_amp)
+        k_mat[1, ind, :, :] = np.real((jones_struct[1, ind])/jones_q_amp)
     jones_p_amp /= np.nanmax(jones_p_amp)
     jones_q_amp /= np.nanmax(jones_q_amp)
 
     angle_p = np.squeeze(np.arctan2(k_mat[0, 1, :, :], k_mat[0, 0, :, :]))
     angle_q = np.squeeze(np.arctan2(k_mat[1, 1, :, :], k_mat[1, 0, :, :]))
 
+    plot_amp = False
+    if plot_amp:
+        plot_vals = jones_p_amp
+        use_cmap = matplotlib.cm.get_cmap('viridis')
+        use_cmap.set_bad(color='grey')
+    else:
+        plot_vals = np.zeros_like(jones_p_amp)
+        use_cmap = matplotlib.cm.get_cmap('Greys')
+
     fig, ax = plt.subplots()
-    use_cmap = matplotlib.cm.get_cmap('viridis')
-    use_cmap.set_bad(color='grey')
     plt.imshow(
-        jones_p_amp, origin='lower', interpolation='none', vmin=0, vmax=1,
+        plot_vals, origin='lower', interpolation='none', vmin=0, vmax=1,
         cmap=use_cmap,
         extent=[-dim/2, dim/2, -dim/2, dim/2]
     )
     plt.axis('off')  # Turn off axes
+    if plot_amp:
+        cbar = plt.colorbar()
+        cbar.ax.set_ylabel(
+            'Beam Response, Abs. Value', rotation=270, labelpad=15
+        )
+
+    if not plot_amp:
+        x_pixel_vals = np.linspace(-dim/2., dim/2., dim)
+        y_pixel_vals = np.linspace(-dim/2., dim/2., dim)
+        use_x_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
+        use_y_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
+
+        for xpix in use_x_pixels:
+            for ypix in use_y_pixels:
+                if (
+                    np.isfinite(jones_p_amp[xpix, ypix])
+                    and np.isfinite(jones_q_amp[xpix, ypix])
+                ):
+                    par_ang = np.arctan2(
+                        y_pixel_vals[ypix], x_pixel_vals[xpix]
+                    )
+                    for pol in range(2):
+                        plot_angle = np.arctan2(k_mat[pol, 1, xpix, ypix], -k_mat[pol, 0, xpix, ypix])+par_ang
+
+                        line_length = 50.
+                        plt.plot(
+                            [
+                                x_pixel_vals[xpix] - line_length/2.*np.cos(plot_angle),
+                                x_pixel_vals[xpix] + line_length/2.*np.cos(plot_angle)
+                            ],
+                            [
+                                y_pixel_vals[ypix] - line_length/2.*np.sin(plot_angle),
+                                y_pixel_vals[ypix] + line_length/2.*np.sin(plot_angle)
+                            ],
+                            color='black', linewidth=0.5
+                        )
 
     # Plot azimuth lines
     azimuth_lines = 8
@@ -99,8 +142,6 @@ def main():
             horizontalalignment='center', verticalalignment='center'
         )
 
-    cbar = plt.colorbar()
-    cbar.ax.set_ylabel('Beam Response, Abs. Value', rotation=270, labelpad=15)
     plt.show()
 
 
