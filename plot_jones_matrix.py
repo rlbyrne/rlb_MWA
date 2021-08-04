@@ -27,27 +27,29 @@ def main():
             jones_mat[ind1, ind2, :, :] = jones_struct[ind1, ind2]
     jones_mat[np.where(jones_mat == 0.)] = np.nan
 
-    jones_amp = np.zeros((2, dim, dim))
-    for ind in range(2):
-        jones_amp[ind, :, :] = np.sqrt(
-            np.real(jones_mat[ind, 0, :, :])**2. + np.real(jones_mat[ind, 1, :, :])**2.
-        )
+    jones_amp = np.sqrt(
+        np.real(jones_mat[:, 0, :, :])**2. + np.real(jones_mat[:, 1, :, :])**2.
+    )
     k_mat = np.zeros((2, 2, dim, dim))
     for ind1 in range(2):
         for ind2 in range(2):
-            k_mat[ind1, ind2, :, :] = np.real(jones_mat[ind1, ind2, :, :]/jones_amp[ind1, :, :])
+            k_mat[ind1, ind2, :, :] = np.real(
+                jones_mat[ind1, ind2, :, :]/jones_amp[ind1, :, :]
+            )
     for ind in range(2):
         jones_mat[ind, :, :, :] /= np.nanmax(jones_amp[ind, :, :])
         jones_amp[ind, :, :] /= np.nanmax(jones_amp[ind, :, :])
 
     # Plot elements of the Jones matrix
     use_cmap = matplotlib.cm.get_cmap('Spectral')
-    use_cmap.set_bad(color='grey')
+    use_cmap.set_bad(color='whitesmoke')
+    plt.rcParams.update({'mathtext.default':  'regular'})
     for ind1 in range(2):
         for ind2 in range(2):
             fig, ax = plt.subplots()
             plt.imshow(
-                np.real(jones_mat[ind1, ind2, :, :]), origin='lower', interpolation='none',
+                np.real(jones_mat[ind1, ind2, :, :]), origin='lower',
+                interpolation='none',
                 vmin=-1, vmax=1,
                 cmap=use_cmap,
                 extent=[-dim/2, dim/2, -dim/2, dim/2]
@@ -58,12 +60,14 @@ def main():
             cbar.ax.set_ylabel(
                 'Beam Response, Real Part', rotation=270, labelpad=15
             )
-            plt.title('J[{}{}]'.format(ind1, ind2))
-            plt.savefig('{}/jones_mat_{}{}.png'.format(output_path, ind1, ind2))
+            plt.title('$J^{{ZA}}$ [{}, {}]'.format(ind1, ind2))
+            plt.savefig(
+                '{}/jones_mat_{}{}.png'.format(output_path, ind1, ind2), dpi=300
+            )
 
     # Plot beam amplitudes
     use_cmap = matplotlib.cm.get_cmap('viridis')
-    use_cmap.set_bad(color='grey')
+    use_cmap.set_bad(color='whitesmoke')
     for pol in range(2):
         if pol == 0:
             pol_name = 'P'
@@ -71,7 +75,7 @@ def main():
             pol_name = 'Q'
         fig, ax = plt.subplots()
         plt.imshow(
-            jones_amp[ind, :, :], origin='lower', interpolation='none',
+            jones_amp[pol, :, :], origin='lower', interpolation='none',
             vmin=0, vmax=1,
             cmap=use_cmap,
             extent=[-dim/2, dim/2, -dim/2, dim/2]
@@ -83,10 +87,12 @@ def main():
             'Beam Response Amplitude', rotation=270, labelpad=15
         )
         plt.title('Beam Amplitude, Polarization {}'.format(pol_name))
-        plt.savefig('{}/beam_amp_{}.png'.format(output_path, pol_name))
+        plt.savefig('{}/beam_amp_{}.png'.format(output_path, pol_name), dpi=300)
 
     # Plot instrumental basis
     use_cmap = matplotlib.cm.get_cmap('Greys')
+    colors = ['tab:blue', 'tab:red']
+    line_length = 70.
     plot_vals = np.zeros((dim, dim))
     fig, ax = plt.subplots()
     # Plot zeroed data to set plot extent
@@ -97,12 +103,10 @@ def main():
         extent=[-dim/2, dim/2, -dim/2, dim/2]
     )
     plt.axis('off')  # Turn off axes
-
     x_pixel_vals = np.linspace(-dim/2., dim/2., dim)
     y_pixel_vals = np.linspace(-dim/2., dim/2., dim)
     use_x_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
     use_y_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
-
     for xpix in use_x_pixels:
         for ypix in use_y_pixels:
             if (np.isfinite(np.mean(jones_amp[:, xpix, ypix]))):
@@ -110,31 +114,27 @@ def main():
                     y_pixel_vals[ypix], x_pixel_vals[xpix]
                 )
                 for pol in range(2):
-                    plot_angle = np.arctan2(k_mat[pol, 1, xpix, ypix], -k_mat[pol, 0, xpix, ypix])+par_ang
-
-                    line_length = 50.
-                    plt.plot(
-                        [
-                            x_pixel_vals[xpix] - line_length/2.*np.cos(plot_angle),
-                            x_pixel_vals[xpix] + line_length/2.*np.cos(plot_angle)
-                        ],
-                        [
-                            y_pixel_vals[ypix] - line_length/2.*np.sin(plot_angle),
-                            y_pixel_vals[ypix] + line_length/2.*np.sin(plot_angle)
-                        ],
-                        color='black', linewidth=0.5
-                    )
+                    plot_angle = np.arctan2(
+                        k_mat[pol, 1, xpix, ypix], -k_mat[pol, 0, xpix, ypix]
+                    ) + par_ang
+                    plt.plot([
+                        x_pixel_vals[xpix] - line_length/2.*np.cos(plot_angle),
+                        x_pixel_vals[xpix] + line_length/2.*np.cos(plot_angle)
+                    ], [
+                        y_pixel_vals[ypix] - line_length/2.*np.sin(plot_angle),
+                        y_pixel_vals[ypix] + line_length/2.*np.sin(plot_angle)
+                    ], color=colors[pol], linewidth=1.2)
     ax = add_polar_axes(ax, dim, deg_extent)
 
     plt.title('Instrumental Basis')
-    plt.savefig('{}/instr_basis.png'.format(output_path))
+    plt.savefig('{}/instr_basis.png'.format(output_path), dpi=300)
 
 
 def add_polar_axes(ax, dim, deg_extent):
 
     # Plot azimuth lines
     azimuth_lines = 8
-    annotate_pad_from_edge = 100
+    annotate_pad_from_edge = 50
     az_lines_angles = np.linspace(0, 360, azimuth_lines, endpoint=False)
     for line_ang in az_lines_angles:
         end_coords = [
@@ -149,7 +149,7 @@ def add_polar_axes(ax, dim, deg_extent):
             plt.plot(
                 [-end_coords[0], end_coords[0]],
                 [-end_coords[1], end_coords[1]],
-                color='black', linewidth=0.5
+                color='grey', linewidth=0.5
             )
         annotation_loc = end_coords
         for ind in range(2):
@@ -164,13 +164,13 @@ def add_polar_axes(ax, dim, deg_extent):
         )
 
     # Plot ZA contours
-    plot_za_values = [30., 50., 70.]
+    plot_za_values = [45., 60., 75.]
     use_rad = dim/2./np.tan(np.radians(deg_extent/2.))
     for za in plot_za_values:
         circ_radius = use_rad*np.tan(np.radians(za))
         circle = plt.Circle(
             (0, 0), circ_radius,
-            edgecolor='black', facecolor='none', linewidth=0.5
+            edgecolor='grey', facecolor='none', linewidth=0.5
         )
         ax.add_patch(circle)
         annotate_ang = 30
