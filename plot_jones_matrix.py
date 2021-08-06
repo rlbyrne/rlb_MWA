@@ -165,9 +165,9 @@ def add_polar_axes(ax, dim, deg_extent):
 
     # Plot ZA contours
     plot_za_values = [45., 60., 75.]
-    use_rad = dim/2./np.tan(np.radians(deg_extent/2.))
+    use_rad = dim/2./np.sin(np.radians(deg_extent/2.))
     for za in plot_za_values:
-        circ_radius = use_rad*np.tan(np.radians(za))
+        circ_radius = use_rad*np.sin(np.radians(za))
         circle = plt.Circle(
             (0, 0), circ_radius,
             edgecolor='grey', facecolor='none', linewidth=0.5
