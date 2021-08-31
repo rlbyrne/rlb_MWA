@@ -13,6 +13,8 @@ def main():
     # function. Jones matrix is in Az/ZA coordinates.
     jones_path = '/Users/ruby/Astro/jones_matrix_plotting/zenith_jones.sav'
     jones_struct = scipy.io.readsav(jones_path)['jones']
+    jones_rot_path = '/Users/ruby/Astro/jones_matrix_plotting/zenith_jones_rot.sav'
+    jones_rot_struct = scipy.io.readsav(jones_rot_path)['jones_rot']
     #obs_path = '/Users/ruby/Astro/jones_matrix_plotting/1131454296_obs.sav'
     #obs_struct = scipy.io.readsav(obs_path)['obs']
     #degpix = obs_struct['degpix'][0]
@@ -27,6 +29,12 @@ def main():
             jones_mat[ind1, ind2, :, :] = jones_struct[ind1, ind2]
     jones_mat[np.where(jones_mat == 0.)] = np.nan
 
+    jones_rot_mat = np.zeros((2, 2, dim, dim), dtype=complex)
+    for ind1 in range(2):
+        for ind2 in range(2):
+            jones_rot_mat[ind1, ind2, :, :] = jones_rot_struct[ind1, ind2]
+    jones_rot_mat[np.where(jones_rot_mat == 0.)] = np.nan
+
     jones_amp = np.sqrt(
         np.real(jones_mat[:, 0, :, :])**2. + np.real(jones_mat[:, 1, :, :])**2.
     )
@@ -38,6 +46,7 @@ def main():
             )
     for ind in range(2):
         jones_mat[ind, :, :, :] /= np.nanmax(jones_amp[ind, :, :])
+        jones_rot_mat[ind, :, :, :] /= np.nanmax(jones_amp[ind, :, :])
         jones_amp[ind, :, :] /= np.nanmax(jones_amp[ind, :, :])
 
     # Plot elements of the Jones matrix
@@ -63,6 +72,31 @@ def main():
             plt.title('$J^{{ZA}}$ [{}, {}]'.format(ind1, ind2))
             plt.savefig(
                 '{}/jones_mat_{}{}.png'.format(output_path, ind1, ind2), dpi=300
+            )
+
+    # Plot elements of the rotated (RA/Dec) Jones matrix
+    use_cmap = matplotlib.cm.get_cmap('Spectral')
+    use_cmap.set_bad(color='whitesmoke')
+    plt.rcParams.update({'mathtext.default':  'regular'})
+    for ind1 in range(2):
+        for ind2 in range(2):
+            fig, ax = plt.subplots()
+            plt.imshow(
+                np.real(jones_rot_mat[ind1, ind2, :, :]), origin='lower',
+                interpolation='none',
+                vmin=-1, vmax=1,
+                cmap=use_cmap,
+                extent=[-dim/2, dim/2, -dim/2, dim/2]
+            )
+            plt.axis('off')  # Turn off axes
+            ax = add_polar_axes(ax, dim, deg_extent)
+            cbar = plt.colorbar()
+            cbar.ax.set_ylabel(
+                'Beam Response, Real Part', rotation=270, labelpad=15
+            )
+            plt.title('$J^{{RD}}$ [{}, {}]'.format(ind1, ind2))
+            plt.savefig(
+                '{}/jones_rot_mat_{}{}.png'.format(output_path, ind1, ind2), dpi=300
             )
 
     # Plot beam amplitudes
@@ -164,7 +198,7 @@ def add_polar_axes(ax, dim, deg_extent):
         )
 
     # Plot ZA contours
-    plot_za_values = [45., 60., 75.]
+    plot_za_values = [30., 45., 60., 75.]
     use_rad = dim/2./np.sin(np.radians(deg_extent/2.))
     for za in plot_za_values:
         circ_radius = use_rad*np.sin(np.radians(za))
