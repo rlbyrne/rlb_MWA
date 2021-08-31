@@ -4,7 +4,6 @@ import scipy.io
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm
 
 
 def main():
@@ -69,9 +68,9 @@ def main():
             cbar.ax.set_ylabel(
                 'Beam Response, Real Part', rotation=270, labelpad=15
             )
-            plt.title('$J^{{ZA}}$ [{}, {}]'.format(ind1, ind2))
+            plt.title(f'$J^{{ZA}}$ [{ind1}, {ind2}]')
             plt.savefig(
-                '{}/jones_mat_{}{}.png'.format(output_path, ind1, ind2), dpi=300
+                f'{output_path}/jones_mat_{ind1}{ind2}.png', dpi=300
             )
 
     # Plot elements of the rotated (RA/Dec) Jones matrix
@@ -94,9 +93,9 @@ def main():
             cbar.ax.set_ylabel(
                 'Beam Response, Real Part', rotation=270, labelpad=15
             )
-            plt.title('$J^{{RD}}$ [{}, {}]'.format(ind1, ind2))
+            plt.title(f'$J^{{RD}}$ [{ind1}, {ind2}]'
             plt.savefig(
-                '{}/jones_rot_mat_{}{}.png'.format(output_path, ind1, ind2), dpi=300
+                f'{output_path}/jones_rot_mat_{ind1}{ind2}.png', dpi=300
             )
 
     # Plot beam amplitudes
@@ -120,8 +119,8 @@ def main():
         cbar.ax.set_ylabel(
             'Beam Response Amplitude', rotation=270, labelpad=15
         )
-        plt.title('Beam Amplitude, Polarization {}'.format(pol_name))
-        plt.savefig('{}/beam_amp_{}.png'.format(output_path, pol_name), dpi=300)
+        plt.title(f'Beam Amplitude, Polarization {pol_name}')
+        plt.savefig(f'{output_path}/beam_amp_{pol_name}.png', dpi=300)
 
     # Plot instrumental basis
     use_cmap = matplotlib.cm.get_cmap('Greys')
@@ -161,7 +160,7 @@ def main():
     ax = add_polar_axes(ax, dim, deg_extent)
 
     plt.title('Instrumental Basis')
-    plt.savefig('{}/instr_basis.png'.format(output_path), dpi=300)
+    plt.savefig(f'{output_path}/instr_basis.png', dpi=300)
 
 
 def add_polar_axes(ax, dim, deg_extent):
@@ -192,7 +191,7 @@ def add_polar_axes(ax, dim, deg_extent):
             elif annotation_loc[ind] < -(dim/2-annotate_pad_from_edge):
                 annotation_loc[ind] = -(dim/2-annotate_pad_from_edge)
         ax.annotate(
-            '${}^\circ$'.format(round(line_ang)),
+            f'${round(line_ang)}^\circ$',
             (annotation_loc[0], annotation_loc[1]),
             horizontalalignment='center', verticalalignment='center'
         )
@@ -213,7 +212,7 @@ def add_polar_axes(ax, dim, deg_extent):
             np.cos(np.radians(annotate_ang)), np.sin(np.radians(annotate_ang))
         ])
         ax.annotate(
-            '${}^\circ$'.format(round(za)),
+            f'${round(za)}^\circ$',
             (annotation_loc[0], annotation_loc[1]),
             horizontalalignment='center', verticalalignment='center'
         )
