@@ -93,7 +93,7 @@ def main():
             cbar.ax.set_ylabel(
                 'Beam Response, Real Part', rotation=270, labelpad=15
             )
-            plt.title(f'$J^{{RD}}$ [{ind1}, {ind2}]'
+            plt.title(f'$J^{{RD}}$ [{ind1}, {ind2}]')
             plt.savefig(
                 f'{output_path}/jones_rot_mat_{ind1}{ind2}.png', dpi=300
             )
