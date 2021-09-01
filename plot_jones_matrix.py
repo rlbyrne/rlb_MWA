@@ -125,6 +125,7 @@ def main():
     # Plot instrumental basis
     use_cmap = matplotlib.cm.get_cmap('Greys')
     colors = ['tab:blue', 'tab:red']
+    labels = ['Pol. Q', 'Pol. P']
     line_length = 70.
     plot_vals = np.zeros((dim, dim))
     fig, ax = plt.subplots()
@@ -140,13 +141,14 @@ def main():
     y_pixel_vals = np.linspace(-dim/2., dim/2., dim)
     use_x_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
     use_y_pixels = np.rint(np.linspace(0, dim-1, 20)).astype(int)
+    first_iter = True
     for xpix in use_x_pixels:
         for ypix in use_y_pixels:
             if (np.isfinite(np.mean(jones_amp[:, xpix, ypix]))):
                 par_ang = np.arctan2(
                     y_pixel_vals[ypix], x_pixel_vals[xpix]
                 )
-                for pol in range(2):
+                for pol in [1, 0]:
                     plot_angle = np.arctan2(
                         k_mat[pol, 1, xpix, ypix], -k_mat[pol, 0, xpix, ypix]
                     ) + par_ang
@@ -156,9 +158,11 @@ def main():
                     ], [
                         y_pixel_vals[ypix] - line_length/2.*np.sin(plot_angle),
                         y_pixel_vals[ypix] + line_length/2.*np.sin(plot_angle)
-                    ], color=colors[pol], linewidth=1.2)
+                    ], color=colors[pol], linewidth=1.2, label=labels[pol])
+                if first_iter:
+                    plt.legend(loc=(1, .2))
+                    first_iter = False
     ax = add_polar_axes(ax, dim, deg_extent)
-
     plt.title('Instrumental Basis')
     plt.savefig(f'{output_path}/instr_basis.png', dpi=300)
 
