@@ -65,7 +65,9 @@ def plot_filled_pixels(
     mwa_beam_center_ras=[0, 60], mwa_beam_center_decs=[-27, -27],
     overplot_hera_band=False,
     overplot_bright_sources=False,
-    big=False
+    overplot_sgp=False,
+    big=False,
+    galactic_coord_contours=False
 ):
 
     if map.coords == '':
@@ -156,6 +158,48 @@ def plot_filled_pixels(
     #plt.axis('equal')
     ax.set_aspect(1./15.)
     ax.set_facecolor('gray')  # make plot background gray
+    if galactic_coord_contours:
+        npoints_ra = 200
+        npoints_dec = 100
+        coord_ra_vals = np.linspace(ra_range[0], ra_range[1], num=npoints_ra)
+        coord_dec_vals = np.linspace(dec_range[0], dec_range[1], num=npoints_dec)
+        phi_eq = np.radians(coord_ra_vals*15.)
+        for phi_ind, phi_val in enumerate(phi_eq):
+            if phi_val < 0:
+                phi_eq[phi_ind] += 2*np.pi
+        theta_eq = np.radians(90. - coord_dec_vals)
+        rot = hp.rotator.Rotator(coord=['C', 'G'])
+        theta_eq_grid, phi_eq_grid = np.meshgrid(theta_eq, phi_eq)
+        theta_gal, phi_gal = rot(theta_eq_grid.flatten(), phi_eq_grid.flatten())
+        theta_gal = 90. - np.degrees(theta_gal.reshape((npoints_ra, npoints_dec)))
+        phi_gal = np.degrees(phi_gal.reshape((npoints_ra, npoints_dec))) + 180.
+        theta_cont = plt.contour(
+            coord_ra_vals, coord_dec_vals,
+            theta_gal.T, levels=np.arange(-90, 90, 15),
+            colors='white', linestyles=['solid'], linewidths=0.4
+        )
+        plt.clabel(theta_cont, inline=True, fontsize=5, fmt="%.0f$^\circ$")
+        # Plot nonzero contours to aviod branch cut
+        phi_gal_nonzero = np.copy(phi_gal)
+        phi_gal_nonzero[np.where(phi_gal_nonzero < 20.)] = np.nan
+        phi_gal_nonzero[np.where(phi_gal_nonzero > 340.)] = np.nan
+        phi_cont_nonzero = plt.contour(
+            coord_ra_vals, coord_dec_vals,
+            phi_gal_nonzero.T, levels=np.arange(45, 360, 45),
+            colors='white', linestyles=['solid'], linewidths=0.4
+        )
+        plt.clabel(phi_cont_nonzero, inline=True, fontsize=5, fmt="%.0f$^\circ$")
+        # Plot zero contour
+        phi_gal_zero = np.copy(phi_gal)
+        phi_gal_zero[np.where(phi_gal_nonzero > 20.)] = np.nan
+        phi_gal_zero[np.where(phi_gal_nonzero < 340.)] = np.nan
+        phi_gal_zero[np.where(phi_gal_nonzero) > 180.] = phi_gal_zero[np.where(phi_gal_nonzero) > 180.] - 360.
+        phi_cont_zero = plt.contour(
+            coord_ra_vals, coord_dec_vals,
+            phi_gal_zero.T, levels=[0],
+            colors='white', linestyles=['solid'], linewidths=0.4
+        )
+        plt.clabel(phi_cont_zero, inline=True, fontsize=5, fmt="%.0f$^\circ$")
     if overplot_points:
         cm_overplot_points = plt.cm.get_cmap(overplot_points_colormap)
         plt.scatter(
@@ -203,6 +247,7 @@ def plot_filled_pixels(
                 fontsize=8., color='black',
                 path_effects=[patheffects.withStroke(linewidth=0.5, foreground="white")]
             )
+    if overplot_sgp:
         sgp_ra = 0.857222
         sgp_dec = -27.1283
         plt.plot(
