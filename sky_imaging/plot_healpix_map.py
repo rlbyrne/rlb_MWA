@@ -71,9 +71,9 @@ def plot_filled_pixels(
 ):
 
     if map.coords == '':
-        print 'WARNING: No map coordinate scheme supplied.'
-        print 'Assuming equitorial coordinates.'
-        coords = 'equitorial'
+        print('WARNING: No map coordinate scheme supplied.')
+        print('Assuming equatorial coordinates.')
+        coords = 'equatorial'
     else:
         coords = map.coords
 
@@ -110,10 +110,10 @@ def plot_filled_pixels(
     use_map.get_pixel_corners(ra_cut=ra_cut*15.)
     patches = []
     for ind in range(len(use_map.signal_arr)):
-        polygon = Polygon(
-            zip(use_map.pix_corner_ras_arr[ind]/15.,
-                use_map.pix_corner_decs_arr[ind])
-            )
+        polygon = Polygon(np.stack([
+            use_map.pix_corner_ras_arr[ind]/15.,
+            use_map.pix_corner_decs_arr[ind]
+        ], axis=1))
         patches.append(polygon)
     colors = use_map.signal_arr
 
@@ -147,6 +147,7 @@ def plot_filled_pixels(
         )
 
     plt.rcParams.update({'font.size': 9})
+    plt.rcParams['axes.facecolor']='gray'
     if big:
         fig, ax = plt.subplots(figsize=(10, 4), dpi=600)
     else:
@@ -157,7 +158,7 @@ def plot_filled_pixels(
     plt.ylabel('Dec (degrees)')
     #plt.axis('equal')
     ax.set_aspect(1./15.)
-    ax.set_facecolor('gray')  # make plot background gray
+    #ax.set_facecolor('gray')  # make plot background gray
     if galactic_coord_contours:
         npoints_ra = 200
         npoints_dec = 100
@@ -191,9 +192,9 @@ def plot_filled_pixels(
         plt.clabel(phi_cont_nonzero, inline=True, fontsize=5, fmt="%.0f$^\circ$")
         # Plot zero contour
         phi_gal_zero = np.copy(phi_gal)
-        phi_gal_zero[np.where(phi_gal_nonzero > 20.)] = np.nan
-        phi_gal_zero[np.where(phi_gal_nonzero < 340.)] = np.nan
-        phi_gal_zero[np.where(phi_gal_nonzero) > 180.] = phi_gal_zero[np.where(phi_gal_nonzero) > 180.] - 360.
+        phi_gal_zero[np.where(phi_gal_zero > 180.)] = phi_gal_zero[np.where(phi_gal_zero > 180.)] - 360.
+        phi_gal_zero[np.where(phi_gal_zero > 20.)] = np.nan
+        phi_gal_zero[np.where(phi_gal_zero < -20.)] = np.nan
         phi_cont_zero = plt.contour(
             coord_ra_vals, coord_dec_vals,
             phi_gal_zero.T, levels=[0],
@@ -265,7 +266,7 @@ def plot_filled_pixels(
     # label colorbar
     cbar.ax.set_ylabel(colorbar_label, rotation=270, labelpad=15)
     if save_filename is not None:
-        print 'Saving plot to {}'.format(save_filename)
+        print('Saving plot to {}'.format(save_filename))
         plt.savefig(save_filename, format='png', dpi=600)
         plt.close()
     else:
@@ -311,7 +312,7 @@ def plot_grid_interp(
     cbar = plt.colorbar(extend='max')
     cbar.ax.set_ylabel(colorbar_label, rotation=270)  # label colorbar
     if save_filename is not None:
-        print 'Saving plot to {}'.format(save_filename)
+        print('Saving plot to {}'.format(save_filename))
         plt.savefig(save_filename, format='png', dpi=500)
     else:
         plt.show()
@@ -335,7 +336,7 @@ def plot_projection(
     if save_filename is None:
         plt.show()
     else:
-        print 'Saving plot to {}'.format(save_filename)
+        print('Saving plot to {}'.format(save_filename))
         plt.savefig(save_filename, dpi=300)
         plt.close()
 

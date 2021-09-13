@@ -13,7 +13,7 @@ import os
 class HealpixMap:
 
     def __init__(self, signal_arr, pix_arr, nside, nest=False,
-                 coords='equitorial', quiet=False):
+                 coords='equatorial', quiet=False):
         if len(pix_arr) == 0:
             if not quiet:
                 print('No pixel values supplied. Assuming implicit ordering.')
@@ -29,11 +29,11 @@ class HealpixMap:
             print('ERROR: Invalid nest parameter. Exiting.')
             sys.exit(1)
         if (
-            coords is not None and coords != 'equitorial'
+            coords is not None and coords != 'equatorial'
             and coords != 'galactic' and coords != 'ecliptic'
         ):
             print('ERROR: Invalid coords parameter.')
-            print('Valid options are equitorial, galactic, or ecliptic.')
+            print('Valid options are equatorial, galactic, or ecliptic.')
             print('Exiting.')
             sys.exit(1)
         self.signal_arr = np.array(signal_arr)
@@ -43,7 +43,7 @@ class HealpixMap:
         self.coords = coords
         if self.coords == 'galactic':
             self.coords_healpy_conv = 'G'
-        elif self.coords == 'equitorial':
+        elif self.coords == 'equatorial':
             self.coords_healpy_conv = 'C'
         elif self.coords == 'ecliptic':
             self.coords_healpy_conv = 'E'
@@ -54,17 +54,17 @@ class HealpixMap:
         if self.coords == 'galactic':
             theta_gal, phi_gal = hp.pixelfunc.pix2ang(
                 self.nside, self.pix_arr, nest=self.nest
-                )
+            )
             rot = hp.rotator.Rotator(coord=['G', 'C'])
             theta_eq, phi_eq = rot(theta_gal, phi_gal)
-            ra_arr = phi_eq*180/math.pi
-            dec_arr = 90.-theta_eq*180/math.pi
-        elif self.coords == 'equitorial':
+            ra_arr = np.degrees(phi_eq)
+            dec_arr = 90. - np.degrees(theta_eq)
+        elif self.coords == 'equatorial':
             ra_arr, dec_arr = hp.pixelfunc.pix2ang(
                 self.nside, self.pix_arr, nest=self.nest, lonlat=True
-                )
+            )
         else:
-            print('ERROR: Coordinates must be galactic or equitorial.')
+            print('ERROR: Coordinates must be galactic or equatorial.')
             sys.exit(1)
         ra_arr[np.where(ra_arr > ra_cut)] = ra_arr[
             np.where(ra_arr > ra_cut)
@@ -74,6 +74,25 @@ class HealpixMap:
         ] + 360.
         self.ra_arr = ra_arr
         self.dec_arr = dec_arr
+
+    def get_galactic_coords(self):
+        if self.coords == 'galactic':
+            theta_gal, phi_gal = hp.pixelfunc.pix2ang(
+                self.nside, self.pix_arr, nest=self.nest
+            )
+        elif self.coords == 'equatorial':
+            ra_arr, dec_arr = hp.pixelfunc.pix2ang(
+                self.nside, self.pix_arr, nest=self.nest, lonlat=True
+            )
+            phi_eq = np.radians(ra_arr)
+            theta_eq = np.radians(90. - dec_arr)
+            rot = hp.rotator.Rotator(coord=['C', 'G'])
+            theta_gal, phi_gal = rot(theta_eq, phi_eq)
+        else:
+            print('ERROR: Coordinates must be galactic or equatorial.')
+            sys.exit(1)
+        self.theta_gal = theta_gal
+        self.phi_gal = phi_gal
 
     def get_pixel_corners(self, ra_cut=270):
         corner_coords = hp.boundaries(
@@ -94,7 +113,7 @@ class HealpixMap:
             thetas_eq, phis_eq = rot(thethas_gal, phis_gal)
             ras = phis_eq*180/math.pi
             decs = 90. - thetas_eq*180/math.pi
-        elif self.coords == 'equitorial':
+        elif self.coords == 'equatorial':
             ras = []
             decs = []
             for pixel in range(len(self.signal_arr)):
@@ -115,7 +134,7 @@ class HealpixMap:
             ras = np.array(ras)
             decs = np.array(decs)
         else:
-            print('ERROR: Coordinates must be galactic or equitorial.')
+            print('ERROR: Coordinates must be galactic or equatorial.')
             sys.exit(1)
         self.pix_corner_ras_arr = ras
         self.pix_corner_decs_arr = decs
@@ -290,7 +309,7 @@ def load_map(data_filename, quiet=False):
         sys.exit(1)
 
     healpix_map = HealpixMap(
-        signal_vals, pixel_vals, nside, nest=nest, coords='equitorial'
+        signal_vals, pixel_vals, nside, nest=nest, coords='equatorial'
         )
     return healpix_map
 
@@ -345,7 +364,7 @@ def load_fhd_output_map(data_filename, cube='model', freq_index=0):
     hpx_inds = data['hpx_inds']
     hpx_inds.astype(int)
     healpix_map = HealpixMap(
-        cube_data, hpx_inds, nside, nest=False, coords='equitorial'
+        cube_data, hpx_inds, nside, nest=False, coords='equatorial'
     )
     return healpix_map
 
@@ -361,7 +380,7 @@ def load_fhd_input_map(data_filename, cube_ind=0):
     hpx_inds = data['hpx_inds']
     hpx_inds.astype(int)
     healpix_map = HealpixMap(
-        map_data, hpx_inds, nside, nest=False, coords='equitorial'
+        map_data, hpx_inds, nside, nest=False, coords='equatorial'
     )
     return healpix_map
 
