@@ -177,7 +177,7 @@ def plot_filled_pixels(
         theta_cont = plt.contour(
             coord_ra_vals, coord_dec_vals,
             theta_gal.T, levels=np.arange(-90, 90, 15),
-            colors='white', linestyles=['solid'], linewidths=0.4
+            colors='white', linestyles=['solid'], linewidths=0.2
         )
         plt.clabel(theta_cont, inline=True, fontsize=5, fmt="%.0f$^\circ$")
         # Plot nonzero contours to aviod branch cut
@@ -187,7 +187,7 @@ def plot_filled_pixels(
         phi_cont_nonzero = plt.contour(
             coord_ra_vals, coord_dec_vals,
             phi_gal_nonzero.T, levels=np.arange(45, 360, 45),
-            colors='white', linestyles=['solid'], linewidths=0.4
+            colors='white', linestyles=['solid'], linewidths=0.2
         )
         plt.clabel(phi_cont_nonzero, inline=True, fontsize=5, fmt="%.0f$^\circ$")
         # Plot zero contour
@@ -198,7 +198,7 @@ def plot_filled_pixels(
         phi_cont_zero = plt.contour(
             coord_ra_vals, coord_dec_vals,
             phi_gal_zero.T, levels=[0],
-            colors='white', linestyles=['solid'], linewidths=0.4
+            colors='white', linestyles=['solid'], linewidths=0.2
         )
         plt.clabel(phi_cont_zero, inline=True, fontsize=5, fmt="%.0f$^\circ$")
     if overplot_points:
