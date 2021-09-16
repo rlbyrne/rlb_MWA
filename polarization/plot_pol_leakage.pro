@@ -53,7 +53,7 @@ pro plot_pol_leakage, obs_list=obs_list
     
     params_file_obsind = where(string(pol_leakage_params_file.field01) eq obsid, count)
     if count ne 1 then begin
-      print, 'ERROR: Obsid not present in pol leakage parameter file."
+      print, 'ERROR: Obsid not present in pol leakage parameter file.'
       return
     endif
     fit_params = make_array(6, 2, /float, value=0.)
