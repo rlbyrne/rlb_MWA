@@ -1,8 +1,11 @@
 pro plot_pol_leakage, obs_list=obs_list
 
-  fhd_path = '/Users/ruby/Astro/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2021/'
-  leakage_params_csv = '/Users/ruby/Astro/diffuse_survey/pol_leakage_fit_params.csv'
-  save_path = '/Users/ruby/Astro/diffuse_survey/pol_leakage_hpx_surfaces/'
+  ;fhd_path = '/Users/ruby/Astro/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2021/'
+  ;leakage_params_csv = '/Users/ruby/Astro/diffuse_survey/pol_leakage_fit_params.csv'
+  ;save_path = '/Users/ruby/Astro/diffuse_survey/pol_leakage_hpx_surfaces/'
+  fhd_path = '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_May2021/fhd_rlb_diffuse_survey_decon_4pol_May2021/'
+  save_path = '/Users/rubybyrne/polarization_leakage/pol_leakage_Jun2021/healpix_leakage_maps/'
+  leakage_params_csv = '/Users/rubybyrne/polarization_leakage/pol_leakage_Jun2021/pol_leakage_fit_params.csv'
   
   ; Find obsids where all files are present
   if ~keyword_set(obs_list) then begin
@@ -51,7 +54,7 @@ pro plot_pol_leakage, obs_list=obs_list
     ENDIF
     xv_hpx=xv_hpx[hpx_i_use]
     
-    params_file_obsind = where(string(pol_leakage_params_file.field01) eq obsid, count)
+    params_file_obsind = where(pol_leakage_params_file.field01 eq obsid, count)
     if count ne 1 then begin
       print, 'ERROR: Obsid not present in pol leakage parameter file.'
       return
@@ -84,7 +87,7 @@ pro plot_pol_leakage, obs_list=obs_list
       if u_leakage[source_ind] gt leakage_threshold then u_leakage[source_ind]=leakage_threshold
     endfor
     
-    save, obsid, hpx_i_use, q_leakage, u_leakage, filename=save_path+obsid+'_hpx_pol_leakage_surface.sav'
+    save, obsid, nside, hpx_ordering, coord_sys, hpx_i_use, q_leakage, u_leakage, filename=save_path+obsid+'_hpx_pol_leakage_surface.sav'
   
   endfor
 
