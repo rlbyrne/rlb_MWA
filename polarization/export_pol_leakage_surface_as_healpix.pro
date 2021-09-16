@@ -1,4 +1,4 @@
-pro plot_pol_leakage, obs_list=obs_list
+pro export_pol_leakage_surface_as_healpix, obs_list=obs_list
 
   ;fhd_path = '/Users/ruby/Astro/diffuse_survey/fhd_rlb_diffuse_survey_decon_4pol_May2021/'
   ;leakage_params_csv = '/Users/ruby/Astro/diffuse_survey/pol_leakage_fit_params.csv'
