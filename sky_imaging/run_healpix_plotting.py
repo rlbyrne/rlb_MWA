@@ -3646,7 +3646,14 @@ def estimate_pol_leakage_Sept15():
             title='Stokes I to {} Leakage Fit'.format(pol_name)
         )
 
+def test_maps_Sep29():
+
+    mapq, mapu = healpix_utils.load_maps_from_sav('/Users/rubybyrne/polarization_leakage/pol_leakage_Jun2021/healpix_leakage_maps/1130773024_hpx_pol_leakage_surface.sav')
+    #mapq.nest = True
+    #mapq.reorder_nest_to_ring()
+    plot_healpix_map.plot_filled_pixels(mapq, '/Users/rubybyrne/test_map_plotting.png')
+
 
 if __name__ == '__main__':
 
-    estimate_pol_leakage_Sept15()
+    test_maps_Sep29()

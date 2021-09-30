@@ -33,7 +33,8 @@ pro export_pol_leakage_surface_as_healpix, obs_list=obs_list
     obsid = obsids_decon[obsind]
 
     obs = getvar_savefile(fhd_path+'metadata/'+obsid+'_obs.sav', 'obs', /compatibility_mode)
-    nside = 512
+    ;nside = 512
+    nside=128
     hpx_ordering = 'ring'
     coord_sys = 'equatorial'
     n_hpx = nside2npix(nside)
@@ -41,18 +42,20 @@ pro export_pol_leakage_surface_as_healpix, obs_list=obs_list
     
     IF hpx_ordering EQ 'ring' THEN pix2vec_ring, nside, hpx_inds, pix_coords $
     ELSE pix2vec_nest, nside, hpx_inds, pix_coords
-  
+ 
     vec2ang,pix_coords,pix_dec,pix_ra,/astro
     IF coord_sys EQ 'galactic' THEN glactc,pix_ra,pix_dec,2000.,pix_ra,pix_dec,2, /degree
-    IF coord_sys EQ 'equatorial' THEN Hor2Eq,pix_dec,pix_ra,obs.JD0,pix_ra,pix_dec,lat=obs.lat,lon=obs.lon,alt=obs.alt,precess=1,/nutate
+    ;IF coord_sys EQ 'equatorial' THEN Hor2Eq,pix_dec,pix_ra,obs.JD0,pix_ra,pix_dec,lat=obs.lat,lon=obs.lon,alt=obs.alt,precess=1,/nutate
   
     apply_astrometry, obs, ra_arr=pix_ra, dec_arr=pix_dec, x_arr=xv_hpx, y_arr=yv_hpx, /ad2xy
   
-    hpx_i_use=where((xv_hpx GT 0) AND (xv_hpx LT (obs.dimension-1)) AND (yv_hpx GT 0) AND (yv_hpx LT (obs.elements-1)),n_hpx_use)
+    hpx_i_use=where(finite(xv_hpx) and finite(yv_hpx), n_hpx_use)
+    ;hpx_i_use=where((xv_hpx GT 0) AND (xv_hpx LT (obs.dimension-1)) AND (yv_hpx GT 0) AND (yv_hpx LT (obs.elements-1)),n_hpx_use)
     IF n_hpx_use EQ 0 THEN BEGIN
       print,"Error: Map has no valid Healpix indices"
     ENDIF
     xv_hpx=xv_hpx[hpx_i_use]
+    yv_hpx=yv_hpx[hpx_i_use]
     
     params_file_obsind = where(pol_leakage_params_file.field01 eq obsid, count)
     if count ne 1 then begin

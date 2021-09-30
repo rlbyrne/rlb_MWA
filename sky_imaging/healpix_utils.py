@@ -160,7 +160,7 @@ class HealpixMap:
     def reorder_nest_to_ring(self):
         if self.nest:
             self.explicit_to_implicit_ordering()
-            self.signal_arr = hp.pixelfunc.reorder(filtered_map, n2r=True)
+            self.signal_arr = hp.pixelfunc.reorder(self.signal_arr, n2r=True)
             self.nest = False
             self.implicit_to_explicit_ordering()
 
