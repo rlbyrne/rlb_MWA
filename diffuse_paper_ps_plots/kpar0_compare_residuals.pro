@@ -13,7 +13,7 @@ pro kpar0_compare_residuals
   colors = ['Violet Red', 'Cornflower Blue', 'YGB7', 'black']
   linestyles = [0,0,0,2]
   linewidths = [6,6,6,6]
-  legend_labels = ['Compact Sources Subtracted', 'Compact and Stokes I Diffuse Subtracted', 'Compact and Polarized Diffuse Subtracted', 'Data']
+  legend_labels = ['Compact sources subtracted', 'Compact and Stokes I diffuse subtracted', 'Compact and polarized diffuse subtracted', 'Data']
 
   for pol_ind=0,n_elements(pols)-1 do begin
     pol = pols[pol_ind]

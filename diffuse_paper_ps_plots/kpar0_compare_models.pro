@@ -16,7 +16,7 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
   colors = ['black', 'blue', 'turquoise', 'black']
   linestyles = [1,0,0,2]
   linewidths = [6,6,6,6]
-  legend_labels = ['Compact Model', 'Diffuse Model', 'Compact and Diffuse Models', 'Data']
+  legend_labels = ['Compact model', 'Diffuse model', 'Compact and diffuse models', 'Data']
   legend_ordering = [3,0,1,2]
   plotting_order = [1, 2, 0, 3]
   if ~keyword_set(plot_diffuse) then begin
@@ -36,7 +36,7 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
     for run_ind=0,n_elements(version_names)-1 do datafiles = [datafiles, version_names[run_ind]+'/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_model_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
     datafiles = [datafiles, '/Volumes/Bilbo/rlb_fhd_outputs/diffuse_survey_Aug2020/fhd_rlb_GLEAM_calibration_reference_Aug2020/ps/data/1d_binning/1131454296_gridded_uvf__even_odd_joint_noimgclip_dirty_'+pol+'_averemove_swbh_logkperp_dencorr_k0power.idlsave']
 
-    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Jul2021/fractional_power_'+pol+'.png'
+    cgps_open, '/Users/rubybyrne/diffuse_survey_paper_plotting_Jul2021/models_'+pol+'.png'
     cgDisplay, 900, 650
     for ind = 0,n_elements(datafiles)-1 do begin
       file_ind = plotting_order[ind]
@@ -53,7 +53,7 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
       if ind eq 0 then begin
         cgplot, plot_x, plot_y, /xlog, /ylog, yrange=yrange, xrange=xrange, $
           linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], title='', Charsize=1.5,$
-          ytitle=textoidl('k-parallel=0 Power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
+          ytitle=textoidl('k-parallel=0 power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
           xstyle=4, /nodata, Position=[0.1, 0.22, 0.97, 0.9]
         if keyword_set(mark_trusted_region) then begin
           cgcolorfill, [xrange[0], bl_range[0]*1e-3, bl_range[0]*1e-3, xrange[0]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
@@ -65,7 +65,7 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
       
       cgplot, plot_x, plot_y, /xlog, /ylog, yrange=yrange, xrange=xrange, $
         linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], /overplot, title='', Charsize=1.5,$
-        ytitle=textoidl('k-parallel=0 Power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
+        ytitle=textoidl('k-parallel=0 power (mK^2 !8h!X^{-3} Mpc^3)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
         xstyle=4 ;draw only the main axis, don't draw the top axis
     endfor
     ; Draw and redraw axes
@@ -85,12 +85,12 @@ pro kpar0_compare_models, mark_trusted_region=mark_trusted_region, plot_diffuse=
       endelse
     endfor
     tick_pos = 1/sin(tick_angles/180.*!Pi) 
-    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
+    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='Angular scale ('+cgsymbol('deg')+')', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
       xtickv=tick_pos, xticks=n_elements(tick_angles), xtickname=tick_names
           
     cgAxis, xaxis=1, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5 ;draw top axis
     cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)" ;draw right axis
-    cgAxis, XAxis=0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl('baseline length (wavelengths)'), Charsize=1.5 ;draw bottom axis
+    cgAxis, XAxis=0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl('Baseline length (wavelengths)'), Charsize=1.5 ;draw bottom axis
     xlocation = (!X.Window[1] - !X.Window[0]) / 2  + !X.Window[0]
     ylocation = !Y.Window[1] + 2.75 * (!D.Y_CH_Size / Float(!D.Y_Size))
     cgText, xlocation, ylocation+.01, textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $

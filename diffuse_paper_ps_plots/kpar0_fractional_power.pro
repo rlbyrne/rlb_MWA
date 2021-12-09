@@ -12,7 +12,7 @@ pro kpar0_fractional_power
   colors = ['Violet Red', 'Cornflower Blue', 'YGB7']
   linestyles = [0,0,0]
   linewidths = [6,6,6]
-  legend_labels = ['Compact Sources', 'Compact and Stokes I Diffuse', 'Compact and Polarized Diffuse']
+  legend_labels = ['Compact sources', 'Compact and Stokes I diffuse', 'Compact and polarized diffuse']
 
   for pol_ind=0,n_elements(pols)-1 do begin
     pol = pols[pol_ind]
@@ -39,7 +39,7 @@ pro kpar0_fractional_power
       if file_ind eq 0 then begin
         cgplot, plot_x, plot_y, /xlog, yrange=yrange, xrange=xrange, $
           linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], title='', Charsize=1.5,$
-          ytitle=textoidl('Fraction of Signal Modeled (%)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
+          ytitle=textoidl('Fraction of signal modelled (per cent)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
           xstyle=4, /nodata, Position=[0.1, 0.22, 0.97, 0.9]
           cgcolorfill, [xrange[0], bl_range[0]*1e-3, bl_range[0]*1e-3, xrange[0]], [yrange[0], yrange[0], yrange[1], yrange[1]], $
             color='BLK2'
@@ -48,7 +48,7 @@ pro kpar0_fractional_power
       endif
       cgplot, plot_x, plot_y, /xlog, yrange=yrange, xrange=xrange, $
         linestyle=linestyles[file_ind], color=colors[file_ind], thick=linewidths[file_ind], /overplot, title='', Charsize=1.5,$
-        ytitle=textoidl('Fraction of Signal Modeled (%)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
+        ytitle=textoidl('Fraction of signal modelled (per cent)'), xtitle=textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
         xstyle=4 ;suppress horizontal axes
     endfor
     ; Draw lower x axis
@@ -67,12 +67,12 @@ pro kpar0_fractional_power
       endelse
     endfor
     tick_pos = 1/sin(tick_angles/180.*!Pi)
-    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='angular scale (degrees)', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
+    cgAxis, 0.1, 0.1, /normal, xAxis=0, /Save, Color='black', Title='Angular scale ('+cgsymbol('deg')+')', xRange=xrange*1.e3, xstyle=1, Charsize=1.5, xlog=1,$
       xtickv=tick_pos, xticks=n_elements(tick_angles), xtickname=tick_names
 
     cgAxis, xaxis=1, xrange=xrange, xstyle=1, xtitle=textoidl(''), Charsize=1.5 ;draw top axis
     cgaxis, yaxis=1, yrange=yrange, ystyle=1, ytitle=textoidl(''), Charsize=1.5, yTICKFORMAT="(A1)" ;draw right axis
-    cgAxis, XAxis=0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl('baseline length (wavelengths)'), Charsize=1.5 ;draw bottom axis
+    cgAxis, XAxis=0, XRange=xrange*1.e3, XStyle=1, xtitle=textoidl('Baseline length (wavelengths)'), Charsize=1.5 ;draw bottom axis
     xlocation = (!X.Window[1] - !X.Window[0]) / 2  + !X.Window[0]
     ylocation = !Y.Window[1] + 2.75 * (!D.Y_CH_Size / Float(!D.Y_Size))
     cgText, xlocation, ylocation+.01, textoidl('k-perpendicular (!8h!X Mpc^{-1})'), $
