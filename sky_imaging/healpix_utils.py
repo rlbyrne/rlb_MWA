@@ -99,20 +99,23 @@ class HealpixMap:
             self.nside, self.pix_arr, step=1, nest=self.nest
         )
         if self.coords == 'galactic':
-            thetas_gal = []
-            phis_gal = []
-            for pixel in range(len(self.signal_arr)):
+            thetas_gal = np.zeros((len(pixels), 4), dtype=float)
+            phis_gal = np.zeros((len(pixels), 4), dtype=float)
+            for pixel in range(len(pixels)):
                 thetas_gal_pix, phis_gal_pix = hp.pixelfunc.vec2ang(
                     np.transpose(corner_coords[pixel]), lonlat=False
                 )
-                thetas_gal.append(thetas_gal_pix)
-                phis_gal.append(phis_gal_pix)
-            thetas_gal = np.array(thetas_gal)
-            phis_gal = np.array(phis_gal)
+                thetas_gal[pixel, :] = thetas_gal_pix
+                phis_gal[pixel, :] = phis_gal_pix
             rot = hp.rotator.Rotator(coord=['G', 'C'])
-            thetas_eq, phis_eq = rot(thethas_gal, phis_gal)
-            ras = phis_eq*180/math.pi
-            decs = 90. - thetas_eq*180/math.pi
+            thetas_eq = np.zeros((len(pixels), 4), dtype=float)
+            phis_eq = np.zeros((len(pixels), 4), dtype=float)
+            for corner_ind in range(4):
+                thetas_eq[:, corner_ind], phis_eq[:, corner_ind] = rot(
+                    thetas_gal[:, corner_ind], phis_gal[:, corner_ind]
+                )
+            ras = phis_eq * 180 / np.pi
+            decs = 90. - thetas_eq * 180 / np.pi
         elif self.coords == 'equatorial':
             ras = []
             decs = []
