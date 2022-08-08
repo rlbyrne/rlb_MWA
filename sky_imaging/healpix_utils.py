@@ -105,7 +105,7 @@ class HealpixMap:
                 )
                 thetas_gal[pixel, :] = thetas_gal_pix
                 phis_gal[pixel, :] = phis_gal_pix
-            rot = hp.rotator.Rotator(coord=["G", "C"])
+            rot = hp.rotator.Rotator(coord=["C", "G"])
             thetas_eq = np.zeros((len(pixels), 4), dtype=float)
             phis_eq = np.zeros((len(pixels), 4), dtype=float)
             for corner_ind in range(4):
